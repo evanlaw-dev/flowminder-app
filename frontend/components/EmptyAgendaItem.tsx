@@ -17,7 +17,7 @@ const EmptyAgendaItem: React.FC<EmptyAgendaItemProps> = ({ onAdd }) => {
       {isHovered && (
         <button
           className="w-full flex items-center justify-between px-2 py-2 rounded-lg border border-dashed border-gray-300 bg-gray-100/60 transition-all duration-200 focus:outline-none"
-          aria-label="Add agenda item"
+          aria-label="Add an agenda item"
           onClick={onAdd}
           type="button"
         >
