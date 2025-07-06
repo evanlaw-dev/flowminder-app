@@ -16,7 +16,7 @@ const io = new Server(server, {
   }
 });
 
-import zoomRoutes from './routes/zoomRoute';
+const zoomRoutes = require('./routes/zoomRoute.js');
 
 app.use(cors());
 app.use(express.json());

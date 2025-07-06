@@ -1,6 +1,6 @@
-import express from 'express';
+const express = require('express');
 const router = express.Router();
-import zoomController from '../controllers/zoomController.js';
+const zoomController = require('../controllers/zoomController.js');
 
 /**
  * Organizes all the routes associated with Zoom
@@ -9,4 +9,4 @@ import zoomController from '../controllers/zoomController.js';
 //get authenication token route
 router.get('\auth', zoomController.oauth);
 
-export default router;
+module.exports = router;
