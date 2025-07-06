@@ -16,6 +16,8 @@ const io = new Server(server, {
   }
 });
 
+import zoomRoutes from './routes/zoomRoute';
+
 app.use(cors());
 app.use(express.json());
 
@@ -33,6 +35,9 @@ io.on('connection', (socket) => {
     socket.join(meetingId);
   });
 });
+
+// Zoom routes
+app.use('\zoom', zoomRoutes);
 
 // POST /action - Log a meeting action
 app.post('/action', async (req, res) => {
