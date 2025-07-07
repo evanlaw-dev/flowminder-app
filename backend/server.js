@@ -1,5 +1,5 @@
 // Express + Socket.IO + PostgreSQL Backend for flowminder-app
-require('dotenv').config();
+require('dotenv').config({ path: '.env.local' });
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -24,6 +24,15 @@ app.use(express.json());
 // PostgreSQL connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/flowminder'
+});
+
+// Test PostgreSQL connection
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('Railway Database connection failed:', err);
+  } else {
+    console.log('Connected to PostgreSQL at:', res.rows[0].now);
+  }
 });
 
 // In-memory session state (for undo logic)
