@@ -1,13 +1,23 @@
 // Express + Socket.IO + PostgreSQL Backend for flowminder-app
-require('dotenv').config({ path: '.env.local' });
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const { Pool } = require('pg');
 const { Parser } = require('json2csv');
+const zoomRoutes = require('./routes/zoomRoute.js');
 
 const app = express();
+
+//Temporary 
+app.get('/', (req, res) => {
+  res.send('Server is running');
+});
+
+// Zoom routes
+app.use('/zoom', zoomRoutes);
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -15,8 +25,6 @@ const io = new Server(server, {
     methods: ['GET', 'POST', 'DELETE']
   }
 });
-
-const zoomRoutes = require('./routes/zoomRoute.js');
 
 app.use(cors());
 app.use(express.json());
@@ -53,9 +61,6 @@ io.on('connection', (socket) => {
     socket.join(meetingId);
   });
 });
-
-// Zoom routes
-app.use('\zoom', zoomRoutes);
 
 // POST /action - Log a meeting action
 app.post('/action', async (req, res) => {

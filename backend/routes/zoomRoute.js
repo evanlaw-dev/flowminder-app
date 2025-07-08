@@ -7,6 +7,6 @@ const zoomController = require('../controllers/zoomController.js');
  */
 
 //get authenication token route
-router.get('\auth', zoomController.oauth);
+router.get('/oauth', zoomController.oauth);
 
 module.exports = router;
