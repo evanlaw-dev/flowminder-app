@@ -10,4 +10,4 @@ function generateZoomAuthUrl() {
 
 module.exports = {
   generateZoomAuthUrl,
-};
+}
