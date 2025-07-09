@@ -8,11 +8,10 @@ const BtnAddAgendaItem: React.FC<ButtonAddAgendaItemProps> = ({ onAdd }) => {
 
   return (
     <li
-      className="relative flex items-center min-h-[2.5rem]"
+      className="relative flex items-center min-h-[2rem] mr-3"
     >
         <button
-          className={`w-full flex items-center justify-between px-1.5 py-1.5 cursor-pointer rounded-lg border border-gray-300 bg-gray-100/60 hover:scale-105 border-dashed transition-all duration-200 focus:outline-none`}
-
+          className={`w-full flex items-center justify-between px-1.5 py-1.5 cursor-pointer rounded-lg border border-gray-300 bg-stone-400/60 hover:scale-105 border-dashed transition-all duration-200 focus:outline-none`}
           aria-label="Add an agenda item"
           title="Add an agenda item"
           onClick={onAdd}

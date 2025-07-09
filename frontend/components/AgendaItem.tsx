@@ -86,11 +86,11 @@ function AgendaItem({ item, onChange, onRemove, renderAsDiv = false }: AgendaIte
   return (
     <Wrapper
       // className="flex items-center gap-3 mb-2 group"
-      className="relative items-center w-full mr-3"
+      className="relative mr-3"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="relative w-full">
+      <div className="">
 
         {/* Placeholder text when empty and not editing */}
         {isEmpty && !isEditing && (
@@ -106,7 +106,7 @@ function AgendaItem({ item, onChange, onRemove, renderAsDiv = false }: AgendaIte
           onClick={handleClick}
           onBlurCapture={handleBlur}
           onInput={handleInput}
-          className={`min-w-[12rem] max-w-[18rem] pr-6 w-full min-h-[2.5rem] whitespace-pre-wrap break-words overflow-y-auto p-2 rounded-lg border focus:outline-none focus:ring-2 bg-white
+          className={`min-w-[80%] p-2 pr-10 w-full min-h-[2rem] whitespace-pre-wrap break-words overflow-y-auto rounded-lg border focus:outline-none focus:ring-2 bg-white
             ${isEditing ? 'border-blue-100' : 'border-gray-300 hover:border-gray-400'}
             ${isEmpty ? 'text-gray-400 italic' : 'text-black'}`}
           spellCheck={false}

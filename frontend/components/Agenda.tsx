@@ -131,7 +131,6 @@ export default function Agenda() {
 
   // Load initial data once per component mount
   // TO-DO: fetch agenda items from server
-
   useEffect(() => {
     const dummyData = [
       { id: "1", text: "Discuss UI layout" },
@@ -143,9 +142,9 @@ export default function Agenda() {
 
   return (
     <>
-      <div className="relative">
+      <div className="w-[80%] relative">
         {/* Main agenda container */}
-        <div className="bg-gray-100 p-8 rounded-lg space-y-4">
+        <div className="bg-stone-400/95 p-8 rounded-lg space-y-4">
           <h2 className="font-semibold text-lg">next on the agenda…</h2>
 
           {/* Conditionally render: If no items, show a placeholder and an empty item, 
@@ -186,18 +185,24 @@ export default function Agenda() {
             <BtnAddTimersPadding isHovered={isHovered} onAddTimers={() => { }} />
           </div>
 
-          {/* Action buttons */}
-          {items.filter((item) => item.isEdited || item.isDeleted).length > 0 && (
-            <div className="flex">
+          {/* Action buttons 
+          appear when: 
+          - an existing item is edited / deleted
+          - a new item is added && edited
+
+          FUTURE FIX: they should not appear if a new item is edited then deleted. (not super urgent)
+          */}
+          {items.filter((item) => (item.isEdited || item.isDeleted)).length > 0 && (
+            <div className="flex gap-2">
               <button
                 onClick={resetItems}
-                className="flex-1 rounded-full border border-black/10 hover:bg-gray-200 h-10 sm:h-12"
+                className="flex-1 rounded-full border border-black/10 hover:bg-stone-400 h-10 sm:h-12"
               >
                 Cancel
               </button>
               <button
                 onClick={saveItems}
-                className="flex-1 rounded-full bg-black text-white hover:bg-neutral-800 h-10 sm:h-12"
+                className="flex-1 rounded-full bg-red-800/85 text-white hover:bg-red-900/90 h-10 sm:h-12"
               >
                 Save
               </button>

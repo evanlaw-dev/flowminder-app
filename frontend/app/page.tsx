@@ -1,17 +1,15 @@
 import Agenda from '@/components/Agenda';
-// import Header from '@/components/Header';
-
+import DisplayRequests from '@/components/DisplayRequests';
+import Header from '@/components/Header';
+import Nudge from '@/components/Nudge';
 
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        {/* <Header /> */}
-        <div></div>
+      <main className="max-h-xl min-h-100 py-8 flex flex-col items-center w-full max-w-md gap-3 px-4 mx-auto">
+        <Header topic="Write user stories" timer="00:15:23" />
+        <Nudge />
         <Agenda />
+        <DisplayRequests />
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-      </footer>
-    </div>
   );
 }
