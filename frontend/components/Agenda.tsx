@@ -131,13 +131,24 @@ export default function Agenda() {
 
   // Load initial data once per component mount
   // TO-DO: fetch agenda items from server
+
+  // // For now, we use dummy data to simulate loading
+  // useEffect(() => {
+  //   const dummyData = [
+  //     { id: "1", text: "Discuss UI layout" },
+  //     { id: "2", text: "Plan roadmap" },
+  //     { id: "3", text: "Implement authentication" },
+  //   ];
+  //   dispatch({ type: "LOAD", items: dummyData });
+  // }, []);
+
+  // Fetch agenda items from the backend
   useEffect(() => {
-    const dummyData = [
-      { id: "1", text: "Discuss UI layout" },
-      { id: "2", text: "Plan roadmap" },
-      { id: "3", text: "Implement authentication" },
-    ];
-    dispatch({ type: "LOAD", items: dummyData });
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda?meeting_id=test-meeting-id`)
+      .then((res) => res.json())
+      .then((data) => {
+        dispatch({ type: "LOAD", items: data.items });
+      });
   }, []);
 
   return (
