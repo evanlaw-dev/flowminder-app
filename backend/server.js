@@ -62,6 +62,21 @@ io.on('connection', (socket) => {
   });
 });
 
+// POST /agenda - Create a new agenda item
+app.post('/agenda', async (req, res) => {
+  const { meeting_id, topic, description, assigned_to, duration_seconds } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO agenda_items (meeting_id, topic, description, assigned_to, duration_seconds) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [meeting_id, topic, description, assigned_to, duration_seconds]
+    );
+    res.json({ success: true, item: result.rows[0] });
+  } catch (err) {
+    console.error('Error inserting into agenda_items:', err);
+    res.status(500).json({ success: false, error: 'Failed to save agenda item' });
+  }
+});
+
 // POST /action - Log a meeting action
 app.post('/action', async (req, res) => {
   const { meeting_id, action_type } = req.body;
