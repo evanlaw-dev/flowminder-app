@@ -22,10 +22,10 @@ const BtnAddAgendaItem: React.FC<ButtonAddAgendaItemProps> = ({ onAdd }) => {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                meeting_id: 'test-meeting-id',
+                meeting_id: 'a8f52a02-5aa8-45ec-9549-79ad2a194fa4', // test meeting ID
                 topic: 'New agenda item',
-                description: '',
-                assigned_to: '',
+                description: 'test description',
+                assigned_to: 'test-user-id',
                 duration_seconds: 300
               })
             })

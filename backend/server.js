@@ -72,6 +72,7 @@ app.post('/agenda', async (req, res) => {
     );
     res.json({ success: true, item: result.rows[0] });
   } catch (err) {
+    console.error('Error inserting into agenda_items:', err);
     res.status(500).json({ success: false, error: 'Failed to save agenda item' });
   }
 });
