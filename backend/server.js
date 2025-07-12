@@ -65,6 +65,7 @@ io.on('connection', (socket) => {
 // POST /agenda - Create a new agenda item
 app.post('/agenda', async (req, res) => {
   const { meeting_id, topic, description, assigned_to, duration_seconds } = req.body;
+  console.log("Creating agenda item:", { meeting_id, topic, description, assigned_to, duration_seconds });
   try {
     const result = await pool.query(
       'INSERT INTO agenda_items (meeting_id, topic, description, assigned_to, duration_seconds) VALUES ($1, $2, $3, $4, $5) RETURNING *',
