@@ -23,11 +23,12 @@ interface AgendaItemProps {
   onChange: (id: string, newText: string) => void;
   onRemove: (id: string) => void;
   renderAsDiv?: boolean; 
+  canEdit?: boolean;
 }
 
 
 // The AgendaItem component
-function AgendaItem({ item, onChange, onRemove, renderAsDiv = false }: AgendaItemProps) {
+function AgendaItem({ item, onChange, onRemove, renderAsDiv = false, canEdit = true }: AgendaItemProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isEmpty, setIsEmpty] = useState(true);
@@ -43,6 +44,13 @@ function AgendaItem({ item, onChange, onRemove, renderAsDiv = false }: AgendaIte
     }
   }, [item.text]);
 
+  // If the item is not editable, just render it as a static list item
+  // This is useful for participants who should not edit agenda items
+  if (!canEdit) {
+    return (
+      <li className="text-black p-2">{item.text}</li>
+    );
+  }
 
   // responsible for user interaction when they click on the text div
   const handleClick = () => {

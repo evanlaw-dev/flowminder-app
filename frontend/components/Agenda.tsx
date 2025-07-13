@@ -106,8 +106,7 @@ function agendaReducer(state: AgendaItemType[], action: AgendaAction): AgendaIte
 }
 
 /* COMPONENT */
-export default function Agenda() {
-
+export default function Agenda({ role = "participant" }: { role?: "host" | "participant" }) {
   // STATE
   // Uses a reducer to manage agenda items state
   const [items, dispatch] = useReducer(agendaReducer, []);
@@ -202,12 +201,13 @@ export default function Agenda() {
                     item={item}
                     onChange={changeItem}
                     onRemove={removeItem}
+                    canEdit={role === 'host'}
                   />
                 ))}
               </ul>
             </>
           )}
-          <BtnAddAgendaItem onAdd={addItem} />
+          {role === "host" && <BtnAddAgendaItem onAdd={addItem} />}
 
           {/* Right "padding" area */}
           <div
@@ -226,7 +226,7 @@ export default function Agenda() {
 
           FUTURE FIX: they should not appear if a new item is edited then deleted. (not super urgent)
           */}
-          {items.filter((item) => (item.isEdited || item.isDeleted)).length > 0 && (
+          {role === 'host' && items.filter((item) => (item.isEdited || item.isDeleted)).length > 0 && (
             <div className="flex gap-2">
               <button
                 onClick={resetItems}
