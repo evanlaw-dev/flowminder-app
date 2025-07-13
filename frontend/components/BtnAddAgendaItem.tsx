@@ -14,28 +14,7 @@ const BtnAddAgendaItem: React.FC<ButtonAddAgendaItemProps> = ({ onAdd }) => {
           className={`w-full flex items-center justify-between px-1.5 py-1.5 cursor-pointer rounded-lg border border-gray-300 bg-stone-400/60 hover:scale-105 border-dashed transition-all duration-200 focus:outline-none`}
           aria-label="Add an agenda item"
           title="Add an agenda item"
-          onClick={() => {
-            
-            // Adding a new agenda item via API call
-            console.log("Adding new agenda item...");
-            fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                meeting_id: 'a8f52a02-5aa8-45ec-9549-79ad2a194fa4', // test meeting ID
-                topic: 'New agenda item',
-                description: 'test description',
-                assigned_to: 'test-user-id',
-                duration_seconds: 300
-              })
-            })
-              .then(res => res.json())
-              .then(data => {
-                console.log("Agenda item created:", data);
-                onAdd(); // still dispatch locally if needed to trigger UI change
-              })
-              .catch(err => console.error("Error creating agenda item:", err));
-          }}
+          onClick={onAdd}
           type="button"
         >
           {/* Simulated faded lines */}

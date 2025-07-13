@@ -122,8 +122,31 @@ export default function Agenda() {
   const removeItem = (id: string) => dispatch({ type: "REMOVE", id });
   const resetItems = () => dispatch({ type: "RESET" });
 
-  const saveItems = () => {
-    // TODO: Implement save logic
+  const saveItems = async () => {
+    // Only save items that are new, edited, or deleted, and whose text is not empty
+    const itemsToSave = items.filter(
+      it => (it.isEdited || it.isNew || it.isDeleted) && it.text.trim() !== ""
+    );
+
+    for (const item of itemsToSave) {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            meeting_id: 'a8f52a02-5aa8-45ec-9549-79ad2a194fa4',  // Replace with real dynamic ID later
+            agenda_item: item.text,
+            duration_seconds: 200
+          })
+        });
+  
+        const result = await response.json();
+        console.log('Saved agenda item:', result);
+  
+      } catch (error) {
+        console.error('Error saving agenda item:', error);
+      }
+    }
   };
 
   // EFFECTS
