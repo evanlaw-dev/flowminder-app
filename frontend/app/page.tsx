@@ -10,7 +10,7 @@ function ClientOnlyAgendaWrapper() {
   const searchParams = useSearchParams();
 
   // TODO change default role to 'participant'. currently set to 'host' for testing purposes
-  const role = searchParams.get('role') === 'host' ? 'host' : 'host'; 
+  const role = searchParams.get('role') === 'host' ? 'host' : 'participant'; 
   return <Agenda role={role} />;
 }
 
