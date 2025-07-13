@@ -68,8 +68,8 @@ app.post('/agenda', async (req, res) => {
   console.log("Creating agenda item:", { meeting_id, topic, description, assigned_to, duration_seconds });
   try {
     const result = await pool.query(
-      'INSERT INTO agenda_items (meeting_id, topic, description, assigned_to, duration_seconds) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [meeting_id, topic, description, assigned_to, duration_seconds]
+      'INSERT INTO agenda_items (meeting_id, topic, description, assigned_to, duration_seconds) VALUES ($1, $2, $3) RETURNING *',
+      [meeting_id, agenda_item, duration_seconds]
     );
     res.json({ success: true, item: result.rows[0] });
   } catch (err) {

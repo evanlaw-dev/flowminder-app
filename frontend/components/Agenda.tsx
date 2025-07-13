@@ -124,6 +124,24 @@ export default function Agenda() {
 
   const saveItems = () => {
     // TODO: Implement save logic
+    const itemsToSave = items.filter(it => it.isEdited || it.isNew || it.isDeleted);
+
+    for (const item of itemsToSave) {
+      if (item.isNew) {
+        // POST request to create a new item
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            meeting_id: 'test-meeting-id', // Replace with actual meeting ID
+            topic: item.text,
+            duration_seconds: 300 // Placeholder for duration
+          })
+        })
+          .then(res => res.json())
+          .then(data => {
+            dispatch({ type: "SAVE_SUCCESS", savedItems: [data] });
+          });
   };
 
   // EFFECTS
