@@ -7,6 +7,7 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const { Parser } = require('json2csv');
 const zoomRoutes = require('./routes/zoomRoute.js');
+const agendaController = require('./controllers/agendaController.js');
 
 const app = express();
 
@@ -63,20 +64,7 @@ io.on('connection', (socket) => {
 });
 
 // POST /agenda - Create a new agenda item
-app.post('/agenda', async (req, res) => {
-  const { meeting_id, agenda_item, duration_seconds } = req.body;
-  console.log("Creating agenda item:", { meeting_id, agenda_item, duration_seconds });
-  try {
-    const result = await pool.query(
-      'INSERT INTO agenda_items (meeting_id, agenda_item, duration_seconds) VALUES ($1, $2, $3) RETURNING *',
-      [meeting_id, agenda_item, duration_seconds]
-    );
-    res.json({ success: true, item: result.rows[0] });
-  } catch (err) {
-    console.error('Error inserting into agenda_items:', err);
-    res.status(500).json({ success: false, error: 'Failed to save agenda item' });
-  }
-});
+app.post('/agenda', (req, res) => agendaController.createAgendaItem(pool, req, res));
 
 // POST /action - Log a meeting action
 app.post('/action', async (req, res) => {
@@ -155,6 +143,15 @@ app.get('/download/:meetingId', async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to export actions as CSV' });
   }
 });
+
+// GET /agenda?meeting_id=... - Fetch all agenda items for a meeting (with timer state)
+app.get('/agenda', (req, res) => agendaController.getAgendaItems(pool, req, res));
+
+// PATCH /agenda/:id/timer - Update timer state for an agenda item
+app.patch('/agenda/:id/timer', (req, res) => agendaController.updateAgendaTimer(pool, req, res));
+
+// POST /agenda/:id/timer/reset - Reset timer for an agenda item to its initial value
+app.post('/agenda/:id/timer/reset', (req, res) => agendaController.resetAgendaTimer(pool, req, res));
 
 // Health check
 app.get('/health', (req, res) => {
