@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, type FC } from 'react';
 import type * as ReactNamespace from 'react';
 import io from 'socket.io-client';
 import { FaTimes } from 'react-icons/fa';
+import { useRouter } from 'next/navigation';
 // If you see type errors for these imports, run:
 //   npm install --save-dev @types/react @types/react-dom @types/react-icons @types/socket.io-client
 
@@ -16,6 +17,12 @@ interface AgendaItemType {
   isNew: boolean;
   isEdited: boolean;
   isDeleted: boolean;
+  // Timer fields
+  timer_value?: number;
+  is_running?: boolean;
+  last_updated?: string;
+  initial_value?: number;
+  duration_seconds?: number;
 }
 
 interface AgendaItemProps {
@@ -40,17 +47,30 @@ interface TimerState {
 // The AgendaItem component
 const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
   const { item, onChange, onRemove, renderAsDiv = false, canEdit = true } = props;
+  console.log('AgendaItem received item:', item);
   const [isHovered, setIsHovered] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isEmpty, setIsEmpty] = useState<boolean>(true);
   const divRef = useRef<HTMLDivElement | null>(null);
-  const [timer, setTimer] = useState<TimerState | null>(null);
+  // Remove socket and local timer state logic for now
   const [timerInput, setTimerInput] = useState<string>('');
+  const router = useRouter();
+
+  // Timer display logic
+  const formatTime = (secs?: number) => {
+    if (typeof secs !== 'number' || isNaN(secs)) return '--:--';
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
   useEffect(() => {
     socket.emit('joinMeeting', meetingId);
     const handleUpdate = ({ agendaItemId, timerState }: { agendaItemId: string; timerState: TimerState }) => {
-      if (agendaItemId === item.id) setTimer(timerState);
+      if (agendaItemId === item.id) {
+        // This part is no longer needed as timer state is passed as a prop
+        // setTimer(timerState);
+      }
     };
     socket.on('timer:update', handleUpdate);
     return () => {
@@ -105,24 +125,48 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
     }
   };
 
-  // Timer actions (host only)
-  const startTimer = () => {
-    const duration = timer ? timer.remaining : parseInt(timerInput) || 300;
-    socket.emit('timer:start', { meetingId, agendaItemId: item.id, duration });
+  // Timer control handlers (call backend and refresh agenda)
+  const startTimer = async () => {
+    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda/${item.id}/timer`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        timer_value: item.timer_value ?? item.duration_seconds ?? 0,
+        is_running: true,
+        last_updated: new Date().toISOString(),
+        initial_value: item.initial_value ?? item.duration_seconds ?? 0
+      })
+    });
+    router.refresh();
   };
-  const pauseTimer = () => socket.emit('timer:pause', { meetingId, agendaItemId: item.id });
-  const resetTimer = () => socket.emit('timer:reset', { meetingId, agendaItemId: item.id });
-  const editTimer = () => {
+  const pauseTimer = async () => {
+    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda/${item.id}/timer`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_running: false, last_updated: new Date().toISOString() })
+    });
+    router.refresh();
+  };
+  const resetTimer = async () => {
+    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda/${item.id}/timer/reset`, {
+      method: 'POST'
+    });
+    router.refresh();
+  };
+  const editTimer = async () => {
     const newDuration = parseInt(timerInput);
     if (!isNaN(newDuration)) {
-      socket.emit('timer:edit', { meetingId, agendaItemId: item.id, newDuration });
+      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda/${item.id}/timer`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          timer_value: newDuration,
+          initial_value: newDuration,
+          last_updated: new Date().toISOString()
+        })
+      });
+      router.refresh();
     }
-  };
-
-  const formatTime = (secs: number) => {
-    const m = Math.floor((secs || 0) / 60);
-    const s = (secs || 0) % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -164,26 +208,31 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
             <FaTimes />
           </button>
         )}
-        {/* Timer UI */}
-        <div className="mt-2 flex items-center gap-2">
-          <span className="font-mono text-sm">
-            Timer: {timer ? formatTime(timer.remaining) : '--:--'}
-          </span>
+        {/* Timer UI (centered display and controls) */}
+        <div className="mt-2 flex flex-col items-center">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="font-mono text-sm">
+              Timer: {formatTime(item.timer_value)}
+            </span>
+            <span className="text-xs text-gray-600">
+              {item.is_running ? 'Running' : 'Paused'}
+            </span>
+          </div>
           {isHost && (
-            <>
-              <button onClick={startTimer} className="ml-2 px-2 py-1 bg-green-200 rounded">Start</button>
-              <button onClick={pauseTimer} className="ml-1 px-2 py-1 bg-yellow-200 rounded">Pause</button>
-              <button onClick={resetTimer} className="ml-1 px-2 py-1 bg-gray-200 rounded">Reset</button>
+            <div className="flex flex-row flex-wrap justify-center items-center gap-2">
+              <button onClick={startTimer} className="px-2 py-1 bg-green-200 rounded">Start</button>
+              <button onClick={pauseTimer} className="px-2 py-1 bg-yellow-200 rounded">Pause</button>
+              <button onClick={resetTimer} className="px-2 py-1 bg-gray-200 rounded">Reset</button>
               <input
                 type="number"
                 min="1"
                 placeholder="sec"
                 value={timerInput}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTimerInput(e.target.value)}
-                className="ml-2 w-16 px-1 border rounded"
+                className="w-16 px-1 border rounded"
               />
-              <button onClick={editTimer} className="ml-1 px-2 py-1 bg-blue-200 rounded">Set</button>
-            </>
+              <button onClick={editTimer} className="px-2 py-1 bg-blue-200 rounded">Set</button>
+            </div>
           )}
         </div>
       </div>
