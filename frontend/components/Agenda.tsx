@@ -15,6 +15,12 @@ export interface AgendaItemType {
   isNew: boolean;
   isEdited: boolean;
   isDeleted: boolean;
+  // Timer fields from backend
+  timer_value?: number;
+  is_running?: boolean;
+  last_updated?: string;
+  initial_value?: number;
+  duration_seconds?: number;
 }
 
 type AgendaAction =
@@ -32,10 +38,16 @@ function agendaReducer(state: AgendaItemType[], action: AgendaAction): AgendaIte
     case "LOAD":
       return action.items.map((it) => ({
         ...it,
-        originalText: it.text,
+        text: it.text || it.agenda_item || "",
+        originalText: it.text || it.agenda_item || "",
         isNew: false,
         isEdited: false,
         isDeleted: false,
+        timer_value: it.timer_value,
+        is_running: it.is_running,
+        last_updated: it.last_updated,
+        initial_value: it.initial_value,
+        duration_seconds: it.duration_seconds,
       }));
 
     case "ADD":
@@ -169,6 +181,7 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
     fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda?meeting_id=test-meeting-id`)
       .then((res) => res.json())
       .then((data) => {
+        console.log('Fetched agenda items from backend:', data.items);
         dispatch({ type: "LOAD", items: data.items });
       });
   }, []);
@@ -195,15 +208,18 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
           ) : (
             <>
               <ul className="space-y-2 list-none mb-2">
-                {visibleItems.map((item) => (
-                  <AgendaItem
-                    key={item.id}
-                    item={item}
-                    onChange={changeItem}
-                    onRemove={removeItem}
-                    canEdit={role === 'host'}
-                  />
-                ))}
+                {visibleItems.map((item) => {
+                  console.log('Passing item to AgendaItem:', item);
+                  return (
+                    <AgendaItem
+                      key={item.id}
+                      item={item}
+                      onChange={changeItem}
+                      onRemove={removeItem}
+                      // Pass timer fields as props if needed in AgendaItem
+                    />
+                  );
+                })}
               </ul>
             </>
           )}
