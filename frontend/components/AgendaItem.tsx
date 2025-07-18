@@ -29,7 +29,6 @@ interface AgendaItemProps {
   item: AgendaItemType;
   onChange: (id: string, newText: string) => void;
   onRemove: (id: string) => void;
-  onAdd?: () => void; // Add this prop
   renderAsDiv?: boolean;
   canEdit?: boolean;
 }
@@ -191,14 +190,6 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
           onClick={handleClick}
           onBlurCapture={handleBlur}
           onInput={handleInput}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              if (typeof props.onAdd === 'function') {
-                props.onAdd();
-              }
-            }
-          }}
           className={`min-w-[80%] p-2 pr-10 w-full min-h-[2rem] whitespace-pre-wrap break-words overflow-y-auto rounded-lg border focus:outline-none focus:ring-2 bg-white
             ${isEditing ? 'border-blue-100' : 'border-gray-300 hover:border-gray-400'}
             ${isEmpty ? 'text-gray-400 italic' : 'text-black'}`}
