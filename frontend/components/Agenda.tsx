@@ -24,7 +24,7 @@ export interface AgendaItemType {
 }
 
 type AgendaAction =
-  | { type: "LOAD"; items: AgendaItemType[] }
+  | { type: "LOAD"; items: { id: string; text: string }[] }
   | { type: "ADD" }
   | { type: "CHANGE"; id: string; text: string, isEdited?: boolean }
   | { type: "REMOVE"; id: string, isDeleted?: boolean }
@@ -38,16 +38,16 @@ function agendaReducer(state: AgendaItemType[], action: AgendaAction): AgendaIte
     case "LOAD":
       return action.items.map((it) => ({
         ...it,
-        text: it.text || (it as any).agenda_item || "",
-        originalText: it.text || (it as any).agenda_item || "",
+        text: it.text || it.agenda_item || "",
+        originalText: it.text || it.agenda_item || "",
         isNew: false,
         isEdited: false,
         isDeleted: false,
-        timer_value: (it as any).timer_value,
-        is_running: (it as any).is_running,
-        last_updated: (it as any).last_updated,
-        initial_value: (it as any).initial_value,
-        duration_seconds: (it as any).duration_seconds,
+        timer_value: it.timer_value,
+        is_running: it.is_running,
+        last_updated: it.last_updated,
+        initial_value: it.initial_value,
+        duration_seconds: it.duration_seconds,
       }));
 
     case "ADD":
@@ -133,7 +133,6 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
   const removeItem = (id: string) => dispatch({ type: "REMOVE", id });
   const resetItems = () => dispatch({ type: "RESET" });
 
-  const MEETING_ID = 'test-meeting-id'; // Use the same meeting_id everywhere
   const saveItems = async () => {
     // Only save items that are new, edited, or deleted, and whose text is not empty
     const itemsToSave = items.filter(
@@ -142,19 +141,18 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
 
     for (const item of itemsToSave) {
       try {
-        console.log('Saving agenda item:', item);
         const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            meeting_id: MEETING_ID,
+            meeting_id: 'a8f52a02-5aa8-45ec-9549-79ad2a194fa4',  // Replace with real dynamic ID later
             agenda_item: item.text,
             duration_seconds: 200
           })
         });
   
         const result = await response.json();
-        console.log('Saved agenda item response:', result);
+        console.log('Saved agenda item:', result);
   
       } catch (error) {
         console.error('Error saving agenda item:', error);
@@ -180,20 +178,11 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
 
   // Fetch agenda items from the backend
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda?meeting_id=${MEETING_ID}`)
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda?meeting_id=test-meeting-id`)
       .then((res) => res.json())
       .then((data) => {
         console.log('Fetched agenda items from backend:', data.items);
-        if (Array.isArray(data.items)) {
-          dispatch({ type: "LOAD", items: data.items });
-        } else {
-          dispatch({ type: "LOAD", items: [] });
-        }
-      })
-      .catch((error) => {
-        console.error('Error fetching agenda items:', error);
-        // Optionally, dispatch an error action to update UI
-        dispatch({ type: "LOAD", items: [] });
+        dispatch({ type: "LOAD", items: data.items });
       });
   }, []);
 
@@ -227,7 +216,6 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
                       item={item}
                       onChange={changeItem}
                       onRemove={removeItem}
-                      onAdd={addItem}
                       // Pass timer fields as props if needed in AgendaItem
                     />
                   );
