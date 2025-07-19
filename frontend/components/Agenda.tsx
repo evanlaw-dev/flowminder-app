@@ -118,13 +118,26 @@ function agendaReducer(state: AgendaItemType[], action: AgendaAction): AgendaIte
 }
 
 /* COMPONENT */
-export default function Agenda({ role = "participant" }: { role?: "host" | "participant" }) {
+export default function Agenda({ 
+  role = "participant", 
+  onAgendaItemsChange 
+}: { 
+  role?: "host" | "participant";
+  onAgendaItemsChange?: (items: AgendaItemType[]) => void;
+}) {
   // STATE
   // Uses a reducer to manage agenda items state
   const [items, dispatch] = useReducer(agendaReducer, []);
 
   // Filter out deleted items for display
   const visibleItems = items.filter(it => !it.isDeleted);
+
+  // Notify parent component when items change
+  useEffect(() => {
+    if (onAgendaItemsChange) {
+      onAgendaItemsChange(items);
+    }
+  }, [items, onAgendaItemsChange]);
 
 
   const addItem = () => dispatch({ type: "ADD" });
