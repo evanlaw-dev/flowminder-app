@@ -206,7 +206,8 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
 
   // Fetch agenda items from the backend
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda?meeting_id=${MEETING_ID}`)
+    // Temporarily use test endpoint to avoid database issues
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda/test?meeting_id=${MEETING_ID}`)
       .then((res) => res.json())
       .then((data) => {
         console.log('Fetched agenda items from backend:', data.items);
