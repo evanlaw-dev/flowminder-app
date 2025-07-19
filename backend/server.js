@@ -78,6 +78,19 @@ app.get('/agenda/test', (req, res) => {
   });
 });
 
+// Test endpoint for action requests (without database)
+app.post('/action', (req, res) => {
+  const { meeting_id, action_type } = req.body;
+  console.log('Received action request:', { meeting_id, action_type });
+  
+  // Return a mock response
+  res.json({ 
+    success: true, 
+    message: `${action_type} action processed successfully`,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Zoom routes
 app.use('/zoom', zoomRoutes);
 
