@@ -2,12 +2,8 @@ import React from 'react'
 
 function BtnNudge({ text }: { text: string }) {
   const handleClick = async () => {
-    console.log('Button clicked:', text);
-    console.log('Backend URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
-    
     try {
       const actionType = text.toLowerCase().replace(/\s+/g, '_');
-      console.log('Action type:', actionType);
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/action`, {
         method: 'POST',
@@ -18,9 +14,7 @@ function BtnNudge({ text }: { text: string }) {
         })
       });
       
-      console.log('Response status:', response.status);
       const result = await response.json();
-      console.log('Response result:', result);
       
       if (response.ok) {
         console.log(`${text} request sent successfully`);

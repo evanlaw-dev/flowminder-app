@@ -10,13 +10,16 @@ function DisplayRequests() {
   const fetchRequestCounts = async () => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/request-counts`);
+      
       if (response.ok) {
         const data = await response.json();
+        
         if (data.success && data.counts) {
-          setRequestCounts({
+          const newCounts = {
             extraTime: data.counts.extra_time || 0,
             moveAlong: data.counts.move_along || 0
-          });
+          };
+          setRequestCounts(newCounts);
         }
       }
     } catch (error) {
