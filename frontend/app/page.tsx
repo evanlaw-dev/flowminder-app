@@ -4,7 +4,7 @@ import DisplayRequests from '@/components/DisplayRequests';
 import CurrentAgendaItem from '@/components/CurrentAgendaItem';
 import Nudge from '@/components/Nudge';
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 
 interface AgendaItemType {
   id: string;
@@ -34,15 +34,15 @@ export default function Home() {
   const [agendaItems, setAgendaItems] = useState<AgendaItemType[]>([]);
   const [currentItemIndex, setCurrentItemIndex] = useState(0);
 
-  const handleAgendaItemsChange = (items: AgendaItemType[]) => {
+  const handleAgendaItemsChange = useCallback((items: AgendaItemType[]) => {
     setAgendaItems(items);
-  };
+  }, []);
 
-  const handleNextItem = () => {
+  const handleNextItem = useCallback(() => {
     if (currentItemIndex < agendaItems.length - 1) {
       setCurrentItemIndex(currentItemIndex + 1);
     }
-  };
+  }, [currentItemIndex, agendaItems.length]);
 
   // Reset current item index when agenda items change
   useEffect(() => {

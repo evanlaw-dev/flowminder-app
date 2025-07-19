@@ -76,7 +76,7 @@ function CurrentAgendaItem({ agendaItems = [], currentItemIndex = 0, onNextItem 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning, timeLeft, topic]);
+  }, [isRunning, timeLeft]); // Removed 'topic' from dependencies to prevent timer restart
 
   // Format time for display
   const formatTime = (totalSeconds: number) => {
