@@ -15,6 +15,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Request count tracking (in-memory for now)
+let requestCounts = {
+  extra_time: 0,
+  move_along: 0
+};
+
 //Temporary 
 app.get('/', (req, res) => {
   res.send('Server is running');
@@ -78,16 +84,32 @@ app.get('/agenda/test', (req, res) => {
   });
 });
 
-// Test endpoint for action requests (move along, invite to speak)
+// Test endpoint for action requests (move along, invite to speak, request extra time)
 app.post('/action', (req, res) => {
   const { meeting_id, action_type } = req.body;
   console.log('Received action request:', { meeting_id, action_type });
+  
+  // Update request counts based on action type
+  if (action_type === 'move_along') {
+    requestCounts.move_along++;
+  } else if (action_type === 'request_extra_time') {
+    requestCounts.extra_time++;
+  }
   
   // Return a mock response
   res.json({ 
     success: true, 
     message: `${action_type} action processed successfully`,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    current_counts: requestCounts
+  });
+});
+
+// Endpoint to get current request counts
+app.get('/request-counts', (req, res) => {
+  res.json({
+    success: true,
+    counts: requestCounts
   });
 });
 
