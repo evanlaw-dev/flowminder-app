@@ -57,6 +57,10 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
   const [timerInput, setTimerInput] = useState<string>('');
   const router = useRouter();
 
+  // Real-time timer state
+  const [localTimerValue, setLocalTimerValue] = useState<number>(item.timer_value || item.duration_seconds || 0);
+  const [localIsRunning, setLocalIsRunning] = useState<boolean>(item.is_running || false);
+
   // Timer display logic
   const formatTime = (secs?: number) => {
     if (typeof secs !== 'number' || isNaN(secs)) return '--:--';
@@ -64,6 +68,43 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
     const s = secs % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
+
+  // Real-time countdown effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (localIsRunning && localTimerValue > 0) {
+      interval = setInterval(() => {
+        setLocalTimerValue(prev => {
+          const newValue = Math.max(0, prev - 1);
+          
+          // Auto-pause when timer reaches 0
+          if (newValue === 0) {
+            setLocalIsRunning(false);
+            // Optionally show notification or play sound
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification('Timer Complete!', {
+                body: `Timer for "${item.text}" has finished.`,
+                icon: '/favicon.ico'
+              });
+            }
+          }
+          
+          return newValue;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [localIsRunning, localTimerValue, item.text]);
+
+  // Sync with item props when they change
+  useEffect(() => {
+    setLocalTimerValue(item.timer_value || item.duration_seconds || 0);
+    setLocalIsRunning(item.is_running || false);
+  }, [item.timer_value, item.duration_seconds, item.is_running]);
 
   useEffect(() => {
     socket.emit('joinMeeting', meetingId);
@@ -128,11 +169,12 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
 
   // Timer control handlers (call backend and refresh agenda)
   const startTimer = async () => {
+    setLocalIsRunning(true);
     await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda/${item.id}/timer`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        timer_value: item.timer_value ?? item.duration_seconds ?? 0,
+        timer_value: localTimerValue,
         is_running: true,
         last_updated: new Date().toISOString(),
         initial_value: item.initial_value ?? item.duration_seconds ?? 0
@@ -140,23 +182,36 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
     });
     router.refresh();
   };
+  
   const pauseTimer = async () => {
+    setLocalIsRunning(false);
     await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda/${item.id}/timer`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ is_running: false, last_updated: new Date().toISOString() })
+      body: JSON.stringify({ 
+        timer_value: localTimerValue,
+        is_running: false, 
+        last_updated: new Date().toISOString() 
+      })
     });
     router.refresh();
   };
+  
   const resetTimer = async () => {
+    const initialValue = item.initial_value ?? item.duration_seconds ?? 0;
+    setLocalTimerValue(initialValue);
+    setLocalIsRunning(false);
     await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda/${item.id}/timer/reset`, {
       method: 'POST'
     });
     router.refresh();
   };
+  
   const editTimer = async () => {
     const newDuration = parseInt(timerInput);
-    if (!isNaN(newDuration)) {
+    if (!isNaN(newDuration) && newDuration > 0) {
+      setLocalTimerValue(newDuration);
+      setLocalIsRunning(false);
       await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda/${item.id}/timer`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -166,8 +221,25 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
           last_updated: new Date().toISOString()
         })
       });
+      setTimerInput('');
       router.refresh();
     }
+  };
+
+  // Quick timer presets
+  const setQuickTimer = async (seconds: number) => {
+    setLocalTimerValue(seconds);
+    setLocalIsRunning(false);
+    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda/${item.id}/timer`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        timer_value: seconds,
+        initial_value: seconds,
+        last_updated: new Date().toISOString()
+      })
+    });
+    router.refresh();
   };
 
   return (
@@ -220,27 +292,63 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
         {/* Timer UI (centered display and controls) */}
         <div className="mt-2 flex flex-col items-center">
           <div className="flex items-center gap-2 mb-2">
-            <span className="font-mono text-sm">
-              Timer: {formatTime(item.timer_value)}
+            <span className={`font-mono text-lg font-bold ${localTimerValue <= 30 && localIsRunning ? 'text-red-600' : 'text-gray-800'}`}>
+              {formatTime(localTimerValue)}
             </span>
-            <span className="text-xs text-gray-600">
-              {item.is_running ? 'Running' : 'Paused'}
+            <span className={`text-xs px-2 py-1 rounded-full ${localIsRunning ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+              {localIsRunning ? 'Running' : 'Paused'}
             </span>
           </div>
           {isHost && (
-            <div className="flex flex-row flex-wrap justify-center items-center gap-2">
-              <button onClick={startTimer} className="px-2 py-1 bg-green-200 rounded">Start</button>
-              <button onClick={pauseTimer} className="px-2 py-1 bg-yellow-200 rounded">Pause</button>
-              <button onClick={resetTimer} className="px-2 py-1 bg-gray-200 rounded">Reset</button>
-              <input
-                type="number"
-                min="1"
-                placeholder="sec"
-                value={timerInput}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTimerInput(e.target.value)}
-                className="w-16 px-1 border rounded"
-              />
-              <button onClick={editTimer} className="px-2 py-1 bg-blue-200 rounded">Set</button>
+            <div className="flex flex-col items-center gap-2">
+              {/* Quick timer presets */}
+              <div className="flex flex-row flex-wrap justify-center items-center gap-1">
+                <button onClick={() => setQuickTimer(300)} className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs">5m</button>
+                <button onClick={() => setQuickTimer(600)} className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs">10m</button>
+                <button onClick={() => setQuickTimer(900)} className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs">15m</button>
+                <button onClick={() => setQuickTimer(1800)} className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs">30m</button>
+              </div>
+              {/* Main timer controls */}
+              <div className="flex flex-row flex-wrap justify-center items-center gap-2">
+                <button 
+                  onClick={startTimer} 
+                  disabled={localIsRunning || localTimerValue === 0}
+                  className="px-3 py-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white rounded text-sm font-medium"
+                >
+                  Start
+                </button>
+                <button 
+                  onClick={pauseTimer} 
+                  disabled={!localIsRunning}
+                  className="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-300 text-white rounded text-sm font-medium"
+                >
+                  Pause
+                </button>
+                <button 
+                  onClick={resetTimer} 
+                  className="px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded text-sm font-medium"
+                >
+                  Reset
+                </button>
+              </div>
+              {/* Custom timer input */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="Custom seconds"
+                  value={timerInput}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTimerInput(e.target.value)}
+                  className="w-24 px-2 py-1 border rounded text-sm"
+                />
+                <button 
+                  onClick={editTimer} 
+                  disabled={!timerInput || parseInt(timerInput) <= 0}
+                  className="px-3 py-1 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-300 text-white rounded text-sm font-medium"
+                >
+                  Set
+                </button>
+              </div>
             </div>
           )}
         </div>
