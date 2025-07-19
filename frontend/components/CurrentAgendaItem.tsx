@@ -1,12 +1,53 @@
 'use client'
 import { useState, useEffect } from 'react';
 
-function CurrentAgendaItem() {
+interface CurrentAgendaItemProps {
+  agendaItems?: Array<{
+    id: string;
+    text: string;
+    originalText: string;
+    isNew: boolean;
+    isEdited: boolean;
+    isDeleted: boolean;
+  }>;
+  currentItemIndex?: number;
+  onNextItem?: () => void;
+}
+
+function CurrentAgendaItem({ agendaItems = [], currentItemIndex = 0, onNextItem }: CurrentAgendaItemProps) {
   const [timeLeft, setTimeLeft] = useState(900); // 15 minutes default
   const [isRunning, setIsRunning] = useState(false);
   const [topic, setTopic] = useState('Write user stories'); // Default topic
   const [isEditingTopic, setIsEditingTopic] = useState(false);
   const [tempTopic, setTempTopic] = useState(topic);
+  const [isEditingTimer, setIsEditingTimer] = useState(false);
+  const [tempHours, setTempHours] = useState(0);
+  const [tempMinutes, setTempMinutes] = useState(15);
+  const [tempSeconds, setTempSeconds] = useState(0);
+  const [timerCompleted, setTimerCompleted] = useState(false);
+
+  // Update topic when agenda items or current index changes
+  useEffect(() => {
+    if (agendaItems.length > 0 && currentItemIndex < agendaItems.length) {
+      const currentItem = agendaItems[currentItemIndex];
+      if (currentItem && currentItem.text.trim()) {
+        setTopic(currentItem.text);
+        setTempTopic(currentItem.text);
+      }
+    }
+  }, [agendaItems, currentItemIndex]);
+
+  // Initialize temp timer values when editing starts
+  useEffect(() => {
+    if (isEditingTimer) {
+      const hours = Math.floor(timeLeft / 3600);
+      const minutes = Math.floor((timeLeft % 3600) / 60);
+      const seconds = timeLeft % 60;
+      setTempHours(hours);
+      setTempMinutes(minutes);
+      setTempSeconds(seconds);
+    }
+  }, [isEditingTimer, timeLeft]);
 
   // Timer countdown effect
   useEffect(() => {
@@ -17,10 +58,11 @@ function CurrentAgendaItem() {
         setTimeLeft((prevTime) => {
           if (prevTime <= 1) {
             setIsRunning(false);
+            setTimerCompleted(true);
             // Play notification sound when timer ends
-            if (typeof window !== 'undefined' && window.Notification && Notification.permission === 'granted') {
+            if (typeof window !== 'undefined' && window.Notification) {
               new Notification('Timer Complete!', {
-                body: `Timer for "${topic}" has finished.`,
+                body: `Time's up for: ${topic}`,
                 icon: '/favicon.ico'
               });
             }
@@ -36,99 +78,216 @@ function CurrentAgendaItem() {
     };
   }, [isRunning, timeLeft, topic]);
 
-  // Format time as HH:MM:SS
-  const formatTime = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  // Format time for display
+  const formatTime = (totalSeconds: number) => {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const handleStartTimer = () => {
-    setIsRunning(true);
+  const handleStartPause = () => {
+    if (timeLeft > 0) {
+      setIsRunning(!isRunning);
+      setTimerCompleted(false);
+    }
   };
 
-  const handlePauseTimer = () => {
+  const handleReset = () => {
     setIsRunning(false);
-  };
-
-  const handleResetTimer = () => {
     setTimeLeft(900); // Reset to 15 minutes
-    setIsRunning(false);
+    setTimerCompleted(false);
   };
 
-  const handleSaveTopic = () => {
+  const handleTopicSave = () => {
     setTopic(tempTopic);
     setIsEditingTopic(false);
   };
 
-  const handleCancelEdit = () => {
+  const handleTopicCancel = () => {
     setTempTopic(topic);
     setIsEditingTopic(false);
   };
 
-  const timerDisplay = formatTime(timeLeft);
+  const handleTimerSave = () => {
+    const newTimeLeft = tempHours * 3600 + tempMinutes * 60 + tempSeconds;
+    setTimeLeft(newTimeLeft);
+    setIsRunning(false);
+    setIsEditingTimer(false);
+    setTimerCompleted(false);
+  };
+
+  const handleTimerCancel = () => {
+    setIsEditingTimer(false);
+  };
+
+  const handleNextItem = () => {
+    setTimerCompleted(false);
+    if (onNextItem) {
+      onNextItem();
+    }
+  };
+
+  // Check if there are more items in the agenda
+  const hasNextItem = currentItemIndex < agendaItems.length - 1;
+  const nextItemText = hasNextItem ? agendaItems[currentItemIndex + 1]?.text : '';
 
   return (
-    <div className="w-[80%] text-white bg-stone-700/95 p-4 rounded-lg shadow-md items-center text-center">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-sm">currently discussed: </h2>
-        
-        {/* Topic display/edit */}
-        {isEditingTopic ? (
-          <div className="flex gap-2 justify-center items-center">
-            <input
-              type="text"
-              value={tempTopic}
-              onChange={(e) => setTempTopic(e.target.value)}
-              className="text-xl font-semibold bg-stone-600 px-2 py-1 rounded text-center flex-1"
-              autoFocus
-            />
-            <button
-              onClick={handleSaveTopic}
-              className="px-2 py-1 bg-green-600 hover:bg-green-700 rounded text-xs"
+    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div className="flex flex-col items-center space-y-4">
+        {/* Topic Section */}
+        <div className="text-center">
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">Currently Discussing:</h2>
+          {isEditingTopic ? (
+            <div className="flex items-center space-x-2">
+              <input
+                type="text"
+                value={tempTopic}
+                onChange={(e) => setTempTopic(e.target.value)}
+                className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                autoFocus
+              />
+              <button
+                onClick={handleTopicSave}
+                className="text-green-600 hover:text-green-800 text-xl"
+              >
+                ✓
+              </button>
+              <button
+                onClick={handleTopicCancel}
+                className="text-red-600 hover:text-red-800 text-xl"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <div
+              onClick={() => setIsEditingTopic(true)}
+              className="text-xl font-bold text-blue-600 hover:text-blue-800 cursor-pointer hover:bg-blue-50 px-2 py-1 rounded transition-colors"
             >
-              ✓
-            </button>
-            <button
-              onClick={handleCancelEdit}
-              className="px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-xs"
-            >
-              ✕
-            </button>
-          </div>
-        ) : (
-          <h1 
-            className="text-xl font-semibold cursor-pointer hover:bg-stone-600/50 px-2 py-1 rounded"
-            onClick={() => setIsEditingTopic(true)}
-            title="Click to edit topic"
-          >
-            {topic}
-          </h1>
-        )}
-        
-        <div className="p-2 rounded-lg min-h-[2.5rem]">
-          <h1 className="text-2xl font-bold">{timerDisplay}</h1>
+              {topic}
+            </div>
+          )}
         </div>
-        
-        <div className="flex gap-2 justify-center mt-2">
+
+        {/* Timer Section */}
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">Timer:</h3>
+          {isEditingTimer ? (
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1">
+                <input
+                  type="number"
+                  min="0"
+                  max="23"
+                  value={tempHours}
+                  onChange={(e) => setTempHours(parseInt(e.target.value) || 0)}
+                  className="w-16 px-2 py-1 border border-gray-300 rounded-md text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-gray-500">h</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={tempMinutes}
+                  onChange={(e) => setTempMinutes(parseInt(e.target.value) || 0)}
+                  className="w-16 px-2 py-1 border border-gray-300 rounded-md text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-gray-500">m</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={tempSeconds}
+                  onChange={(e) => setTempSeconds(parseInt(e.target.value) || 0)}
+                  className="w-16 px-2 py-1 border border-gray-300 rounded-md text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-gray-500">s</span>
+              </div>
+              <button
+                onClick={handleTimerSave}
+                className="text-green-600 hover:text-green-800 text-xl"
+              >
+                ✓
+              </button>
+              <button
+                onClick={handleTimerCancel}
+                className="text-red-600 hover:text-red-800 text-xl"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <div
+              onClick={() => setIsEditingTimer(true)}
+              className={`text-3xl font-mono px-4 py-2 rounded transition-colors ${
+                timerCompleted 
+                  ? 'text-red-600 bg-red-50 cursor-default' 
+                  : 'text-gray-800 hover:text-blue-600 cursor-pointer hover:bg-blue-50'
+              }`}
+            >
+              {formatTime(timeLeft)}
+            </div>
+          )}
+        </div>
+
+        {/* Timer Completed Message */}
+        {timerCompleted && (
+          <div className="text-center">
+            <div className="text-lg font-semibold text-red-600 mb-2">
+              ⏰ Time's up!
+            </div>
+            {hasNextItem && (
+              <div className="text-sm text-gray-600 mb-3">
+                Next: <span className="font-medium">{nextItemText}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Timer Controls */}
+        <div className="flex space-x-4">
           <button
-            onClick={isRunning ? handlePauseTimer : handleStartTimer}
-            className={`px-3 py-1 rounded text-sm font-semibold ${
-              isRunning 
-                ? 'bg-yellow-600 hover:bg-yellow-700' 
-                : 'bg-green-600 hover:bg-green-700'
-            }`}
+            onClick={handleStartPause}
+            disabled={timeLeft === 0}
+            className={`px-6 py-2 rounded-md font-medium transition-colors ${
+              isRunning
+                ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                : 'bg-green-500 hover:bg-green-600 text-white'
+            } ${timeLeft === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {isRunning ? 'Pause' : 'Start'}
           </button>
           <button
-            onClick={handleResetTimer}
-            className="px-3 py-1 rounded text-sm font-semibold bg-red-600 hover:bg-red-700"
+            onClick={handleReset}
+            className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md font-medium transition-colors"
           >
             Reset
           </button>
         </div>
+
+        {/* Next Item Button - Only show when timer is completed */}
+        {timerCompleted && hasNextItem && (
+          <button
+            onClick={handleNextItem}
+            className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors shadow-lg"
+          >
+            Next Item →
+          </button>
+        )}
+
+        {/* No more items message */}
+        {timerCompleted && !hasNextItem && (
+          <div className="text-center">
+            <div className="text-lg font-semibold text-gray-600">
+              🎉 All agenda items completed!
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
