@@ -137,7 +137,7 @@ export default function Agenda({
     if (onAgendaItemsChange) {
       onAgendaItemsChange(visibleItems);
     }
-  }, [visibleItems, onAgendaItemsChange]);
+  }, [visibleItems]); // Removed onAgendaItemsChange from dependencies since it's memoized
 
   const addItem = () => dispatch({ type: "ADD" });
   const changeItem = (id: string, txt: string) =>
