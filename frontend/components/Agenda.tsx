@@ -151,7 +151,8 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
     for (const item of itemsToSave) {
       try {
         console.log('Saving agenda item:', item);
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda`, {
+        // Temporarily use test endpoint to avoid database issues
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda/test`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
