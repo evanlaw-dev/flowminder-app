@@ -51,6 +51,9 @@ export default function Home() {
     }
   }, [agendaItems, currentItemIndex]);
 
+  // Get the current agenda item
+  const currentItem = agendaItems[currentItemIndex] || null;
+
   return (
     <main className="max-h-xl min-h-100 py-8 flex flex-col items-center gap-6">
       {/* Current Agenda Item Display */}

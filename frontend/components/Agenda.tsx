@@ -60,6 +60,7 @@ function agendaReducer(state: AgendaItemType[], action: AgendaAction): AgendaIte
           isNew: true,
           isEdited: false,
           isDeleted: false,
+          duration_seconds: 300, // Default to 5 minutes
         },
       ];
 
@@ -170,7 +171,7 @@ export default function Agenda({
           body: JSON.stringify({
             meeting_id: MEETING_ID,
             agenda_item: item.text,
-            duration_seconds: 200
+            duration_seconds: item.duration_seconds || 300 // Use the item's duration or default to 5 minutes
           })
         });
   

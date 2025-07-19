@@ -9,6 +9,7 @@ interface CurrentAgendaItemProps {
     isNew: boolean;
     isEdited: boolean;
     isDeleted: boolean;
+    duration_seconds?: number;
   }>;
   currentItemIndex?: number;
   onNextItem?: () => void;
@@ -26,13 +27,21 @@ function CurrentAgendaItem({ agendaItems = [], currentItemIndex = 0, onNextItem 
   const [tempSeconds, setTempSeconds] = useState(0);
   const [timerCompleted, setTimerCompleted] = useState(false);
 
-  // Update topic when agenda items or current index changes
+  // Update topic and timer when agenda items or current index changes
   useEffect(() => {
     if (agendaItems.length > 0 && currentItemIndex < agendaItems.length) {
       const currentItem = agendaItems[currentItemIndex];
       if (currentItem && currentItem.text.trim()) {
         setTopic(currentItem.text);
         setTempTopic(currentItem.text);
+        
+        // Set timer to the duration specified for this agenda item
+        const duration = currentItem.duration_seconds || 900; // Default to 15 minutes if not specified
+        setTimeLeft(duration);
+        
+        // Reset timer state
+        setIsRunning(false);
+        setTimerCompleted(false);
       }
     }
   }, [agendaItems, currentItemIndex]);
@@ -123,6 +132,7 @@ function CurrentAgendaItem({ agendaItems = [], currentItemIndex = 0, onNextItem 
 
   const handleNextItem = () => {
     setTimerCompleted(false);
+    setIsRunning(false);
     if (onNextItem) {
       onNextItem();
     }

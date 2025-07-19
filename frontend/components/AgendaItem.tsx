@@ -201,7 +201,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
   };
   
   const resetTimer = async () => {
-    const initialValue = item.initial_value ?? item.duration_seconds ?? 0;
+    const initialValue = item.duration_seconds || item.initial_value || 300; // Use duration_seconds first, then fallback
     setLocalTimerValue(initialValue);
     setLocalIsRunning(false);
     setHasShownWarning(false);
@@ -223,6 +223,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
         body: JSON.stringify({
           timer_value: newDuration,
           initial_value: newDuration,
+          duration_seconds: newDuration, // Update the duration_seconds field
           last_updated: new Date().toISOString()
         })
       });
@@ -242,6 +243,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
       body: JSON.stringify({
         timer_value: seconds,
         initial_value: seconds,
+        duration_seconds: seconds, // Update the duration_seconds field
         last_updated: new Date().toISOString()
       })
     });
