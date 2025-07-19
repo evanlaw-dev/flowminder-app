@@ -92,7 +92,7 @@ app.post('/action', (req, res) => {
   // Update request counts based on action type
   if (action_type === 'move_along') {
     requestCounts.move_along++;
-  } else if (action_type === 'request_extra_time') {
+  } else if (action_type === 'extra_time') {
     requestCounts.extra_time++;
   }
   
