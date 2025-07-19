@@ -78,7 +78,7 @@ app.get('/agenda/test', (req, res) => {
   });
 });
 
-// Test endpoint for action requests (without database)
+// Test endpoint for action requests (move along, invite to speak)
 app.post('/action', (req, res) => {
   const { meeting_id, action_type } = req.body;
   console.log('Received action request:', { meeting_id, action_type });
@@ -87,6 +87,37 @@ app.post('/action', (req, res) => {
   res.json({ 
     success: true, 
     message: `${action_type} action processed successfully`,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Test endpoint for timer updates (without database)
+app.patch('/agenda/:id/timer', (req, res) => {
+  const { id } = req.params;
+  const { timer_value, is_running } = req.body;
+  console.log('Timer update request:', { id, timer_value, is_running });
+  
+  // Return a mock response
+  res.json({ 
+    success: true, 
+    message: `Timer updated for item ${id}`,
+    timer_value: timer_value || 300,
+    is_running: is_running || false,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Test endpoint for timer reset (without database)
+app.post('/agenda/:id/timer/reset', (req, res) => {
+  const { id } = req.params;
+  console.log('Timer reset request for item:', id);
+  
+  // Return a mock response
+  res.json({ 
+    success: true, 
+    message: `Timer reset for item ${id}`,
+    timer_value: 300,
+    is_running: false,
     timestamp: new Date().toISOString()
   });
 });
