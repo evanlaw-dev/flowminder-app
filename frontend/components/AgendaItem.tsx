@@ -86,139 +86,10 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
         setLocalTimerValue(prev => {
           const newValue = Math.max(0, prev - 1);
           
-          // Play tick sound every 10 seconds when running
-          if (newValue > 0 && newValue % 10 === 0) {
-            // Call playSoundAlert directly without dependency
-            if (soundEnabled) {
-              try {
-                if (!audioContextRef.current) {
-                  audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-                }
-                
-                const audioContext = audioContextRef.current;
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.frequency.setValueAtTime(1000, audioContext.currentTime);
-                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.1);
-              } catch (error) {
-                console.log('Audio not supported or blocked:', error);
-              }
-            }
-          }
-          
-          // Warning at 30 seconds
-          if (newValue === 30 && !hasShownWarning) {
-            setHasShownWarning(true);
-            // Call playSoundAlert directly without dependency
-            if (soundEnabled) {
-              try {
-                if (!audioContextRef.current) {
-                  audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-                }
-                
-                const audioContext = audioContextRef.current;
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
-                oscillator.frequency.setValueAtTime(400, audioContext.currentTime + 0.1);
-                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.3);
-              } catch (error) {
-                console.log('Audio not supported or blocked:', error);
-              }
-            }
-            // Call showNotification directly without dependency
-            if (notificationsEnabled && 'Notification' in window) {
-              if (Notification.permission === 'granted') {
-                new Notification('Timer Warning', {
-                  body: 'Timer has 30 seconds remaining!',
-                  icon: '/favicon.ico',
-                  badge: '/favicon.ico',
-                  tag: `timer-${item.id}`,
-                  requireInteraction: true
-                });
-              } else if (Notification.permission === 'default') {
-                Notification.requestPermission().then(permission => {
-                  if (permission === 'granted') {
-                    new Notification('Timer Warning', {
-                      body: 'Timer has 30 seconds remaining!',
-                      icon: '/favicon.ico',
-                      badge: '/favicon.ico',
-                      tag: `timer-${item.id}`,
-                      requireInteraction: true
-                    });
-                  }
-                });
-              }
-            }
-          }
-          
           // Auto-pause when timer reaches 0
           if (newValue === 0) {
             setLocalIsRunning(false);
             setHasShownWarning(false);
-            // Call playSoundAlert directly without dependency
-            if (soundEnabled) {
-              try {
-                if (!audioContextRef.current) {
-                  audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-                }
-                
-                const audioContext = audioContextRef.current;
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-                oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
-                oscillator.frequency.setValueAtTime(400, audioContext.currentTime + 0.2);
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.5);
-              } catch (error) {
-                console.log('Audio not supported or blocked:', error);
-              }
-            }
-            // Call showNotification directly without dependency
-            if (notificationsEnabled && 'Notification' in window) {
-              if (Notification.permission === 'granted') {
-                new Notification('Timer Complete!', {
-                  body: 'Timer has finished.',
-                  icon: '/favicon.ico',
-                  badge: '/favicon.ico',
-                  tag: `timer-${item.id}`,
-                  requireInteraction: true
-                });
-              } else if (Notification.permission === 'default') {
-                Notification.requestPermission().then(permission => {
-                  if (permission === 'granted') {
-                    new Notification('Timer Complete!', {
-                      body: 'Timer has finished.',
-                      icon: '/favicon.ico',
-                      badge: '/favicon.ico',
-                      tag: `timer-${item.id}`,
-                      requireInteraction: true
-                    });
-                  }
-                });
-              }
-            }
           }
           
           return newValue;
@@ -229,7 +100,120 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [localIsRunning, hasShownWarning, soundEnabled, notificationsEnabled, item.id]);
+  }, [localIsRunning]); // Only depend on localIsRunning
+
+  // Separate effect for sound and notifications to avoid re-renders
+  useEffect(() => {
+    if (localTimerValue === 30 && !hasShownWarning && localIsRunning) {
+      setHasShownWarning(true);
+      
+      // Play warning sound
+      if (soundEnabled) {
+        try {
+          if (!audioContextRef.current) {
+            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+          }
+          
+          const audioContext = audioContextRef.current;
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+          oscillator.frequency.setValueAtTime(400, audioContext.currentTime + 0.1);
+          gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.3);
+        } catch (error) {
+          console.log('Audio not supported or blocked:', error);
+        }
+      }
+      
+      // Show notification
+      if (notificationsEnabled && 'Notification' in window) {
+        if (Notification.permission === 'granted') {
+          new Notification('Timer Warning', {
+            body: 'Timer has 30 seconds remaining!',
+            icon: '/favicon.ico',
+            badge: '/favicon.ico',
+            tag: `timer-${item.id}`,
+            requireInteraction: true
+          });
+        } else if (Notification.permission === 'default') {
+          Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+              new Notification('Timer Warning', {
+                body: 'Timer has 30 seconds remaining!',
+                icon: '/favicon.ico',
+                badge: '/favicon.ico',
+                tag: `timer-${item.id}`,
+                requireInteraction: true
+              });
+            }
+          });
+        }
+      }
+    }
+  }, [localTimerValue, hasShownWarning, localIsRunning, soundEnabled, notificationsEnabled, item.id]);
+
+  // Separate effect for timer completion
+  useEffect(() => {
+    if (localTimerValue === 0 && !localIsRunning) {
+      // Play completion sound
+      if (soundEnabled) {
+        try {
+          if (!audioContextRef.current) {
+            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+          }
+          
+          const audioContext = audioContextRef.current;
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+          oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+          oscillator.frequency.setValueAtTime(400, audioContext.currentTime + 0.2);
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.5);
+        } catch (error) {
+          console.log('Audio not supported or blocked:', error);
+        }
+      }
+      
+      // Show completion notification
+      if (notificationsEnabled && 'Notification' in window) {
+        if (Notification.permission === 'granted') {
+          new Notification('Timer Complete!', {
+            body: 'Timer has finished.',
+            icon: '/favicon.ico',
+            badge: '/favicon.ico',
+            tag: `timer-${item.id}`,
+            requireInteraction: true
+          });
+        } else if (Notification.permission === 'default') {
+          Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+              new Notification('Timer Complete!', {
+                body: 'Timer has finished.',
+                icon: '/favicon.ico',
+                badge: '/favicon.ico',
+                tag: `timer-${item.id}`,
+                requireInteraction: true
+              });
+            }
+          });
+        }
+      }
+    }
+  }, [localTimerValue, localIsRunning, soundEnabled, notificationsEnabled, item.id]);
 
   // Sync with item props when they change
   useEffect(() => {
