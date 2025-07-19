@@ -172,7 +172,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
           if (newValue === 30 && !hasShownWarning) {
             setHasShownWarning(true);
             playSoundAlert('warning');
-            showNotification('Timer Warning', `Timer for "${item.text}" has 30 seconds remaining!`);
+            showNotification('Timer Warning', `Timer for "${item.text || 'Agenda Item'}" has 30 seconds remaining!`);
           }
           
           // Auto-pause when timer reaches 0
@@ -180,7 +180,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
             setLocalIsRunning(false);
             setHasShownWarning(false);
             playSoundAlert('complete');
-            showNotification('Timer Complete!', `Timer for "${item.text}" has finished.`);
+            showNotification('Timer Complete!', `Timer for "${item.text || 'Agenda Item'}" has finished.`);
           }
           
           return newValue;
@@ -217,14 +217,14 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
 
   useEffect(() => {
     if (divRef.current) {
-      divRef.current.innerText = item.text;
-      setIsEmpty(item.text.trim() === '');
+      divRef.current.innerText = item.text || '';
+      setIsEmpty((item.text || '').trim() === '');
     }
   }, [item.text]);
 
   if (!canEdit) {
     return (
-      <li className="text-black p-2">{item.text}</li>
+      <li className="text-black p-2">{item.text || ''}</li>
     );
   }
 
@@ -246,7 +246,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
         setIsEmpty(true);
       } else {
         setIsEmpty(false);
-        if (text !== item.text) {
+        if (text !== (item.text || '')) {
           onChange(item.id, text);
         }
       }

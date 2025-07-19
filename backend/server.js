@@ -41,6 +41,43 @@ app.post('/agenda/test', (req, res) => {
   });
 });
 
+// Test endpoint for getting agenda items (without database)
+app.get('/agenda/test', (req, res) => {
+  const { meeting_id } = req.query;
+  console.log('Getting agenda items for meeting:', meeting_id);
+  
+  // Return mock agenda items
+  res.json({ 
+    success: true, 
+    items: [
+      {
+        id: '1',
+        text: 'Discuss project timeline',
+        originalText: 'Discuss project timeline',
+        isNew: false,
+        isEdited: false,
+        isDeleted: false,
+        timer_value: 300,
+        is_running: false,
+        initial_value: 300,
+        duration_seconds: 300
+      },
+      {
+        id: '2',
+        text: 'Review UI mockups',
+        originalText: 'Review UI mockups',
+        isNew: false,
+        isEdited: false,
+        isDeleted: false,
+        timer_value: 600,
+        is_running: false,
+        initial_value: 600,
+        duration_seconds: 600
+      }
+    ]
+  });
+});
+
 // Zoom routes
 app.use('/zoom', zoomRoutes);
 
