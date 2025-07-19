@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect, type FC } from 'react';
 import type * as ReactNamespace from 'react';
 import io from 'socket.io-client';
-import { FaTimes } from 'react-icons/fa';
+import { FaTimes, FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
 // If you see type errors for these imports, run:
 //   npm install --save-dev @types/react @types/react-dom @types/react-icons @types/socket.io-client
@@ -60,6 +60,14 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
   // Real-time timer state
   const [localTimerValue, setLocalTimerValue] = useState<number>(item.timer_value || item.duration_seconds || 0);
   const [localIsRunning, setLocalIsRunning] = useState<boolean>(item.is_running || false);
+  
+  // Sound and notification settings
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
+  const [hasShownWarning, setHasShownWarning] = useState<boolean>(false);
+
+  // Audio context for sound alerts
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   // Timer display logic
   const formatTime = (secs?: number) => {
@@ -67,6 +75,83 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  // Play sound alert
+  const playSoundAlert = (type: 'complete' | 'warning' | 'tick') => {
+    if (!soundEnabled) return;
+    
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      
+      const audioContext = audioContextRef.current;
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Different sounds for different events
+      switch (type) {
+        case 'complete':
+          oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+          oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+          oscillator.frequency.setValueAtTime(400, audioContext.currentTime + 0.2);
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.5);
+          break;
+        case 'warning':
+          oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+          oscillator.frequency.setValueAtTime(400, audioContext.currentTime + 0.1);
+          gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.3);
+          break;
+        case 'tick':
+          oscillator.frequency.setValueAtTime(1000, audioContext.currentTime);
+          gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.1);
+          break;
+      }
+    } catch (error) {
+      console.log('Audio not supported or blocked:', error);
+    }
+  };
+
+  // Show notification
+  const showNotification = (title: string, body: string) => {
+    if (!notificationsEnabled) return;
+    
+    if ('Notification' in window) {
+      if (Notification.permission === 'granted') {
+        new Notification(title, {
+          body,
+          icon: '/favicon.ico',
+          badge: '/favicon.ico',
+          tag: `timer-${item.id}`,
+          requireInteraction: true
+        });
+      } else if (Notification.permission === 'default') {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            new Notification(title, {
+              body,
+              icon: '/favicon.ico',
+              badge: '/favicon.ico',
+              tag: `timer-${item.id}`,
+              requireInteraction: true
+            });
+          }
+        });
+      }
+    }
   };
 
   // Real-time countdown effect
@@ -78,16 +163,24 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
         setLocalTimerValue(prev => {
           const newValue = Math.max(0, prev - 1);
           
+          // Play tick sound every 10 seconds when running
+          if (newValue > 0 && newValue % 10 === 0) {
+            playSoundAlert('tick');
+          }
+          
+          // Warning at 30 seconds
+          if (newValue === 30 && !hasShownWarning) {
+            setHasShownWarning(true);
+            playSoundAlert('warning');
+            showNotification('Timer Warning', `Timer for "${item.text}" has 30 seconds remaining!`);
+          }
+          
           // Auto-pause when timer reaches 0
           if (newValue === 0) {
             setLocalIsRunning(false);
-            // Optionally show notification or play sound
-            if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification('Timer Complete!', {
-                body: `Timer for "${item.text}" has finished.`,
-                icon: '/favicon.ico'
-              });
-            }
+            setHasShownWarning(false);
+            playSoundAlert('complete');
+            showNotification('Timer Complete!', `Timer for "${item.text}" has finished.`);
           }
           
           return newValue;
@@ -98,7 +191,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [localIsRunning, localTimerValue, item.text]);
+  }, [localIsRunning, localTimerValue, item.text, soundEnabled, notificationsEnabled, hasShownWarning]);
 
   // Sync with item props when they change
   useEffect(() => {
@@ -170,6 +263,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
   // Timer control handlers (call backend and refresh agenda)
   const startTimer = async () => {
     setLocalIsRunning(true);
+    setHasShownWarning(false);
     await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda/${item.id}/timer`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -201,6 +295,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
     const initialValue = item.initial_value ?? item.duration_seconds ?? 0;
     setLocalTimerValue(initialValue);
     setLocalIsRunning(false);
+    setHasShownWarning(false);
     await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda/${item.id}/timer/reset`, {
       method: 'POST'
     });
@@ -212,6 +307,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
     if (!isNaN(newDuration) && newDuration > 0) {
       setLocalTimerValue(newDuration);
       setLocalIsRunning(false);
+      setHasShownWarning(false);
       await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda/${item.id}/timer`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -230,6 +326,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
   const setQuickTimer = async (seconds: number) => {
     setLocalTimerValue(seconds);
     setLocalIsRunning(false);
+    setHasShownWarning(false);
     await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda/${item.id}/timer`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -292,41 +389,49 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
         {/* Timer UI (centered display and controls) */}
         <div className="mt-2 flex flex-col items-center">
           <div className="flex items-center gap-2 mb-2">
-            <span className={`font-mono text-lg font-bold ${localTimerValue <= 30 && localIsRunning ? 'text-red-600' : 'text-gray-800'}`}>
+            <span className={`font-mono text-lg font-bold ${localTimerValue <= 30 && localIsRunning ? 'text-red-600 animate-pulse' : 'text-gray-800'}`}>
               {formatTime(localTimerValue)}
             </span>
             <span className={`text-xs px-2 py-1 rounded-full ${localIsRunning ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
               {localIsRunning ? 'Running' : 'Paused'}
             </span>
+            {/* Sound toggle button */}
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className={`p-1 rounded ${soundEnabled ? 'text-blue-600' : 'text-gray-400'}`}
+              title={soundEnabled ? 'Disable sound' : 'Enable sound'}
+            >
+              {soundEnabled ? <FaVolumeUp size={12} /> : <FaVolumeMute size={12} />}
+            </button>
           </div>
           {isHost && (
             <div className="flex flex-col items-center gap-2">
               {/* Quick timer presets */}
               <div className="flex flex-row flex-wrap justify-center items-center gap-1">
-                <button onClick={() => setQuickTimer(300)} className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs">5m</button>
-                <button onClick={() => setQuickTimer(600)} className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs">10m</button>
-                <button onClick={() => setQuickTimer(900)} className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs">15m</button>
-                <button onClick={() => setQuickTimer(1800)} className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs">30m</button>
+                <button onClick={() => setQuickTimer(300)} className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs transition-colors">5m</button>
+                <button onClick={() => setQuickTimer(600)} className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs transition-colors">10m</button>
+                <button onClick={() => setQuickTimer(900)} className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs transition-colors">15m</button>
+                <button onClick={() => setQuickTimer(1800)} className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs transition-colors">30m</button>
               </div>
               {/* Main timer controls */}
               <div className="flex flex-row flex-wrap justify-center items-center gap-2">
                 <button 
                   onClick={startTimer} 
                   disabled={localIsRunning || localTimerValue === 0}
-                  className="px-3 py-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white rounded text-sm font-medium"
+                  className="px-3 py-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white rounded text-sm font-medium transition-colors"
                 >
                   Start
                 </button>
                 <button 
                   onClick={pauseTimer} 
                   disabled={!localIsRunning}
-                  className="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-300 text-white rounded text-sm font-medium"
+                  className="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-300 text-white rounded text-sm font-medium transition-colors"
                 >
                   Pause
                 </button>
                 <button 
                   onClick={resetTimer} 
-                  className="px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded text-sm font-medium"
+                  className="px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded text-sm font-medium transition-colors"
                 >
                   Reset
                 </button>
@@ -339,12 +444,12 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
                   placeholder="Custom seconds"
                   value={timerInput}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTimerInput(e.target.value)}
-                  className="w-24 px-2 py-1 border rounded text-sm"
+                  className="w-24 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <button 
                   onClick={editTimer} 
                   disabled={!timerInput || parseInt(timerInput) <= 0}
-                  className="px-3 py-1 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-300 text-white rounded text-sm font-medium"
+                  className="px-3 py-1 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-300 text-white rounded text-sm font-medium transition-colors"
                 >
                   Set
                 </button>
