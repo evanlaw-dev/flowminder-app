@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, type FC } from 'react';
+import React, { useRef, useState, useEffect, useCallback, type FC } from 'react';
 import type * as ReactNamespace from 'react';
 import io from 'socket.io-client';
 import { FaTimes, FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
@@ -78,7 +78,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
   };
 
   // Play sound alert
-  const playSoundAlert = (type: 'complete' | 'warning' | 'tick') => {
+  const playSoundAlert = useCallback((type: 'complete' | 'warning' | 'tick') => {
     if (!soundEnabled) return;
     
     try {
@@ -123,10 +123,10 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
     } catch (error) {
       console.log('Audio not supported or blocked:', error);
     }
-  };
+  }, [soundEnabled]);
 
   // Show notification
-  const showNotification = (title: string, body: string) => {
+  const showNotification = useCallback((title: string, body: string) => {
     if (!notificationsEnabled) return;
     
     if ('Notification' in window) {
@@ -152,7 +152,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
         });
       }
     }
-  };
+  }, [notificationsEnabled, item.id]);
 
   // Real-time countdown effect
   useEffect(() => {
@@ -172,7 +172,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
           if (newValue === 30 && !hasShownWarning) {
             setHasShownWarning(true);
             playSoundAlert('warning');
-            showNotification('Timer Warning', `Timer for "${item.text || 'Agenda Item'}" has 30 seconds remaining!`);
+            showNotification('Timer Warning', `Timer has 30 seconds remaining!`);
           }
           
           // Auto-pause when timer reaches 0
@@ -180,7 +180,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
             setLocalIsRunning(false);
             setHasShownWarning(false);
             playSoundAlert('complete');
-            showNotification('Timer Complete!', `Timer for "${item.text || 'Agenda Item'}" has finished.`);
+            showNotification('Timer Complete!', `Timer has finished.`);
           }
           
           return newValue;
@@ -191,7 +191,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [localIsRunning, localTimerValue, item.text, soundEnabled, notificationsEnabled, hasShownWarning]);
+  }, [localIsRunning, hasShownWarning, playSoundAlert, showNotification]);
 
   // Sync with item props when they change
   useEffect(() => {
