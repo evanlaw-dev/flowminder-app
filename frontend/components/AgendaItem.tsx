@@ -77,7 +77,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Single timer effect with refs to avoid re-renders
+  // Simple timer effect with no dependencies to avoid re-renders
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
@@ -90,73 +90,6 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
           if (newValue === 0) {
             setLocalIsRunning(false);
             setHasShownWarning(false);
-            
-            // Play completion sound
-            if (soundEnabled && audioContextRef.current) {
-              try {
-                const audioContext = audioContextRef.current;
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.frequency.setValueAtTime(1000, audioContext.currentTime);
-                oscillator.type = 'sine';
-                
-                gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
-                
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 1);
-              } catch (error) {
-                console.log('Audio playback failed:', error);
-              }
-            }
-            
-            // Show completion notification
-            if (notificationsEnabled && typeof window !== 'undefined' && window.Notification) {
-              new Notification('Timer Complete!', {
-                body: `Time's up for: ${item.text}`,
-                icon: '/favicon.ico'
-              });
-            }
-          }
-          
-          // Handle warning at 30 seconds
-          if (newValue === 30 && !hasShownWarning) {
-            setHasShownWarning(true);
-            
-            // Play warning sound
-            if (soundEnabled && audioContextRef.current) {
-              try {
-                const audioContext = audioContextRef.current;
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-                oscillator.type = 'sine';
-                
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-                
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.5);
-              } catch (error) {
-                console.log('Audio playback failed:', error);
-              }
-            }
-            
-            // Show warning notification
-            if (notificationsEnabled && typeof window !== 'undefined' && window.Notification) {
-              new Notification('Timer Warning', {
-                body: `Timer has 30 seconds remaining!`,
-                icon: '/favicon.ico'
-              });
-            }
           }
           
           return newValue;
@@ -167,7 +100,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [localIsRunning]); // Only depend on localIsRunning
+  }, [localIsRunning]);
 
   // Sync with item props when they change
   useEffect(() => {
