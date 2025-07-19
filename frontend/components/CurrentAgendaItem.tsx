@@ -52,6 +52,7 @@ function CurrentAgendaItem({ agendaItems = [], currentItemIndex = 0, onNextItem 
       const hours = Math.floor(timeLeft / 3600);
       const minutes = Math.floor((timeLeft % 3600) / 60);
       const seconds = timeLeft % 60;
+      console.log('Initializing timer edit values:', { timeLeft, hours, minutes, seconds });
       setTempHours(hours);
       setTempMinutes(minutes);
       setTempSeconds(seconds);
@@ -123,6 +124,7 @@ function CurrentAgendaItem({ agendaItems = [], currentItemIndex = 0, onNextItem 
 
   const handleTimerSave = () => {
     const newTimeLeft = tempHours * 3600 + tempMinutes * 60 + tempSeconds;
+    console.log('Saving timer:', { tempHours, tempMinutes, tempSeconds, newTimeLeft });
     setTimeLeft(newTimeLeft);
     setIsRunning(false);
     setIsEditingTimer(false);
@@ -236,7 +238,10 @@ function CurrentAgendaItem({ agendaItems = [], currentItemIndex = 0, onNextItem 
             </div>
           ) : (
             <div
-              onClick={() => setIsEditingTimer(true)}
+              onClick={() => {
+                console.log('Timer clicked, setting isEditingTimer to true');
+                setIsEditingTimer(true);
+              }}
               className={`text-3xl font-mono px-4 py-2 rounded transition-colors flex items-center gap-2 ${
                 timerCompleted 
                   ? 'text-red-600 bg-red-50 cursor-default' 
