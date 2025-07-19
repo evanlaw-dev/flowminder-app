@@ -48,6 +48,7 @@ function CurrentAgendaItem({ agendaItems = [], currentItemIndex = 0, onNextItem 
 
   // Initialize temp timer values when editing starts
   useEffect(() => {
+    console.log('useEffect triggered:', { isEditingTimer, timeLeft });
     if (isEditingTimer) {
       const hours = Math.floor(timeLeft / 3600);
       const minutes = Math.floor((timeLeft % 3600) / 60);
@@ -240,19 +241,18 @@ function CurrentAgendaItem({ agendaItems = [], currentItemIndex = 0, onNextItem 
             <div
               onClick={() => {
                 console.log('Timer clicked, setting isEditingTimer to true');
+                console.log('Current state:', { timerCompleted, timeLeft, isRunning });
                 setIsEditingTimer(true);
               }}
               className={`text-3xl font-mono px-4 py-2 rounded transition-colors flex items-center gap-2 ${
                 timerCompleted 
-                  ? 'text-red-600 bg-red-50 cursor-default' 
+                  ? 'text-red-600 bg-red-50 cursor-pointer hover:bg-red-100' 
                   : 'text-gray-800 hover:text-blue-600 cursor-pointer hover:bg-blue-50'
               }`}
               title="Click to edit timer"
             >
               {formatTime(timeLeft)}
-              {!timerCompleted && (
-                <span className="text-sm text-gray-400 hover:text-blue-400">✏️</span>
-              )}
+              <span className="text-sm text-gray-400 hover:text-blue-400">✏️</span>
             </div>
           )}
         </div>
