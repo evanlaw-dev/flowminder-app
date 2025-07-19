@@ -104,7 +104,10 @@ function CurrentAgendaItem({ agendaItems = [], currentItemIndex = 0, onNextItem 
 
   const handleReset = () => {
     setIsRunning(false);
-    setTimeLeft(900); // Reset to 15 minutes
+    // Reset to the original duration from the agenda item
+    const currentItem = agendaItems[currentItemIndex];
+    const originalDuration = currentItem?.duration_seconds || 900; // Default to 15 minutes if not specified
+    setTimeLeft(originalDuration);
     setTimerCompleted(false);
   };
 
@@ -234,13 +237,17 @@ function CurrentAgendaItem({ agendaItems = [], currentItemIndex = 0, onNextItem 
           ) : (
             <div
               onClick={() => setIsEditingTimer(true)}
-              className={`text-3xl font-mono px-4 py-2 rounded transition-colors ${
+              className={`text-3xl font-mono px-4 py-2 rounded transition-colors flex items-center gap-2 ${
                 timerCompleted 
                   ? 'text-red-600 bg-red-50 cursor-default' 
                   : 'text-gray-800 hover:text-blue-600 cursor-pointer hover:bg-blue-50'
               }`}
+              title="Click to edit timer"
             >
               {formatTime(timeLeft)}
+              {!timerCompleted && (
+                <span className="text-sm text-gray-400 hover:text-blue-400">✏️</span>
+              )}
             </div>
           )}
         </div>
@@ -260,24 +267,59 @@ function CurrentAgendaItem({ agendaItems = [], currentItemIndex = 0, onNextItem 
         )}
 
         {/* Timer Controls */}
-        <div className="flex space-x-4">
-          <button
-            onClick={handleStartPause}
-            disabled={timeLeft === 0}
-            className={`px-6 py-2 rounded-md font-medium transition-colors ${
-              isRunning
-                ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
-                : 'bg-green-500 hover:bg-green-600 text-white'
-            } ${timeLeft === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {isRunning ? 'Pause' : 'Start'}
-          </button>
-          <button
-            onClick={handleReset}
-            className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md font-medium transition-colors"
-          >
-            Reset
-          </button>
+        <div className="flex flex-col items-center space-y-3">
+          {/* Quick timer presets */}
+          <div className="flex flex-wrap justify-center gap-2">
+            <button
+              onClick={() => setTimeLeft(300)} // 5 minutes
+              disabled={isRunning}
+              className="px-3 py-1 bg-blue-100 hover:bg-blue-200 disabled:bg-gray-100 text-blue-700 rounded text-sm transition-colors"
+            >
+              5m
+            </button>
+            <button
+              onClick={() => setTimeLeft(600)} // 10 minutes
+              disabled={isRunning}
+              className="px-3 py-1 bg-blue-100 hover:bg-blue-200 disabled:bg-gray-100 text-blue-700 rounded text-sm transition-colors"
+            >
+              10m
+            </button>
+            <button
+              onClick={() => setTimeLeft(900)} // 15 minutes
+              disabled={isRunning}
+              className="px-3 py-1 bg-blue-100 hover:bg-blue-200 disabled:bg-gray-100 text-blue-700 rounded text-sm transition-colors"
+            >
+              15m
+            </button>
+            <button
+              onClick={() => setTimeLeft(1800)} // 30 minutes
+              disabled={isRunning}
+              className="px-3 py-1 bg-blue-100 hover:bg-blue-200 disabled:bg-gray-100 text-blue-700 rounded text-sm transition-colors"
+            >
+              30m
+            </button>
+          </div>
+          
+          {/* Main timer controls */}
+          <div className="flex space-x-4">
+            <button
+              onClick={handleStartPause}
+              disabled={timeLeft === 0}
+              className={`px-6 py-2 rounded-md font-medium transition-colors ${
+                isRunning
+                  ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                  : 'bg-green-500 hover:bg-green-600 text-white'
+              } ${timeLeft === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {isRunning ? 'Pause' : 'Start'}
+            </button>
+            <button
+              onClick={handleReset}
+              className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md font-medium transition-colors"
+            >
+              Reset
+            </button>
+          </div>
         </div>
 
         {/* Next Item Button - Only show when timer is completed */}
