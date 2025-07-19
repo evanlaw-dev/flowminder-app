@@ -11,6 +11,10 @@ const agendaController = require('./controllers/agendaController.js');
 
 const app = express();
 
+// Middleware setup
+app.use(cors());
+app.use(express.json());
+
 //Temporary 
 app.get('/', (req, res) => {
   res.send('Server is running');
@@ -47,9 +51,6 @@ const io = new Server(server, {
     methods: ['GET', 'POST', 'DELETE']
   }
 });
-
-app.use(cors());
-app.use(express.json());
 
 // PostgreSQL connection
 const pool = new Pool({
