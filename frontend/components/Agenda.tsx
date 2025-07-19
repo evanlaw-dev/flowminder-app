@@ -140,6 +140,14 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
       it => (it.isEdited || it.isNew || it.isDeleted) && it.text.trim() !== ""
     );
 
+    if (itemsToSave.length === 0) {
+      console.log('No items to save');
+      return;
+    }
+
+    const savedItems = [];
+    let hasErrors = false;
+
     for (const item of itemsToSave) {
       try {
         console.log('Saving agenda item:', item);
@@ -155,10 +163,27 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
   
         const result = await response.json();
         console.log('Saved agenda item response:', result);
+        
+        if (result.success && result.item) {
+          savedItems.push(result.item);
+        } else {
+          console.error('Failed to save item:', item.text, result);
+          hasErrors = true;
+        }
   
       } catch (error) {
         console.error('Error saving agenda item:', error);
+        hasErrors = true;
       }
+    }
+
+    if (!hasErrors && savedItems.length > 0) {
+      // Update the state with the saved items
+      dispatch({ type: "SAVE_SUCCESS", savedItems });
+      console.log('All items saved successfully');
+    } else {
+      console.error('Some items failed to save');
+      // Optionally show an error message to the user
     }
   };
 
