@@ -8,7 +8,7 @@ function BtnNudge({ text }: { text: string }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           meeting_id: 'test-meeting-id',
-          action_type: text.toLowerCase().replace(' ', '_') // "move along" -> "move_along", "invite to speak" -> "invite_to_speak"
+          action_type: text.toLowerCase().replace(/\s+/g, '_') // "move along" -> "move_along", "invite to speak" -> "invite_to_speak"
         })
       });
       
