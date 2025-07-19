@@ -16,6 +16,27 @@ app.get('/', (req, res) => {
   res.send('Server is running');
 });
 
+// Test endpoint for agenda items (without database)
+app.post('/agenda/test', (req, res) => {
+  const { meeting_id, agenda_item, duration_seconds } = req.body;
+  console.log('Received agenda item:', { meeting_id, agenda_item, duration_seconds });
+  
+  // Return a mock response
+  res.json({ 
+    success: true, 
+    item: {
+      id: Date.now().toString(),
+      meeting_id,
+      agenda_item,
+      duration_seconds,
+      timer_value: duration_seconds,
+      is_running: false,
+      initial_value: duration_seconds,
+      created_at: new Date().toISOString()
+    }
+  });
+});
+
 // Zoom routes
 app.use('/zoom', zoomRoutes);
 
