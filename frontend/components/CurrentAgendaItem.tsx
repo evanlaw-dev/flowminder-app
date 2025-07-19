@@ -150,6 +150,22 @@ function CurrentAgendaItem({ agendaItems = [], currentItemIndex = 0, onNextItem 
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      {/* Debug info - remove this later */}
+      <div className="mb-4 p-2 bg-yellow-100 text-xs">
+        <strong>Debug:</strong> isEditingTimer: {isEditingTimer.toString()}, 
+        timerCompleted: {timerCompleted.toString()}, 
+        timeLeft: {timeLeft}
+        <button 
+          onClick={() => {
+            console.log('Test button clicked');
+            setIsEditingTimer(true);
+          }}
+          className="ml-2 px-2 py-1 bg-blue-500 text-white rounded text-xs"
+        >
+          Test Edit Timer
+        </button>
+      </div>
+      
       <div className="flex flex-col items-center space-y-4">
         {/* Topic Section */}
         <div className="text-center">
