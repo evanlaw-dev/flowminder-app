@@ -9,20 +9,13 @@ function DisplayRequests() {
 
   const fetchRequestCounts = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/actions/test-meeting-id`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/request-counts`);
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.actions) {
-          const extraTimeCount = data.actions.filter((action: any) => 
-            action.action_type === 'request_extra_time'
-          ).length;
-          const moveAlongCount = data.actions.filter((action: any) => 
-            action.action_type === 'move_along'
-          ).length;
-          
+        if (data.success && data.counts) {
           setRequestCounts({
-            extraTime: extraTimeCount,
-            moveAlong: moveAlongCount
+            extraTime: data.counts.extra_time || 0,
+            moveAlong: data.counts.move_along || 0
           });
         }
       }
