@@ -113,6 +113,22 @@ app.get('/request-counts', (req, res) => {
   });
 });
 
+// Endpoint to reset request counts
+app.post('/request-counts/reset', (req, res) => {
+  requestCounts = {
+    extra_time: 0,
+    move_along: 0
+  };
+  
+  console.log('Request counts reset to:', requestCounts);
+  
+  res.json({
+    success: true,
+    message: 'Request counts reset successfully',
+    counts: requestCounts
+  });
+});
+
 // Test endpoint for timer updates (without database)
 app.patch('/agenda/:id/timer', (req, res) => {
   const { id } = req.params;
