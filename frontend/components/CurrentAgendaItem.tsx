@@ -155,6 +155,8 @@ function CurrentAgendaItem({ agendaItems = [], currentItemIndex = 0, onNextItem 
         <strong>Debug:</strong> isEditingTimer: {isEditingTimer.toString()}, 
         timerCompleted: {timerCompleted.toString()}, 
         timeLeft: {timeLeft}
+        <br />
+        <strong>Temp values:</strong> hours: {tempHours}, minutes: {tempMinutes}, seconds: {tempSeconds}
         <button 
           onClick={() => {
             console.log('Test button clicked');
@@ -206,52 +208,57 @@ function CurrentAgendaItem({ agendaItems = [], currentItemIndex = 0, onNextItem 
         <div className="text-center">
           <h3 className="text-lg font-semibold text-gray-700 mb-2">Timer:</h3>
           {isEditingTimer ? (
-            <div className="flex items-center space-x-2">
-              <div className="flex items-center space-x-1">
-                <input
-                  type="number"
-                  min="0"
-                  max="23"
-                  value={tempHours}
-                  onChange={(e) => setTempHours(parseInt(e.target.value) || 0)}
-                  className="w-16 px-2 py-1 border border-gray-300 rounded-md text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-gray-500">h</span>
+            <div className="flex flex-col items-center space-y-3 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+              <div className="text-sm font-medium text-blue-700 mb-2">Edit Timer Duration</div>
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1">
+                  <input
+                    type="number"
+                    min="0"
+                    max="23"
+                    value={tempHours}
+                    onChange={(e) => setTempHours(parseInt(e.target.value) || 0)}
+                    className="w-16 px-2 py-1 border border-gray-300 rounded-md text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="text-gray-500">h</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={tempMinutes}
+                    onChange={(e) => setTempMinutes(parseInt(e.target.value) || 0)}
+                    className="w-16 px-2 py-1 border border-gray-300 rounded-md text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="text-gray-500">m</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={tempSeconds}
+                    onChange={(e) => setTempSeconds(parseInt(e.target.value) || 0)}
+                    className="w-16 px-2 py-1 border border-gray-300 rounded-md text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="text-gray-500">s</span>
+                </div>
               </div>
-              <div className="flex items-center space-x-1">
-                <input
-                  type="number"
-                  min="0"
-                  max="59"
-                  value={tempMinutes}
-                  onChange={(e) => setTempMinutes(parseInt(e.target.value) || 0)}
-                  className="w-16 px-2 py-1 border border-gray-300 rounded-md text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-gray-500">m</span>
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleTimerSave}
+                  className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md font-medium transition-colors"
+                >
+                  Save ✓
+                </button>
+                <button
+                  onClick={handleTimerCancel}
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md font-medium transition-colors"
+                >
+                  Cancel ✕
+                </button>
               </div>
-              <div className="flex items-center space-x-1">
-                <input
-                  type="number"
-                  min="0"
-                  max="59"
-                  value={tempSeconds}
-                  onChange={(e) => setTempSeconds(parseInt(e.target.value) || 0)}
-                  className="w-16 px-2 py-1 border border-gray-300 rounded-md text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-gray-500">s</span>
-              </div>
-              <button
-                onClick={handleTimerSave}
-                className="text-green-600 hover:text-green-800 text-xl"
-              >
-                ✓
-              </button>
-              <button
-                onClick={handleTimerCancel}
-                className="text-red-600 hover:text-red-800 text-xl"
-              >
-                ✕
-              </button>
             </div>
           ) : (
             <div
