@@ -28,10 +28,10 @@ const exchangeCodeForToken = async (req, res, next) => {
       });
 
       const tokens = tokenResponse.data;
-      res.locals.tokens = tokens;
       
       //Log returned tokens
       for (const key in tokens) {
+        res.locals[key] = tokens[key];
         console.log("Key: " + key + " Value: " + tokens[key] + "\n");
       }
 
@@ -44,9 +44,10 @@ const exchangeCodeForToken = async (req, res, next) => {
     }
 }
 
+//get zoom user information based on access code
 const getZoomUserInfo = async (req, res, next) => {
 
-  const access_token = res.locals.tokens.access_token;
+  const access_token = res.locals.access_token;
 
   try {
     const response = await axios.get('https://api.zoom.us/v2/users/me', {
@@ -56,12 +57,12 @@ const getZoomUserInfo = async (req, res, next) => {
     });
 
     console.log("Zoom User:", response.data);
-    return response.data;
+    
   } catch (error) {
     console.error("Error fetching Zoom user information:", error.response?.data || error.message);
   }
 
-  res.status(200);
+  return res.redirect('http://localhost:4000');
 }
 
 module.exports = {
