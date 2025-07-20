@@ -156,6 +156,26 @@ app.get('/download/:meetingId', async (req, res) => {
   }
 });
 
+// GET /agenda?meeting_id=xxx
+app.get('/agenda', async (req, res) => {
+  const { meeting_id } = req.query;
+
+  if (!meeting_id) {
+    return res.status(400).json({ success: false, error: 'Missing meeting_id' });
+  }
+
+  try {
+    const result = await pool.query(
+      'SELECT id, agenda_item AS text FROM agenda_items WHERE meeting_id = $1 AND status != $2 ORDER BY order_index ASC NULLS LAST, created_at ASC',
+      [meeting_id, 'completed']
+    );
+    res.json({ success: true, items: result.rows });
+  } catch (error) {
+    console.error('Error fetching agenda items:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch agenda items' });
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });

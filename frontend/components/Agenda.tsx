@@ -105,6 +105,9 @@ function agendaReducer(state: AgendaItemType[], action: AgendaAction): AgendaIte
   }
 }
 
+const meetingId = 'a8f52a02-5aa8-45ec-9549-79ad2a194fa4'; // TODO: replace with dynamic ID later
+
+
 /* COMPONENT */
 export default function Agenda({ role = "participant" }: { role?: "host" | "participant" }) {
   // STATE
@@ -133,9 +136,9 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            meeting_id: 'a8f52a02-5aa8-45ec-9549-79ad2a194fa4',  // Replace with real dynamic ID later
+            meeting_id: meetingId,  // TODO Replace with real dynamic ID later
             agenda_item: item.text,
-            duration_seconds: 200
+            duration_seconds: 200 // TODO Replace with real dynamic duration later
           })
         });
   
@@ -166,7 +169,10 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
 
   // Fetch agenda items from the backend
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda?meeting_id=test-meeting-id`)
+    // Fetch agenda items from the server
+    // This is a placeholder URL, replace with your actual backend endpoint
+    // The server should return items in the format: { id: string, text: string }[]
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda?meeting_id=${meetingId}`)
       .then((res) => res.json())
       .then((data) => {
         dispatch({ type: "LOAD", items: data.items });
