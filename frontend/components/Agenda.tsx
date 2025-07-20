@@ -183,13 +183,14 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
           {/* Conditionally render: If no items, show a placeholder and an empty item, 
             otherwise list items */}
 
-          {visibleItems.length === 0 ? (
+          {visibleItems.length === 0 && role === 'host' ? (
             <>
               <AgendaItem
                 renderAsDiv={true}
                 item={{ id: "placeholder", text: "", originalText: "", isNew: false, isEdited: false, isDeleted: false }}
                 onChange={changeItem}
                 onRemove={removeItem}
+                canEdit={true}
               />
             </>
           ) : (
