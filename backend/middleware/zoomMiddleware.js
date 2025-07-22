@@ -65,7 +65,44 @@ const getZoomUserInfo = async (req, res, next) => {
   return res.redirect('http://localhost:4000');
 }
 
+//get new access token using refresh token
+const useRefreshToken = async (req, res, next) => {
+
+  const refreshToken = res.locals.refresh_token;
+
+  try {
+    const response = await axios.get('https://zoom.us/oauth/token', null, {
+      params: {
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+      },
+      auth: {
+        username: process.env.ZOOM_CLIENT_ID,
+        password: process.env.ZOOM_CLIENT_SECRET,
+      },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    });
+
+    //destructure response data and save info in res.locals object to update in db
+    const {access_token, expires_in, refresh_token, scope} = response.data;
+    res.locals.access_token = access_token;
+    res.locals.expires_in = expires_in;
+    res.locals.refresh_token = refresh_token;
+    res.locals.scope = scope;
+
+    next();
+
+  } catch (error) {
+    console.error('Failed to refresh token:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to refresh access token' });
+  }
+
+}
+
 module.exports = {
   exchangeCodeForToken,
   getZoomUserInfo,
+  useRefreshToken,
 };
