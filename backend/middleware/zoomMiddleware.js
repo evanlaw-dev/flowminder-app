@@ -65,7 +65,7 @@ const getZoomUserInfo = async (req, res, next) => {
   return res.redirect('http://localhost:4000');
 }
 
-//get new access token using refresh token
+//get new token using refresh token
 const useRefreshToken = async (req, res, next) => {
 
   const refreshToken = res.locals.refresh_token;
