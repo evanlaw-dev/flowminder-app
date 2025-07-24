@@ -24,13 +24,10 @@ html, body {
 
 /* Global body styles */
 body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
-  position: relative;
-  z-index: 0;
+  background: #0a4ca3;
+  min-height: 100vh;
   margin: 0;
-  padding: 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -54,4 +51,328 @@ body::before {
 
 main {
   background-color: var(--background);
+}
+
+.main-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 2.5rem 2.5rem 1.5rem 2.5rem;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+  min-width: 400px;
+  max-width: 420px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.header {
+  color: #fff;
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.current-topic {
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: #111;
+}
+
+.timer {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #111;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.7rem;
+  margin-bottom: 1.5rem;
+}
+
+.action-btn {
+  background: #d3d3d3;
+  color: #222;
+  font-size: 1rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 1.5rem;
+  cursor: pointer;
+  width: 220px;
+  text-align: center;
+}
+
+.action-btn.large, .change-button.large, .save-button.large, .cancel-button.large {
+  font-size: 1.15rem;
+  font-weight: 700;
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  min-width: 120px;
+  margin-bottom: 0.2rem;
+}
+
+.agenda-section {
+  margin-bottom: 1.5rem;
+}
+
+.agenda-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.agenda-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.agenda-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1.2rem;
+  font-size: 1.1rem;
+}
+
+.agenda-time {
+  min-width: 60px;
+  text-align: right;
+  font-family: monospace;
+  font-size: 1.1rem;
+}
+
+.change-btn {
+  background: #5ca9f7;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.3rem 1.1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.change-btn:hover {
+  background: #2176c7;
+}
+
+.counters {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.counter-box {
+  min-width: 200px;
+  max-width: 260px;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: bold;
+  background: #0a4ca3;
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.9rem 1.5rem;
+  margin: 0 0.5rem 0.5rem 0;
+  box-shadow: 0 1px 4px rgba(10,76,163,0.07);
+  display: inline-block;
+}
+
+.timer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.start-pause-btn {
+  background: #0a4ca3;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.25rem 0.75rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-left: 0.5rem;
+}
+
+.agenda-item-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.edit-input {
+  font-size: 1rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  min-width: 120px;
+}
+
+.timer-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+/* Make agenda timer input fields even wider and font even smaller */
+.timer-input {
+  width: 6rem;
+  min-width: 6rem;
+  font-size: 0.85rem;
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  border: 1.5px solid #0a4ca3;
+  margin: 0 0.2rem;
+  text-align: center;
+}
+
+.save-button, .agenda-save-btn {
+  background: #0a4ca3;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.25rem 0.75rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-left: 0.5rem;
+}
+
+/* Make Change/Save/Cancel buttons even wider, font even smaller */
+.change-button.large, .save-button.large, .cancel-button.large {
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.8rem 3.2rem;
+  border-radius: 8px;
+  min-width: 210px;
+  margin-bottom: 0.2rem;
+  margin-left: 0.5rem;
+}
+
+.cancel-button, .agenda-cancel-btn {
+  background: #eee;
+  color: #333;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  padding: 0.25rem 0.75rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-left: 0.25rem;
+}
+
+.agenda-timer-box {
+  display: inline-block;
+  min-width: 60px;
+  max-width: 80px;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: bold;
+  background: #fff;
+  color: #0a4ca3;
+  border: 2px solid #0a4ca3;
+  border-radius: 6px;
+  padding: 0.15rem 0.5rem;
+  margin-left: 0.5rem;
+  box-shadow: 0 1px 4px rgba(10,76,163,0.07);
+}
+
+.agenda-item-text {
+  font-size: 1rem;
+  color: #222;
+  font-weight: 500;
+}
+
+.change-button, .agenda-change-btn {
+  background: #0a4ca3;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.25rem 0.75rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-left: 0.5rem;
+}
+
+.main-card.wide {
+  max-width: 600px;
+  min-width: 480px;
+  padding: 3rem 3rem 2rem 3rem;
+}
+
+.action-buttons-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.reset-counts-btn {
+  background: #fff;
+  color: #0a4ca3;
+  border: 2px solid #0a4ca3;
+  border-radius: 6px;
+  padding: 0.4rem 1.2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background 0.2s, color 0.2s;
+}
+.reset-counts-btn:hover {
+  background: #0a4ca3;
+  color: #fff;
+}
+
+.counters-section {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Ensure buttons are always visible and not off-screen */
+@media (max-width: 500px) {
+  .main-card {
+    min-width: unset;
+    max-width: 98vw;
+    padding: 1rem;
+  }
+  .agenda-item-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+  }
+  .action-buttons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 700px) {
+  .main-card.wide {
+    max-width: 98vw;
+    min-width: unset;
+    padding: 1rem;
+  }
 }
