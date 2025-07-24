@@ -34,6 +34,13 @@ export default function Home() {
   const [currentEditMinutes, setCurrentEditMinutes] = useState(0);
   const [currentEditSeconds, setCurrentEditSeconds] = useState(0);
 
+  // Add state for new agenda item
+  const [isAddingNewItem, setIsAddingNewItem] = useState(false);
+  const [newItemText, setNewItemText] = useState("");
+  const [newItemHours, setNewItemHours] = useState(0);
+  const [newItemMinutes, setNewItemMinutes] = useState(0);
+  const [newItemSeconds, setNewItemSeconds] = useState(0);
+
   // Timer effect for current agenda item
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -90,6 +97,35 @@ export default function Home() {
     setMoveAlongCount(0);
     setExtraTimeCount(0);
     setNudgeCount(0);
+  };
+
+  const handleAddNewItem = () => {
+    setIsAddingNewItem(true);
+    setNewItemText("");
+    setNewItemHours(0);
+    setNewItemMinutes(0);
+    setNewItemSeconds(0);
+  };
+
+  const handleSaveNewItem = () => {
+    const totalSeconds = newItemHours * 3600 + newItemMinutes * 60 + newItemSeconds;
+    if (newItemText.trim() === "" && totalSeconds === 0) {
+      setIsAddingNewItem(false);
+      return;
+    }
+    setAgenda(prev => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        text: newItemText,
+        duration_seconds: totalSeconds,
+      },
+    ]);
+    setIsAddingNewItem(false);
+  };
+
+  const handleCancelNewItem = () => {
+    setIsAddingNewItem(false);
   };
 
   return (
@@ -155,6 +191,53 @@ export default function Home() {
               )}
             </div>
           ))}
+          {isAddingNewItem ? (
+            <div className="agenda-item-row">
+              <input
+                type="text"
+                className="edit-input"
+                placeholder="Agenda item text"
+                value={newItemText}
+                onChange={e => setNewItemText(e.target.value)}
+                style={{ minWidth: 180 }}
+              />
+              <div className="timer-inputs">
+                <input
+                  type="number"
+                  className="timer-input"
+                  min={0}
+                  max={23}
+                  value={newItemHours}
+                  onChange={e => setNewItemHours(Number(e.target.value))}
+                  placeholder="hh"
+                />:
+                <input
+                  type="number"
+                  className="timer-input"
+                  min={0}
+                  max={59}
+                  value={newItemMinutes}
+                  onChange={e => setNewItemMinutes(Number(e.target.value))}
+                  placeholder="mm"
+                />:
+                <input
+                  type="number"
+                  className="timer-input"
+                  min={0}
+                  max={59}
+                  value={newItemSeconds}
+                  onChange={e => setNewItemSeconds(Number(e.target.value))}
+                  placeholder="ss"
+                />
+              </div>
+              <button className="save-button large" onClick={handleSaveNewItem}>Save</button>
+              <button className="cancel-button large" onClick={handleCancelNewItem}>Cancel</button>
+            </div>
+          ) : (
+            <div style={{ marginTop: '0.5rem' }}>
+              <button className="change-button large" onClick={handleAddNewItem}>New agenda item</button>
+            </div>
+          )}
         </div>
 
         <div className="counters-section flex flex-col items-center gap-2">
