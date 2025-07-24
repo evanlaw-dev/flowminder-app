@@ -15,10 +15,16 @@ export interface AgendaItemType {
   isNew: boolean;
   isEdited: boolean;
   isDeleted: boolean;
+  // Timer fields from backend
+  timer_value?: number;
+  is_running?: boolean;
+  last_updated?: string;
+  initial_value?: number;
+  duration_seconds?: number;
 }
 
 type AgendaAction =
-  | { type: "LOAD"; items: { id: string; text: string }[] }
+  | { type: "LOAD"; items: AgendaItemType[] }
   | { type: "ADD" }
   | { type: "CHANGE"; id: string; text: string, isEdited?: boolean }
   | { type: "REMOVE"; id: string, isDeleted?: boolean }
@@ -32,10 +38,16 @@ function agendaReducer(state: AgendaItemType[], action: AgendaAction): AgendaIte
     case "LOAD":
       return action.items.map((it) => ({
         ...it,
-        originalText: it.text,
+        text: it.text || (it as any).agenda_item || "",
+        originalText: it.text || (it as any).agenda_item || "",
         isNew: false,
         isEdited: false,
         isDeleted: false,
+        timer_value: (it as any).timer_value,
+        is_running: (it as any).is_running,
+        last_updated: (it as any).last_updated,
+        initial_value: (it as any).initial_value,
+        duration_seconds: (it as any).duration_seconds,
       }));
 
     case "ADD":
@@ -48,6 +60,7 @@ function agendaReducer(state: AgendaItemType[], action: AgendaAction): AgendaIte
           isNew: true,
           isEdited: false,
           isDeleted: false,
+          duration_seconds: 300, // Default to 5 minutes
         },
       ];
 
@@ -105,11 +118,14 @@ function agendaReducer(state: AgendaItemType[], action: AgendaAction): AgendaIte
   }
 }
 
-const meetingId = 'a8f52a02-5aa8-45ec-9549-79ad2a194fa4'; // TODO: replace with dynamic ID later
-
-
 /* COMPONENT */
-export default function Agenda({ role = "participant" }: { role?: "host" | "participant" }) {
+export default function Agenda({ 
+  role = "participant", 
+  onAgendaItemsChange 
+}: { 
+  role?: "host" | "participant";
+  onAgendaItemsChange?: (items: AgendaItemType[]) => void;
+}) {
   // STATE
   // Uses a reducer to manage agenda items state
   const [items, dispatch] = useReducer(agendaReducer, []);
@@ -117,6 +133,12 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
   // Filter out deleted items for display
   const visibleItems = items.filter(it => !it.isDeleted);
 
+  // Notify parent component when items change
+  useEffect(() => {
+    if (onAgendaItemsChange) {
+      onAgendaItemsChange(visibleItems);
+    }
+  }, [visibleItems]); // Removed onAgendaItemsChange from dependencies since it's memoized
 
   const addItem = () => dispatch({ type: "ADD" });
   const changeItem = (id: string, txt: string) =>
@@ -124,30 +146,61 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
   const removeItem = (id: string) => dispatch({ type: "REMOVE", id });
   const resetItems = () => dispatch({ type: "RESET" });
 
+  // Track which item is in 'change' mode
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const MEETING_ID = 'test-meeting-id'; // Use the same meeting_id everywhere
   const saveItems = async () => {
     // Only save items that are new, edited, or deleted, and whose text is not empty
     const itemsToSave = items.filter(
       it => (it.isEdited || it.isNew || it.isDeleted) && it.text.trim() !== ""
     );
 
+    if (itemsToSave.length === 0) {
+      console.log('No items to save');
+      return;
+    }
+
+    const savedItems = [];
+    let hasErrors = false;
+
     for (const item of itemsToSave) {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda`, {
+        console.log('Saving agenda item:', item);
+        // Temporarily use test endpoint to avoid database issues
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda/test`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            meeting_id: meetingId,  // TODO Replace with real dynamic ID later
+            meeting_id: MEETING_ID,
             agenda_item: item.text,
-            duration_seconds: 200 // TODO Replace with real dynamic duration later
+            duration_seconds: item.duration_seconds || 300 // Use the item's duration or default to 5 minutes
           })
         });
   
         const result = await response.json();
-        console.log('Saved agenda item:', result);
+        console.log('Saved agenda item response:', result);
+        
+        if (result.success && result.item) {
+          savedItems.push(result.item);
+        } else {
+          console.error('Failed to save item:', item.text, result);
+          hasErrors = true;
+        }
   
       } catch (error) {
         console.error('Error saving agenda item:', error);
+        hasErrors = true;
       }
+    }
+
+    if (!hasErrors && savedItems.length > 0) {
+      // Update the state with the saved items
+      dispatch({ type: "SAVE_SUCCESS", savedItems });
+      console.log('All items saved successfully');
+    } else {
+      console.error('Some items failed to save');
+      // Optionally show an error message to the user
     }
   };
 
@@ -169,15 +222,27 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
 
   // Fetch agenda items from the backend
   useEffect(() => {
-    // Fetch agenda items from the server
-    // This is a placeholder URL, replace with your actual backend endpoint
-    // The server should return items in the format: { id: string, text: string }[]
-    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda?meeting_id=${meetingId}`)
+    // Temporarily use test endpoint to avoid database issues
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda/test?meeting_id=${MEETING_ID}`)
       .then((res) => res.json())
       .then((data) => {
-        dispatch({ type: "LOAD", items: data.items });
+        console.log('Fetched agenda items from backend:', data.items);
+        if (Array.isArray(data.items)) {
+          dispatch({ type: "LOAD", items: data.items });
+        } else {
+          dispatch({ type: "LOAD", items: [] });
+        }
+      })
+      .catch((error) => {
+        console.error('Error fetching agenda items:', error);
+        // Optionally, dispatch an error action to update UI
+        dispatch({ type: "LOAD", items: [] });
       });
   }, []);
+
+  // Split visible items into first and rest
+  const firstItem = visibleItems.length > 0 ? visibleItems[0] : null;
+  const restItems = visibleItems.length > 1 ? visibleItems.slice(1) : [];
 
   return (
     <>
@@ -186,29 +251,43 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
         <div className="bg-stone-400/95 p-8 rounded-lg space-y-4">
           <h2 className="font-semibold text-lg">next on the agenda…</h2>
 
-          {/* Conditionally render: If no items, show a placeholder and an empty item, 
-            otherwise list items */}
-
-          {visibleItems.length === 0 && role === 'host' ? (
+          {/* If no items, show a placeholder */}
+          {visibleItems.length === 0 ? (
             <>
               <AgendaItem
                 renderAsDiv={true}
                 item={{ id: "placeholder", text: "", originalText: "", isNew: false, isEdited: false, isDeleted: false }}
                 onChange={changeItem}
                 onRemove={removeItem}
-                canEdit={true}
+                editingId={editingId}
+                setEditingId={setEditingId}
               />
             </>
           ) : (
             <>
+              {/* First item at the top */}
+              {firstItem && (
+                <AgendaItem
+                  key={firstItem.id}
+                  item={firstItem}
+                  onChange={changeItem}
+                  onRemove={removeItem}
+                  onAdd={addItem}
+                  editingId={editingId}
+                  setEditingId={setEditingId}
+                />
+              )}
+              {/* Rest of the items */}
               <ul className="space-y-2 list-none mb-2">
-                {visibleItems.map((item) => (
+                {restItems.map((item) => (
                   <AgendaItem
                     key={item.id}
                     item={item}
                     onChange={changeItem}
                     onRemove={removeItem}
-                    canEdit={role === 'host'}
+                    onAdd={addItem}
+                    editingId={editingId}
+                    setEditingId={setEditingId}
                   />
                 ))}
               </ul>

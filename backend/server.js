@@ -7,12 +7,157 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const { Parser } = require('json2csv');
 const zoomRoutes = require('./routes/zoomRoute.js');
+const agendaController = require('./controllers/agendaController.js');
 
 const app = express();
+
+// Middleware setup
+app.use(cors());
+app.use(express.json());
+
+// Request count tracking (in-memory for now)
+let requestCounts = {
+  extra_time: 0,
+  move_along: 0
+};
 
 //Temporary 
 app.get('/', (req, res) => {
   res.send('Server is running');
+});
+
+// Test endpoint for agenda items (without database)
+app.post('/agenda/test', (req, res) => {
+  const { meeting_id, agenda_item, duration_seconds } = req.body;
+  console.log('Received agenda item:', { meeting_id, agenda_item, duration_seconds });
+  
+  // Return a mock response
+  res.json({ 
+    success: true, 
+    item: {
+      id: Date.now().toString(),
+      meeting_id,
+      agenda_item,
+      duration_seconds,
+      timer_value: duration_seconds,
+      is_running: false,
+      initial_value: duration_seconds,
+      created_at: new Date().toISOString()
+    }
+  });
+});
+
+// Test endpoint for getting agenda items (without database)
+app.get('/agenda/test', (req, res) => {
+  const { meeting_id } = req.query;
+  console.log('Getting agenda items for meeting:', meeting_id);
+  
+  // Return mock agenda items
+  res.json({ 
+    success: true, 
+    items: [
+      {
+        id: '1',
+        text: 'Discuss project timeline',
+        originalText: 'Discuss project timeline',
+        isNew: false,
+        isEdited: false,
+        isDeleted: false,
+        timer_value: 300,
+        is_running: false,
+        initial_value: 300,
+        duration_seconds: 300
+      },
+      {
+        id: '2',
+        text: 'Review UI mockups',
+        originalText: 'Review UI mockups',
+        isNew: false,
+        isEdited: false,
+        isDeleted: false,
+        timer_value: 600,
+        is_running: false,
+        initial_value: 600,
+        duration_seconds: 600
+      }
+    ]
+  });
+});
+
+// Test endpoint for action requests (move along, invite to speak, request extra time)
+app.post('/action', (req, res) => {
+  const { meeting_id, action_type } = req.body;
+  console.log('Received action request:', { meeting_id, action_type });
+  
+  // Update request counts based on action type
+  if (action_type === 'move_along') {
+    requestCounts.move_along++;
+  } else if (action_type === 'extra_time') {
+    requestCounts.extra_time++;
+  }
+  
+  // Return a mock response
+  res.json({ 
+    success: true, 
+    message: `${action_type} action processed successfully`,
+    timestamp: new Date().toISOString(),
+    current_counts: requestCounts
+  });
+});
+
+// Endpoint to get current request counts
+app.get('/request-counts', (req, res) => {
+  res.json({
+    success: true,
+    counts: requestCounts
+  });
+});
+
+// Endpoint to reset request counts
+app.post('/request-counts/reset', (req, res) => {
+  requestCounts = {
+    extra_time: 0,
+    move_along: 0
+  };
+  
+  console.log('Request counts reset to:', requestCounts);
+  
+  res.json({
+    success: true,
+    message: 'Request counts reset successfully',
+    counts: requestCounts
+  });
+});
+
+// Test endpoint for timer updates (without database)
+app.patch('/agenda/:id/timer', (req, res) => {
+  const { id } = req.params;
+  const { timer_value, is_running } = req.body;
+  console.log('Timer update request:', { id, timer_value, is_running });
+  
+  // Return a mock response
+  res.json({ 
+    success: true, 
+    message: `Timer updated for item ${id}`,
+    timer_value: timer_value || 300,
+    is_running: is_running || false,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Test endpoint for timer reset (without database)
+app.post('/agenda/:id/timer/reset', (req, res) => {
+  const { id } = req.params;
+  console.log('Timer reset request for item:', id);
+  
+  // Return a mock response
+  res.json({ 
+    success: true, 
+    message: `Timer reset for item ${id}`,
+    timer_value: 300,
+    is_running: false,
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Zoom routes
@@ -25,9 +170,6 @@ const io = new Server(server, {
     methods: ['GET', 'POST', 'DELETE']
   }
 });
-
-app.use(cors());
-app.use(express.json());
 
 // PostgreSQL connection
 const pool = new Pool({
@@ -63,20 +205,7 @@ io.on('connection', (socket) => {
 });
 
 // POST /agenda - Create a new agenda item
-app.post('/agenda', async (req, res) => {
-  const { meeting_id, agenda_item, duration_seconds } = req.body;
-  console.log("Creating agenda item:", { meeting_id, agenda_item, duration_seconds });
-  try {
-    const result = await pool.query(
-      'INSERT INTO agenda_items (meeting_id, agenda_item, duration_seconds) VALUES ($1, $2, $3) RETURNING *',
-      [meeting_id, agenda_item, duration_seconds]
-    );
-    res.json({ success: true, item: result.rows[0] });
-  } catch (err) {
-    console.error('Error inserting into agenda_items:', err);
-    res.status(500).json({ success: false, error: 'Failed to save agenda item' });
-  }
-});
+app.post('/agenda', (req, res) => agendaController.createAgendaItem(pool, req, res));
 
 // POST /action - Log a meeting action
 app.post('/action', async (req, res) => {
@@ -156,25 +285,14 @@ app.get('/download/:meetingId', async (req, res) => {
   }
 });
 
-// GET /agenda?meeting_id=xxx
-app.get('/agenda', async (req, res) => {
-  const { meeting_id } = req.query;
+// GET /agenda?meeting_id=... - Fetch all agenda items for a meeting (with timer state)
+app.get('/agenda', (req, res) => agendaController.getAgendaItems(pool, req, res));
 
-  if (!meeting_id) {
-    return res.status(400).json({ success: false, error: 'Missing meeting_id' });
-  }
+// PATCH /agenda/:id/timer - Update timer state for an agenda item
+app.patch('/agenda/:id/timer', (req, res) => agendaController.updateAgendaTimer(pool, req, res));
 
-  try {
-    const result = await pool.query(
-      'SELECT id, agenda_item AS text FROM agenda_items WHERE meeting_id = $1 AND status != $2 ORDER BY order_index ASC NULLS LAST, created_at ASC',
-      [meeting_id, 'completed']
-    );
-    res.json({ success: true, items: result.rows });
-  } catch (error) {
-    console.error('Error fetching agenda items:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch agenda items' });
-  }
-});
+// POST /agenda/:id/timer/reset - Reset timer for an agenda item to its initial value
+app.post('/agenda/:id/timer/reset', (req, res) => agendaController.resetAgendaTimer(pool, req, res));
 
 // Health check
 app.get('/health', (req, res) => {
@@ -184,4 +302,4 @@ app.get('/health', (req, res) => {
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
-}); 
+});
