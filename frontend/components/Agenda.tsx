@@ -146,6 +146,9 @@ export default function Agenda({
   const removeItem = (id: string) => dispatch({ type: "REMOVE", id });
   const resetItems = () => dispatch({ type: "RESET" });
 
+  // Track which item is in 'change' mode
+  const [editingId, setEditingId] = useState<string | null>(null);
+
   const MEETING_ID = 'test-meeting-id'; // Use the same meeting_id everywhere
   const saveItems = async () => {
     // Only save items that are new, edited, or deleted, and whose text is not empty
@@ -237,6 +240,10 @@ export default function Agenda({
       });
   }, []);
 
+  // Split visible items into first and rest
+  const firstItem = visibleItems.length > 0 ? visibleItems[0] : null;
+  const restItems = visibleItems.length > 1 ? visibleItems.slice(1) : [];
+
   return (
     <>
       <div className="w-[80%] relative">
@@ -244,9 +251,7 @@ export default function Agenda({
         <div className="bg-stone-400/95 p-8 rounded-lg space-y-4">
           <h2 className="font-semibold text-lg">next on the agenda…</h2>
 
-          {/* Conditionally render: If no items, show a placeholder and an empty item, 
-            otherwise list items */}
-
+          {/* If no items, show a placeholder */}
           {visibleItems.length === 0 ? (
             <>
               <AgendaItem
@@ -254,24 +259,37 @@ export default function Agenda({
                 item={{ id: "placeholder", text: "", originalText: "", isNew: false, isEdited: false, isDeleted: false }}
                 onChange={changeItem}
                 onRemove={removeItem}
+                editingId={editingId}
+                setEditingId={setEditingId}
               />
             </>
           ) : (
             <>
+              {/* First item at the top */}
+              {firstItem && (
+                <AgendaItem
+                  key={firstItem.id}
+                  item={firstItem}
+                  onChange={changeItem}
+                  onRemove={removeItem}
+                  onAdd={addItem}
+                  editingId={editingId}
+                  setEditingId={setEditingId}
+                />
+              )}
+              {/* Rest of the items */}
               <ul className="space-y-2 list-none mb-2">
-                {visibleItems.map((item) => {
-                  console.log('Passing item to AgendaItem:', item);
-                  return (
-                    <AgendaItem
-                      key={item.id}
-                      item={item}
-                      onChange={changeItem}
-                      onRemove={removeItem}
-                      onAdd={addItem}
-                      // Pass timer fields as props if needed in AgendaItem
-                    />
-                  );
-                })}
+                {restItems.map((item) => (
+                  <AgendaItem
+                    key={item.id}
+                    item={item}
+                    onChange={changeItem}
+                    onRemove={removeItem}
+                    onAdd={addItem}
+                    editingId={editingId}
+                    setEditingId={setEditingId}
+                  />
+                ))}
               </ul>
             </>
           )}
