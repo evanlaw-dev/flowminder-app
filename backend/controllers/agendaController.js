@@ -23,7 +23,7 @@ async function getAgendaItems(pool, req, res) {
   }
   try {
     const result = await pool.query(
-      'SELECT * FROM agenda_items WHERE meeting_id = $1 ORDER BY id ASC',
+      'SELECT id, agenda_item AS text, timer_value, duration_seconds, is_running, last_updated, initial_value FROM agenda_items WHERE meeting_id = $1 ORDER BY id ASC',
       [meeting_id]
     );
     res.json({ success: true, items: result.rows });
