@@ -27,11 +27,13 @@ interface AgendaItemType {
 
 interface AgendaItemProps {
   item: AgendaItemType;
-  onChange: (id: string, newText: string) => void;
+  onChange: (id: string, newText: string, newTimer?: number) => void;
   onRemove: (id: string) => void;
-  onAdd?: () => void; // Add this prop
+  onAdd?: () => void;
   renderAsDiv?: boolean;
   canEdit?: boolean;
+  editingId?: string | null;
+  setEditingId?: (id: string | null) => void;
 }
 
 // For demo: hardcode meetingId and isHost
@@ -53,8 +55,6 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isEmpty, setIsEmpty] = useState<boolean>(true);
   const divRef = useRef<HTMLDivElement | null>(null);
-  // Remove socket and local timer state logic for now
-  const [timerInput, setTimerInput] = useState<string>('');
   const router = useRouter();
 
   // Real-time timer state
@@ -212,7 +212,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
   };
   
   const editTimer = async () => {
-    const newDuration = parseInt(timerInput);
+    const newDuration = parseInt(editTimer.toString()); // Use editTimer directly
     if (!isNaN(newDuration) && newDuration > 0) {
       setLocalTimerValue(newDuration);
       setLocalIsRunning(false);
@@ -227,7 +227,7 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
           last_updated: new Date().toISOString()
         })
       });
-      setTimerInput('');
+      setEditTimer(newDuration); // Update editTimer state
       router.refresh();
     }
   };
@@ -247,128 +247,72 @@ const AgendaItem: FC<AgendaItemProps> = (props: AgendaItemProps) => {
         last_updated: new Date().toISOString()
       })
     });
+    setEditTimer(seconds); // Update editTimer state
     router.refresh();
   };
 
+  const [editText, setEditText] = useState(item.text);
+  const [editTimer, setEditTimer] = useState<number>(item.timer_value || item.duration_seconds || 0);
+
+  useEffect(() => {
+    setEditText(item.text);
+    setEditTimer(item.timer_value || item.duration_seconds || 0);
+  }, [item.text, item.timer_value, item.duration_seconds]);
+
+  const isEditMode = props.editingId === item.id;
+
+  const handleSave = () => {
+    if (editText.trim() !== "" && editTimer > 0) {
+      onChange(item.id, editText, editTimer);
+      if (props.setEditingId) props.setEditingId(null);
+    }
+  };
+  const handleCancel = () => {
+    setEditText(item.text);
+    setEditTimer(item.timer_value || item.duration_seconds || 0);
+    if (props.setEditingId) props.setEditingId(null);
+  };
+
   return (
-    <Wrapper
-      className="relative mr-3"
+    <Wrapper className="relative flex items-center gap-2 p-2 border-b border-gray-200"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="">
-        {/* Placeholder text when empty and not editing */}
-        {isEmpty && !isEditing && (
-          <span className="absolute left-3 top-2 text-gray-400 italic pointer-events-none select-none">
-            {ADD_ITEM_PLACEHOLDER}
-          </span>
-        )}
-        {/* Editable text area */}
-        <div
-          ref={divRef}
-          contentEditable
-          suppressContentEditableWarning
-          onClick={handleClick}
-          onBlurCapture={handleBlur}
-          onInput={handleInput}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              if (typeof props.onAdd === 'function') {
-                props.onAdd();
-              }
-            }
-          }}
-          className={`min-w-[80%] p-2 pr-10 w-full min-h-[2rem] whitespace-pre-wrap break-words overflow-y-auto rounded-lg border focus:outline-none focus:ring-2 bg-white
-            ${isEditing ? 'border-blue-100' : 'border-gray-300 hover:border-gray-400'}
-            ${isEmpty ? 'text-gray-400 italic' : 'text-black'}`}
-          spellCheck={false}
-          tabIndex={0}
-          data-placeholder={ADD_ITEM_PLACEHOLDER}
-        />
-        {/* Show remove button only when hovered or item is new/edited */}
-        {(isHovered || item.isNew || item.isEdited) && (
-          <button
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 ml-1 transition cursor-pointer"
-            title={REMOVE_ITEM_PLACEHOLDER}
-            aria-label={REMOVE_ITEM_PLACEHOLDER}
-            onClick={() => onRemove(item.id)}
-          >
-            <FaTimes />
-          </button>
-        )}
-        {/* Timer UI (centered display and controls) */}
-        <div className="mt-2 flex flex-col items-center">
-          <div className="flex items-center gap-2 mb-2">
-            <span className={`font-mono text-lg font-bold ${localTimerValue <= 30 && localIsRunning ? 'text-red-600 animate-pulse' : 'text-gray-800'}`}>
-              {formatTime(localTimerValue)}
-            </span>
-            <span className={`text-xs px-2 py-1 rounded-full ${localIsRunning ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-              {localIsRunning ? 'Running' : 'Paused'}
-            </span>
-            {/* Sound toggle button */}
+      {isEditMode ? (
+        <>
+          <input
+            type="text"
+            value={editText}
+            onChange={e => setEditText(e.target.value)}
+            className="flex-1 px-2 py-1 border rounded mr-2"
+          />
+          <input
+            type="number"
+            min={1}
+            value={editTimer}
+            onChange={e => setEditTimer(Number(e.target.value))}
+            className="w-24 px-2 py-1 border rounded mr-2"
+          />
+          <button onClick={handleSave} className="px-3 py-1 bg-green-500 text-white rounded mr-1">Save</button>
+          <button onClick={handleCancel} className="px-3 py-1 bg-gray-400 text-white rounded">Cancel</button>
+        </>
+      ) : (
+        <>
+          <span className="flex-1 truncate">{item.text}</span>
+          <span className="font-mono w-16 text-center">{formatTime(item.timer_value || item.duration_seconds || 0)}</span>
+          <button onClick={() => props.setEditingId && props.setEditingId(item.id)} className="px-2 py-1 bg-blue-500 text-white rounded">Change</button>
+          {(isHovered || item.isNew || item.isEdited) && (
             <button
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              className={`p-1 rounded ${soundEnabled ? 'text-blue-600' : 'text-gray-400'}`}
-              title={soundEnabled ? 'Disable sound' : 'Enable sound'}
+              className="ml-2 text-red-400 hover:text-red-600 transition cursor-pointer"
+              title={REMOVE_ITEM_PLACEHOLDER}
+              aria-label={REMOVE_ITEM_PLACEHOLDER}
+              onClick={() => onRemove(item.id)}
             >
-              {soundEnabled ? <FaVolumeUp size={12} /> : <FaVolumeMute size={12} />}
+              <FaTimes />
             </button>
-          </div>
-          {isHost && (
-            <div className="flex flex-col items-center gap-2">
-              {/* Quick timer presets */}
-              <div className="flex flex-row flex-wrap justify-center items-center gap-1">
-                <button onClick={() => setQuickTimer(300)} className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs transition-colors">5m</button>
-                <button onClick={() => setQuickTimer(600)} className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs transition-colors">10m</button>
-                <button onClick={() => setQuickTimer(900)} className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs transition-colors">15m</button>
-                <button onClick={() => setQuickTimer(1800)} className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs transition-colors">30m</button>
-              </div>
-              {/* Main timer controls */}
-              <div className="flex flex-row flex-wrap justify-center items-center gap-2">
-                <button 
-                  onClick={startTimer} 
-                  disabled={localIsRunning || localTimerValue === 0}
-                  className="px-3 py-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white rounded text-sm font-medium transition-colors"
-                >
-                  Start
-                </button>
-                <button 
-                  onClick={pauseTimer} 
-                  disabled={!localIsRunning}
-                  className="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-300 text-white rounded text-sm font-medium transition-colors"
-                >
-                  Pause
-                </button>
-                <button 
-                  onClick={resetTimer} 
-                  className="px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded text-sm font-medium transition-colors"
-                >
-                  Reset
-                </button>
-              </div>
-              {/* Custom timer input */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="1"
-                  placeholder="Custom seconds"
-                  value={timerInput}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTimerInput(e.target.value)}
-                  className="w-24 px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button 
-                  onClick={editTimer} 
-                  disabled={!timerInput || parseInt(timerInput) <= 0}
-                  className="px-3 py-1 bg-purple-500 hover:bg-purple-600 disabled:bg-gray-300 text-white rounded text-sm font-medium transition-colors"
-                >
-                  Set
-                </button>
-              </div>
-            </div>
           )}
-        </div>
-      </div>
+        </>
+      )}
     </Wrapper>
   );
 };
