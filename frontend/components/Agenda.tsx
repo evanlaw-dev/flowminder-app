@@ -16,6 +16,8 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
   const saveSuccess = useAgendaStore((state) => state.saveSuccess);
 
   const visibleItems = items.filter((it) => !it.isDeleted && !it.isProcessed);
+  const visibleItemsAgenda = visibleItems.splice(1);
+
 
   // Fetch agenda items on mount
   useEffect(() => {
@@ -64,7 +66,9 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
         <div className="bg-stone-400/95 p-8 rounded-lg space-y-4">
           <h2 className="font-semibold text-lg">next on the agenda…</h2>
 
-          {visibleItems.length === 0 && role === 'host' ? (
+          {/* render the host version for all items 
+          except the first (current item is displayed in header) */}
+          {visibleItemsAgenda.length === 0 && role === 'host' ? (
             <AgendaItem
               renderAsDiv={true}
               item={{ id: "placeholder", text: "", originalText: "", isNew: false, isEdited: false, isDeleted: false, isProcessed: false }}
@@ -74,7 +78,7 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
             />
           ) : (
             <ul className="space-y-2 list-none mb-2">
-              {visibleItems.map((item) => (
+              {visibleItemsAgenda.map((item) => ( 
                 <AgendaItem
                   key={item.id}
                   item={item}
