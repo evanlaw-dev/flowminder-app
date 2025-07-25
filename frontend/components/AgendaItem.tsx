@@ -16,6 +16,7 @@ interface AgendaItemType {
   isNew: boolean;
   isEdited: boolean;
   isDeleted: boolean;
+  isProcessed: boolean; // NEW FLAG!!! Marks processed agenda items
 }
 
 interface AgendaItemProps {
