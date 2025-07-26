@@ -1,6 +1,6 @@
 import { FaPlus } from 'react-icons/fa6';
 
-export default function BtnAddTimersPadding() {
+export default function BtnAddAllTimers() {
     return (
         <div className="relative inline-flex items-center justify-center p-4">
             <FaPlus className="text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />

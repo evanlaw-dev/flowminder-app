@@ -1,9 +1,9 @@
 import { useAgendaStore } from '@/stores/useAgendaStore';
 import React from 'react';
 
-export default function Header({ timer }: { timer: string }) {
+export default function Header() {
     // const currentItemIndex = useAgendaStore(state => state.currentItemIndex);
-    const placeholder = `You're done for today!`;
+    const placeholder = `No items to display.`;
     const items = useAgendaStore(state => state.items);
     const nextItem = useAgendaStore(state => state.nextItem);
 
@@ -17,13 +17,21 @@ export default function Header({ timer }: { timer: string }) {
     return (
         <div className="relative w-[80%] bg-stone-700/95 rounded-lg shadow-md text-center p-4">
             <div className="flex flex-col text-white">
+                {/* render placeholder if there are is no agenda item to render */}
                 {currentItem ? (
-                    <h1 className="text-lg font-semibold">{currentItem.text}</h1>
+                    <>
+                        <h1 className="text-lg font-semibold">{currentItem.text}</h1>
+
+                        {/* render timer is value > 0 */}
+                        {currentItem.timerValue > 0 && (
+                            <p className="text-sm">Timer: {currentItem.timerValue}</p>
+                        )}
+                    </>
                 ) : (
                     <h1 className="text-lg font-semibold">{placeholder}</h1>
                 )}
-                <p className="text-sm">Timer: {timer}</p>
             </div>
+
 
             {visibleItems.length > 0 && (
                 <button

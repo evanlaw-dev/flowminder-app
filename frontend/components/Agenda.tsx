@@ -22,7 +22,7 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
   const [showTimers, setShowTimers] = useState(false);
 
   const handleAddTimers = () => {
-    console.log("Add Timers triggered from parent.");
+    console.log("Add Timers triggered from Agenda Component.");
     setShowTimers(true);
   };
 
