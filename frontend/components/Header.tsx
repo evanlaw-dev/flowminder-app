@@ -1,5 +1,6 @@
 import { useAgendaStore } from '@/stores/useAgendaStore';
 import React from 'react';
+import Image from 'next/image';
 
 export default function Header() {
     // const currentItemIndex = useAgendaStore(state => state.currentItemIndex);
@@ -34,19 +35,25 @@ export default function Header() {
 
 
             {visibleItems.length > 0 && (
-                <button
-                    onClick={nextItem}
-                    className="group absolute right-4 top-1/2 transform -translate-y-1/2 w-6 h-6 cursor-pointer"
-                >
-                    <img src='/arrow-right-solid-full.svg' alt="Next" className="w-full h-full" />
-                    <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 text-xs text-white bg-red-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        Next Item
-                    </span>
-                </button>
-
+                <>
+                    <button
+                        onClick={nextItem}
+                        className="group absolute right-4 top-1/2 transform -translate-y-1/2 w-6 h-6 cursor-pointer"
+                    >
+                        <Image
+                            src="/arrow-right-solid-full.svg"
+                            alt="Next"
+                            width={24}
+                            height={24}
+                            className="w-full h-full"
+                        />
+                        {/* tooltip on hover */}
+                        <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 text-xs text-white bg-red-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            Next Item
+                        </span>
+                    </button>
+                </>
             )}
         </div>
     );
 };
-
-

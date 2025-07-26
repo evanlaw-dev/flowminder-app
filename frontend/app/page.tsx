@@ -1,6 +1,6 @@
 'use client'
 import Agenda from '@/components/Agenda';
-import DisplayRequests from '@/components/DisplayRequests';
+import RequestsWrapper from '@/components/RequestsWrapper';
 import Header from '@/components/Header';
 import Nudge from '@/components/Nudge';
 import { useSearchParams } from 'next/navigation';
@@ -26,7 +26,7 @@ export default function Home() {
         <ClientOnlyAgendaWrapper />
       </Suspense>
 
-      <DisplayRequests />
+      <RequestsWrapper />
     </main>
   );
 }

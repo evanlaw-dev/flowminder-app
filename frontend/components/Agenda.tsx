@@ -4,6 +4,7 @@ import AgendaItem from "./AgendaItem";
 import BtnAddAgendaItem from "./BtnAddAgendaItem";
 import BtnAddAllTimers from "./BtnAddAllTimers";
 import { useAgendaStore } from '@/stores/useAgendaStore';
+import DropdownMenu from "./DropdownMenu";
 
 export default function Agenda({ role = "participant" }: { role?: "host" | "participant" }) {
   const items = useAgendaStore((state) => state.items);
@@ -68,8 +69,13 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
     <>
       <div className="w-[80%] relative">
         <div className="bg-stone-400/95 p-8 rounded-lg space-y-4">
-          <h2 className="font-semibold text-lg">next on the agenda…</h2>
-
+          
+          <div className="flex justify-between items-center">
+            <h2 className="font-semibold text-lg">next on the agenda…</h2>
+            {role === 'host' && (
+              <DropdownMenu />
+            )}
+          </div>
           {/* render the host version for all items 
           except the first (current item is displayed in header) */}
           {visibleItemsAgenda.length === 0 && role === 'host' ? (
