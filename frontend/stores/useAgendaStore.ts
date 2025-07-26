@@ -1,4 +1,3 @@
-// stores/useAgendaStore.ts
 import { create } from 'zustand';
 import { v4 as uuid } from 'uuid';
 
@@ -9,15 +8,19 @@ export interface AgendaItemType {
     isNew: boolean;
     isEdited: boolean;
     isDeleted: boolean;
-    isProcessed: boolean;  // Marks processed/completed
+    isProcessed: boolean;
+    timerValue: number;
+    originalTimerValue: number;
+    isEditedTimer: boolean;
 }
 
 type AgendaStore = {
     items: AgendaItemType[];
     currentItemIndex: number;
-    loadItems: (items: { id: string; text: string }[]) => void;
+    loadItems: (items: { id: string; text: string; timerValue?: number }[]) => void;
     addItem: () => void;
     changeItem: (id: string, text: string) => void;
+    changeItemTimer: (id: string, timerValue: number) => void;
     removeItem: (id: string) => void;
     resetItems: () => void;
     saveSuccess: (savedItems: AgendaItemType[]) => void;
@@ -38,6 +41,9 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
                 isEdited: false,
                 isDeleted: false,
                 isProcessed: false,
+                timerValue: it.timerValue ?? 0,
+                originalTimerValue: it.timerValue ?? 0,
+                isEditedTimer: false,
             })),
             currentItemIndex: 0,
         })),
@@ -54,6 +60,9 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
                     isEdited: false,
                     isDeleted: false,
                     isProcessed: false,
+                    timerValue: 0,
+                    originalTimerValue: 0,
+                    isEditedTimer: false,
                 },
             ],
         })),
@@ -63,6 +72,15 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
             items: state.items.map((it) =>
                 it.id === id
                     ? { ...it, text, isEdited: text !== it.originalText }
+                    : it
+            ),
+        })),
+
+    changeItemTimer: (id, timerValue) =>
+        set((state) => ({
+            items: state.items.map((it) =>
+                it.id === id
+                    ? { ...it, timerValue, isEditedTimer: timerValue !== it.originalTimerValue }
                     : it
             ),
         })),
@@ -81,8 +99,10 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
                 .map((it) => ({
                     ...it,
                     text: it.originalText,
+                    timerValue: it.originalTimerValue,
                     isEdited: false,
                     isDeleted: false,
+                    isEditedTimer: false,
                 })),
         })),
 
@@ -91,10 +111,12 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
             items: savedItems.map((it) => ({
                 ...it,
                 originalText: it.text,
+                originalTimerValue: it.timerValue,
                 isNew: false,
                 isEdited: false,
                 isDeleted: false,
                 isProcessed: false,
+                isEditedTimer: false,
             })),
         })),
 
@@ -103,7 +125,6 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
         const visibleItems = items.filter((it) => !it.isDeleted && !it.isProcessed);
         if (visibleItems.length === 0) return; // No more items to process
 
-        // Process the current visible item (always index 0 after processing)
         const currentItemId = visibleItems[0].id;
         const updatedItems = items.map((it) =>
             it.id === currentItemId ? { ...it, isProcessed: true } : it

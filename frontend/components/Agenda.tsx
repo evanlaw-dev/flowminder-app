@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import AgendaItem from "./AgendaItem";
 import BtnAddAgendaItem from "./BtnAddAgendaItem";
-import BtnAddTimersPadding from "./BtnAddTimersPadding";
+import BtnAddAllTimers from "./BtnAddAllTimers";
 import { useAgendaStore } from '@/stores/useAgendaStore';
 
 export default function Agenda({ role = "participant" }: { role?: "host" | "participant" }) {
@@ -14,10 +14,17 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
   const removeItem = useAgendaStore((state) => state.removeItem);
   const resetItems = useAgendaStore((state) => state.resetItems);
   const saveSuccess = useAgendaStore((state) => state.saveSuccess);
+  const changeItemTimer = useAgendaStore((state) => state.changeItemTimer);
 
   const visibleItems = items.filter((it) => !it.isDeleted && !it.isProcessed);
-  const visibleItemsAgenda = visibleItems.splice(1);
+  const visibleItemsAgenda = visibleItems.slice(1);
 
+  const [showTimers, setShowTimers] = useState(false);
+
+  const handleAddTimers = () => {
+    console.log("Add Timers triggered from parent.");
+    setShowTimers(true);
+  };
 
   // Fetch agenda items on mount
   useEffect(() => {
@@ -57,9 +64,6 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
     saveSuccess(items);
   };
 
-  // EFFECTS
-  const [isHovered, setIsHovered] = useState(false);
-
   return (
     <>
       <div className="w-[80%] relative">
@@ -71,20 +75,24 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
           {visibleItemsAgenda.length === 0 && role === 'host' ? (
             <AgendaItem
               renderAsDiv={true}
-              item={{ id: "placeholder", text: "", originalText: "", isNew: false, isEdited: false, isDeleted: false, isProcessed: false }}
+              item={{ id: "placeholder", text: "", originalText: "", isNew: false, isEdited: false, isDeleted: false, isProcessed: false, timerValue: 0, isEditedTimer: false, originalTimerValue: 0 }}
               onChange={changeItem}
+              onChangeTimer={changeItemTimer}
               onRemove={removeItem}
               canEdit={true}
+              showTimers={showTimers}
             />
           ) : (
             <ul className="space-y-2 list-none mb-2">
-              {visibleItemsAgenda.map((item) => ( 
+              {visibleItemsAgenda.map((item) => (
                 <AgendaItem
                   key={item.id}
                   item={item}
                   onChange={changeItem}
+                  onChangeTimer={changeItemTimer}
                   onRemove={removeItem}
                   canEdit={role === 'host'}
+                  showTimers={showTimers}
                 />
               ))}
             </ul>
@@ -92,15 +100,22 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
 
           {role === "host" && <BtnAddAgendaItem onAdd={addItem} />}
 
+
+          {/* button add all timers (right padding of the Agenda Component) */}
           <div
-            className={`w-[10%] h-full absolute top-0 right-0 cursor-pointer flex items-center justify-center
-              ${isHovered ? 'border border-gray-300 rounded-md border-dashed' : 'bg-transparent'}`}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            className="w-[10%] h-full absolute top-0 right-0 cursor-pointer flex items-center justify-center group"
+            onClick={handleAddTimers}
           >
-            <BtnAddTimersPadding isHovered={isHovered} onAddTimers={() => { }} />
+            <div
+              className="w-full h-full flex items-center justify-center 
+               group-hover:border group-hover:border-gray-300 group-hover:rounded-md group-hover:border-dashed"
+            >
+              <BtnAddAllTimers />
+            </div>
           </div>
 
+
+          {/* if fields are being edited, show CANCEL, SAVE buttons */}
           {role === 'host' && items.filter((item) => (item.isEdited || item.isDeleted)).length > 0 && (
             <div className="flex gap-2">
               <button
