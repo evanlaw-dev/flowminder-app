@@ -21,7 +21,7 @@ function AgendaItem({
   onChangeTimer,
   onRemove,
   renderAsDiv = false,
-  canEdit = true,
+  canEdit = false,
   showTimers = false,
 }: AgendaItemProps) {
   const [isHovered, setIsHovered] = useState(false);
@@ -39,6 +39,7 @@ function AgendaItem({
   }, [item.text]);
 
   const handleClick = () => {
+    if (!canEdit) return;  // Prevent editing when canEdit is false
     setIsEditing(true);
     setIsEmpty(false);
     setTimeout(() => {
@@ -47,6 +48,7 @@ function AgendaItem({
   };
 
   const handleBlur = () => {
+    if (!canEdit) return; // Do nothing if editing is disabled
     setIsEditing(false);
     setTimeout(() => {
       if (!divRef.current) return;
@@ -77,57 +79,62 @@ function AgendaItem({
 
   return (
     <Wrapper
-      className="relative mr-3"
+      className="relative mr-3 last:border-0 border-b border-gray-200 group"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-    <div className={`flex items-center gap-2 ${showTimers ? 'w-full' : ''}`}>
-      <div
-        className={`relative ${showTimers ? 'w-[80%]' : 'w-full'}`}
-      >
-        {isEmpty && !isEditing && (
-          <span className="absolute left-3 top-2 text-gray-400 italic pointer-events-none select-none">
-            {ADD_ITEM_PLACEHOLDER}
-          </span>
-        )}
+      <div className={`flex items-center gap-2 ${showTimers ? 'w-full' : ''}`}>
+        <div className={`relative ${showTimers ? 'w-[80%]' : 'w-full'}`}>
+          {isEmpty && !isEditing && (
+            <span className="absolute left-3 top-2 text-gray-400 italic pointer-events-none select-none">
+              {ADD_ITEM_PLACEHOLDER}
+            </span>
+          )}
 
-        <div
-          ref={divRef}
-          contentEditable
-          suppressContentEditableWarning
-          onClick={handleClick}
-          onBlurCapture={handleBlur}
-          onInput={handleInput}
-          className={`p-2 pr-10 w-full min-h-[2rem] whitespace-pre-wrap break-words overflow-y-auto rounded-lg border focus:outline-none focus:ring-2 bg-white
-            ${isEditing ? 'border-blue-100' : 'border-gray-300 hover:border-gray-400'}
-            ${isEmpty ? 'text-gray-400 italic' : 'text-black'}`}
-          spellCheck={false}
-          tabIndex={0}
-        />
-        
-        {/* remove agenda item button */}
-        {isHovered && (
-          <button
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 ml-1 transition cursor-pointer"
-            title={REMOVE_ITEM_PLACEHOLDER}
-            aria-label={REMOVE_ITEM_PLACEHOLDER}
-            onClick={() => onRemove(item.id)}
-          >
-            <FaTimes />
-          </button>
-        )}
-      </div>
+          <div
+            ref={divRef}
+            contentEditable={canEdit}  // <-- Conditionally editable
+            suppressContentEditableWarning
+            onClick={handleClick}
+            onBlurCapture={handleBlur}
+            onInput={handleInput}
+            className={`p-2 w-full min-h-[2rem] whitespace-pre-wrap break-words overflow-y-auto rounded-lg focus:outline-none 
+              ${isEditing ? 'pr-10 border-blue-100' : 'border-gray-300 hover:border-gray-400'}
+              ${isEmpty ? 'text-gray-400 italic' : 'text-black'}
+              ${canEdit ? 'focus:ring-2' : 'cursor-default select-none'}
+            `}
+            spellCheck={false}
+            tabIndex={canEdit ? 0 : -1}  // disable tab navigation when not editable
+          />
 
-      {/* Timer Input Field */}
-      {canEdit && showTimers && (
-        <input
-          type="number"
-          className="w-[20%] mt-2 w-20 p-1 border rounded text-sm "
-          value={item.timerValue}
-          onChange={handleTimerChange}
-          placeholder="Timer (s)"
-        />
-      )}
+          {/* remove agenda item button ("X") */}
+          {isHovered && canEdit && (
+            <button
+              className="absolute right-full top-1/2 -translate-y-1/2 text-red-600 hover:text-red-800 transition cursor-pointer"
+              title={REMOVE_ITEM_PLACEHOLDER}
+              aria-label={REMOVE_ITEM_PLACEHOLDER}
+              onClick={() => onRemove(item.id)}
+            >
+              <FaTimes />
+            </button>
+          )}
+        </div>
+
+        {/* Timer Input Field */}
+        <div className={`${showTimers ? '' : 'hidden'} w-[20%] m-1 w-20 p-1 border rounded text-sm`}>
+          {canEdit ? (
+            <input
+              type="number"
+              className="w-full p-1"
+              value={item.timerValue}
+              onChange={handleTimerChange}
+              placeholder="Timer (s)"
+            />
+          ) : (
+            item.timerValue || '0:00'
+          )}
+        </div>
+
       </div>
     </Wrapper>
   );

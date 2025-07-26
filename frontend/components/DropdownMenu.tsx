@@ -3,7 +3,11 @@ import { Edit, Eye, Trash2 } from 'lucide-react';
 import Image from "next/image";
 
 
-export default function DropdownMenu() {
+interface DropdownMenuProps {
+  onEditClick: () => void;
+}
+
+const DropdownMenu: React.FC<DropdownMenuProps> = ({ onEditClick }) => {
     const [open, setOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -38,8 +42,8 @@ export default function DropdownMenu() {
                     ref={menuRef}
                     className="absolute top-full right-0 mr-2 w-48 bg-white shadow-lg rounded-2xl p-2"
                 >
-                    <div className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
-                        <Edit className="w-4 h-4" />
+                    <div onClick={onEditClick} className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
+                        <Edit className="w-4 h-4"/>
                         <span>Edit</span>
                     </div>
                     <div className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
@@ -55,3 +59,5 @@ export default function DropdownMenu() {
         </div>
     );
 }
+export default DropdownMenu;
+
