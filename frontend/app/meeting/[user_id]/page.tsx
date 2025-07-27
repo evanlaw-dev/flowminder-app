@@ -1,8 +1,15 @@
+// frontend/app/meeting/[user_id]/page.tsx
 'use client';
 
 import { useRouter } from 'next/navigation';
 
-export default function MeetingPage({ params }: { params: { user_id: string } }) {
+type PageProps = {
+  params: {
+    user_id: string;
+  };
+};
+
+export default function MeetingPage({ params }: PageProps) {
   const router = useRouter();
   const zoomUserId = params.user_id;
 
