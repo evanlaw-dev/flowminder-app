@@ -62,6 +62,7 @@ const getZoomUserInfo = async (req, res, next) => {
     console.error("Error fetching Zoom user information:", error.response?.data || error.message);
   }
 
+  console.log("Redirecting to:", `${process.env.FRONTEND_REDIRECT_URI}?success=true`);
   // return res.redirect('http://localhost:4000');
   return res.redirect(`${process.env.FRONTEND_REDIRECT_URI}?success=true`);
 }
