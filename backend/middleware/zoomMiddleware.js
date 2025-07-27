@@ -63,7 +63,7 @@ const getZoomUserInfo = async (req, res, next) => {
   }
 
   // return res.redirect('http://localhost:4000');
-  return res.redirect(process.env.ZOOM_REDIRECT_URI);
+  return res.redirect(`${process.env.FRONTEND_REDIRECT_URI}?success=true`);
 }
 
 //get new token using refresh token
