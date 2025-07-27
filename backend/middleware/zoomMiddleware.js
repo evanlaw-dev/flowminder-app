@@ -62,7 +62,8 @@ const getZoomUserInfo = async (req, res, next) => {
     console.error("Error fetching Zoom user information:", error.response?.data || error.message);
   }
 
-  return res.redirect('http://localhost:4000');
+  // return res.redirect('http://localhost:4000');
+  return res.redirect(process.env.ZOOM_REDIRECT_URI);
 }
 
 //get new token using refresh token
