@@ -48,7 +48,7 @@ const exchangeCodeForToken = async (req, res, next) => {
 const getZoomUserInfo = async (req, res, next) => {
 
   const access_token = res.locals.access_token;
-  let userEmail;
+  let userId;
 
   try {
     const response = await axios.get('https://api.zoom.us/v2/users/me', {
@@ -59,18 +59,16 @@ const getZoomUserInfo = async (req, res, next) => {
 
     const zoomUser = response.data;
     console.log("Zoom User:", response.data);
-    userEmail = zoomUser.email;
-
+    userId = zoomUser.id
     
   } catch (error) {
     console.error("Error fetching Zoom user information:", error.response?.data || error.message);
   }
 
-  // console.log("Redirecting to:", `${process.env.FRONTEND_REDIRECT_URI}?success=true`);
+  console.log("Redirecting to:", `${process.env.FRONTEND_REDIRECT_URI}/meeting?user_id=${encodeURIComponent(userId)}`);
   // return res.redirect('http://localhost:4000');
   // return res.redirect(`${process.env.FRONTEND_REDIRECT_URI}?success=true`);
-  console.log("Redirecting to:", `${process.env.FRONTEND_BASE_URL}/dashboard?email=${encodeURIComponent(userEmail)}`);
-  return res.redirect(`${process.env.FRONTEND_BASE_URL}/dashboard?email=${encodeURIComponent(userEmail)}`);
+  return res.redirect(`${process.env.FRONTEND_BASE_URL}/meeting?user_id=${encodeURIComponent(userId)}`);
 }
 
 //get new token using refresh token
