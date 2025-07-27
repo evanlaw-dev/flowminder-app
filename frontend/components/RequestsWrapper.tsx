@@ -3,7 +3,7 @@ import Request from './Request'
 
 {/* TODO make a call function to server to get count of requests */}
 
-function DisplayRequests() {
+function RequestsWrapper() {
   return (
     <div className='w-[87%] flex flex-row gap-2 p-4 pt-0 text-center'>
       {/* Display number of requests here */}
@@ -13,4 +13,4 @@ function DisplayRequests() {
   )
 }
 
-export default DisplayRequests
+export default RequestsWrapper
