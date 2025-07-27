@@ -1,20 +1,10 @@
 'use client';
 
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-export default function Meeting() {
-  const searchParams = useSearchParams();
+export default function MeetingPage({ params }: { params: { user_id: string } }) {
   const router = useRouter();
-
-  const [zoomUserId, setZoomUserId] = useState('');
-
-  useEffect(() => {
-    const userIdParam = searchParams.get('user_id');
-    if (userIdParam) {
-      setZoomUserId(userIdParam);
-    }
-  }, [searchParams]);
+  const zoomUserId = params.user_id;
 
   return (
     <div className="p-6">
@@ -23,13 +13,13 @@ export default function Meeting() {
       <div className="flex space-x-4">
         <button
           className="px-6 py-3 bg-green-600 text-white rounded-lg"
-          onClick={() => router.push(`/schedule?user_id=${zoomUserId}`)}
+          onClick={() => router.push(`/schedule/${zoomUserId}`)}
         >
           Schedule New Meeting
         </button>
         <button
           className="px-6 py-3 bg-blue-600 text-white rounded-lg"
-          onClick={() => router.push(`/join?user_id=${zoomUserId}`)}
+          onClick={() => router.push(`/join/${zoomUserId}`)}
         >
           Join Existing Meeting
         </button>

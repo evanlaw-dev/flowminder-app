@@ -65,11 +65,10 @@ const getZoomUserInfo = async (req, res, next) => {
     console.error("Error fetching Zoom user information:", error.response?.data || error.message);
   }
 
-  console.log("Redirecting to:", `${process.env.FRONTEND_REDIRECT_URI}/meeting?user_id=${encodeURIComponent(userId)}`);
+  console.log("Redirecting to:", `${process.env.FRONTEND_REDIRECT_URI}/meeting/${userId}`);
   // return res.redirect('http://localhost:4000');
   // return res.redirect(`${process.env.FRONTEND_REDIRECT_URI}?success=true`);
-  return res.redirect(`${process.env.FRONTEND_BASE_URL}/meeting?user_id=${encodeURIComponent(userId)}`);
-}
+  return res.redirect(`${process.env.FRONTEND_BASE_URL}/meeting/${userId}`);}
 
 //get new token using refresh token
 const useRefreshToken = async (req, res, next) => {
