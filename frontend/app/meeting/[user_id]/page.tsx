@@ -3,19 +3,14 @@
 
 import { useRouter, useParams } from 'next/navigation';
 
-// export default function MeetingPage({
-//   params,
-// }: {
-//   params: { user_id: string };
-// }) {
 
 export default function MeetingPage() {
   const router = useRouter();
   const { user_id: zoomUserId } = useParams();
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Welcome to FlowMinder</h1>
+    <div className="flex flex-col items-center justify-center h-screen box-border p-6">
+      <h1 className="text-2xl font-semibold mb-4 text-center">Welcome to FlowMinder</h1>
       <p className="mb-6">Zoom User ID: {zoomUserId}</p>
       <div className="flex space-x-4">
         <button
