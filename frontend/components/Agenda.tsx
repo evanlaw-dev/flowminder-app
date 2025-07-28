@@ -4,7 +4,7 @@ import AgendaItem from "./AgendaItem";
 import BtnAddAgendaItem from "./BtnAddAgendaItem";
 import BtnAddAllTimers from "./BtnAddAllTimers";
 import BtnRemoveAllTimers from "./BtnRemoveAllTimers";
-import { useAgendaStore } from '@/stores/useAgendaStore';
+import { useAgendaStore, AgendaItemType } from '@/stores/useAgendaStore';
 import DropdownMenu from "./DropdownMenu";
 
 export default function Agenda({ role = "participant" }: { role?: "host" | "participant" }) {
@@ -21,7 +21,8 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
     toggleEditingMode,
     getCurrentItem,
     getVisibleItems,
-    hasUnsavedChanges
+    hasUnsavedChanges,
+    saveSuccess
   } = useAgendaStore();
 
   const currentItem = getCurrentItem();
@@ -57,6 +58,8 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
 
     console.log('Items to save:', itemsToSave);
 
+    const savedItems: AgendaItemType[] = [];
+
     for (const item of itemsToSave) {
       try {
         const response = await fetch(`${backendUrl}/agenda`, {
@@ -71,20 +74,29 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
 
         const result = await response.json();
         console.log('Saved agenda item:', result);
+        
+        // Add the saved item to our array
+        savedItems.push({
+          ...item,
+          id: result.id || item.id, // Use the ID from the backend response
+          originalText: item.text,
+          originalTimerValue: item.newTimerValue || 0,
+          timerValue: item.newTimerValue || 0,
+          newTimerValue: item.newTimerValue || 0,
+          isNew: false,
+          isEdited: false,
+          isDeleted: false,
+          isProcessed: false,
+          isEditedTimer: false,
+        });
 
       } catch (error) {
         console.error('Error saving agenda item:', error);
       }
     }
 
-    // Reload items from backend after saving
-    try {
-      const response = await fetch(`${backendUrl}/agenda?meeting_id=a8f52a02-5aa8-45ec-9549-79ad2a194fa4`);
-      const data = await response.json();
-      loadItems(data.items);
-    } catch (error) {
-      console.error('Error reloading items:', error);
-    }
+    // Update the store with the saved items instead of reloading
+    saveSuccess(savedItems);
   };
 
   const handleEditClick = () => {
