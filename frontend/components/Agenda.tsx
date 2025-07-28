@@ -44,7 +44,8 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
 
   // Fetch agenda items on mount
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda?meeting_id=a8f52a02-5aa8-45ec-9549-79ad2a194fa4`)
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+    fetch(`${backendUrl}/agenda?meeting_id=a8f52a02-5aa8-45ec-9549-79ad2a194fa4`)
       .then((res) => res.json())
       .then((data) => {
         loadItems(data.items);
@@ -52,19 +53,34 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
   }, [loadItems]);
 
   const saveItems = async () => {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+    
+    // First, clear all existing items
+    try {
+      await fetch(`${backendUrl}/agenda?meeting_id=a8f52a02-5aa8-45ec-9549-79ad2a194fa4`, {
+        method: 'DELETE'
+      });
+      console.log('Cleared existing items');
+    } catch (error) {
+      console.error('Error clearing items:', error);
+    }
+
+    // Then save only the non-deleted items
     const itemsToSave = items.filter(
-      it => (it.isEdited || it.isDeleted) && it.text.trim() !== ""
+      it => !it.isDeleted && it.text.trim() !== ""
     );
+
+    console.log('Items to save:', itemsToSave);
 
     for (const item of itemsToSave) {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/agenda`, {
+        const response = await fetch(`${backendUrl}/agenda`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             meeting_id: 'a8f52a02-5aa8-45ec-9549-79ad2a194fa4',
             agenda_item: item.text,
-            duration_seconds: 200
+            duration_seconds: item.timerValue || 0
           })
         });
 
@@ -74,6 +90,15 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
       } catch (error) {
         console.error('Error saving agenda item:', error);
       }
+    }
+
+    // Reload items from backend after saving
+    try {
+      const response = await fetch(`${backendUrl}/agenda?meeting_id=a8f52a02-5aa8-45ec-9549-79ad2a194fa4`);
+      const data = await response.json();
+      loadItems(data.items);
+    } catch (error) {
+      console.error('Error reloading items:', error);
     }
 
     // // After successful save, you can trigger saveSuccess

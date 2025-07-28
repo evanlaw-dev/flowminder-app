@@ -17,7 +17,7 @@ export interface AgendaItemType {
 type AgendaStore = {
     items: AgendaItemType[];
     currentItemIndex: number;
-    loadItems: (items: { id: string; text: string; timerValue?: number }[]) => void;
+    loadItems: (items: { id: string; text: string; duration_seconds?: number; timerValue?: number }[]) => void;
     addItem: () => void;
     changeItem: (id: string, text: string) => void;
     changeItemTimer: (id: string, timerValue: number) => void;
@@ -41,8 +41,8 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
                 isEdited: false,
                 isDeleted: false,
                 isProcessed: false,
-                timerValue: it.timerValue ?? 0,
-                originalTimerValue: it.timerValue ?? 0,
+                timerValue: it.duration_seconds ?? it.timerValue ?? 0,
+                originalTimerValue: it.duration_seconds ?? it.timerValue ?? 0,
                 isEditedTimer: false,
             })),
             currentItemIndex: 0,
