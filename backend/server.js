@@ -166,13 +166,33 @@ app.get('/agenda', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'SELECT id, agenda_item AS text FROM agenda_items WHERE meeting_id = $1 AND status != $2 ORDER BY order_index ASC NULLS LAST, created_at ASC',
-      [meeting_id, 'completed']
+      'SELECT id, agenda_item AS text, duration_seconds FROM agenda_items WHERE meeting_id = $1 ORDER BY id ASC',
+      [meeting_id]
     );
     res.json({ success: true, items: result.rows });
   } catch (error) {
     console.error('Error fetching agenda items:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch agenda items' });
+  }
+});
+
+// DELETE /agenda?meeting_id=xxx - Clear all agenda items for a meeting
+app.delete('/agenda', async (req, res) => {
+  const { meeting_id } = req.query;
+
+  if (!meeting_id) {
+    return res.status(400).json({ success: false, error: 'Missing meeting_id' });
+  }
+
+  try {
+    await pool.query(
+      'DELETE FROM agenda_items WHERE meeting_id = $1',
+      [meeting_id]
+    );
+    res.json({ success: true, message: 'All agenda items cleared' });
+  } catch (error) {
+    console.error('Error clearing agenda items:', error);
+    res.status(500).json({ success: false, error: 'Failed to clear agenda items' });
   }
 });
 
