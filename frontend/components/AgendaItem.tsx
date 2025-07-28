@@ -121,7 +121,7 @@ function AgendaItem({
         </div>
 
         {/* Timer Input Field */}
-        <div className={`${showTimers ? '' : 'hidden'} w-[20%] m-1 w-20 p-1 border rounded text-sm`}>
+        <div className={`${showTimers ? '' : 'hidden'} w-[25%] m-1 w-28 p-1 border rounded text-sm`}>
           {canEdit ? (
             <input
               type="number"
