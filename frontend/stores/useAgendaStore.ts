@@ -127,9 +127,9 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
             items: savedItems.map((it) => ({
                 ...it,
                 originalText: it.text,
-                originalTimerValue: it.newTimerValue,
-                timerValue: it.newTimerValue,
-                newTimerValue: it.newTimerValue,
+                originalTimerValue: it.timerValue,
+                timerValue: it.timerValue,
+                newTimerValue: it.timerValue,
                 isNew: false,
                 isEdited: false,
                 isDeleted: false,
@@ -174,11 +174,11 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
     },
 
     getVisibleItems: () => {
-        const { items, showAllTimers } = get();
-        let visibleItems = items.filter((it) => !it.isDeleted && !it.isProcessed);
+        const { items, isEditingMode } = get();
+        const visibleItems = items.filter((it) => !it.isDeleted && !it.isProcessed);
         
-        // If showing all timers, include the current item in the agenda list
-        if (showAllTimers) {
+        // if in editing mode, include the current item in the agenda list
+        if (isEditingMode) {
             return visibleItems;
         }
         
@@ -190,4 +190,5 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
         const { items } = get();
         return items.some((it) => it.isEdited || it.isEditedTimer || it.isNew);
     },
+    
 }));

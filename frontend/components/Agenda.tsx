@@ -1,10 +1,11 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import AgendaItem from "./AgendaItem";
 import BtnAddAgendaItem from "./BtnAddAgendaItem";
 import BtnAddAllTimers from "./BtnAddAllTimers";
 import BtnRemoveAllTimers from "./BtnRemoveAllTimers";
-import { useAgendaStore, AgendaItemType } from '@/stores/useAgendaStore';
+import { useAgendaStore } from '@/stores/useAgendaStore';
+import { saveItemsToBackend } from '@/stores/agendaService'
 import DropdownMenu from "./DropdownMenu";
 
 export default function Agenda({ role = "participant" }: { role?: "host" | "participant" }) {
@@ -38,65 +39,13 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
       });
   }, [loadItems]);
 
-  const saveItems = async () => {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-    
-    // First, clear all existing items
+    const saveItems = async () => {
     try {
-      await fetch(`${backendUrl}/agenda?meeting_id=a8f52a02-5aa8-45ec-9549-79ad2a194fa4`, {
-        method: 'DELETE'
-      });
-      console.log('Cleared existing items');
+      await saveItemsToBackend(items, saveSuccess);
+      console.log('Items saved successfully');
     } catch (error) {
-      console.error('Error clearing items:', error);
+      console.error('Failed to save items:', error);
     }
-
-    // Then save only the non-deleted items
-    const itemsToSave = items.filter(
-      it => !it.isDeleted && it.text.trim() !== ""
-    );
-
-    console.log('Items to save:', itemsToSave);
-
-    const savedItems: AgendaItemType[] = [];
-
-    for (const item of itemsToSave) {
-      try {
-        const response = await fetch(`${backendUrl}/agenda`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            meeting_id: 'a8f52a02-5aa8-45ec-9549-79ad2a194fa4',
-            agenda_item: item.text,
-            duration_seconds: item.newTimerValue || 0
-          })
-        });
-
-        const result = await response.json();
-        console.log('Saved agenda item:', result);
-        
-        // Add the saved item to our array
-        savedItems.push({
-          ...item,
-          id: result.id || item.id, // Use the ID from the backend response
-          originalText: item.text,
-          originalTimerValue: item.newTimerValue || 0,
-          timerValue: item.newTimerValue || 0,
-          newTimerValue: item.newTimerValue || 0,
-          isNew: false,
-          isEdited: false,
-          isDeleted: false,
-          isProcessed: false,
-          isEditedTimer: false,
-        });
-
-      } catch (error) {
-        console.error('Error saving agenda item:', error);
-      }
-    }
-
-    // Update the store with the saved items instead of reloading
-    saveSuccess(savedItems);
   };
 
   const handleEditClick = () => {
