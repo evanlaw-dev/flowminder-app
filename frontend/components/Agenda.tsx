@@ -2,45 +2,30 @@
 import React, { useState, useEffect } from "react";
 import AgendaItem from "./AgendaItem";
 import BtnAddAgendaItem from "./BtnAddAgendaItem";
-import BtnDisplayAllTimers from "./BtnDisplayAllTimers";
+import BtnAddAllTimers from "./BtnAddAllTimers";
+import BtnRemoveAllTimers from "./BtnRemoveAllTimers";
 import { useAgendaStore } from '@/stores/useAgendaStore';
 import DropdownMenu from "./DropdownMenu";
 
 export default function Agenda({ role = "participant" }: { role?: "host" | "participant" }) {
-  const items = useAgendaStore((state) => state.items);
-  // const currentItemIndex = useAgendaStore((state) => state.currentItemIndex);
-  const loadItems = useAgendaStore((state) => state.loadItems);
-  const addItem = useAgendaStore((state) => state.addItem);
-  const changeItem = useAgendaStore((state) => state.changeItem);
-  const removeItem = useAgendaStore((state) => state.removeItem);
-  const resetItems = useAgendaStore((state) => state.resetItems);
-  // const saveSuccess = useAgendaStore((state) => state.saveSuccess);
-  const changeItemTimer = useAgendaStore((state) => state.changeItemTimer);
+  const {
+    items,
+    loadItems,
+    addItem,
+    changeItem,
+    removeItem,
+    resetItems,
+    changeItemTimer,
+    showAllTimers,
+    isEditingMode,
+    toggleEditingMode,
+    getCurrentItem,
+    getVisibleItems,
+    hasUnsavedChanges
+  } = useAgendaStore();
 
-  const visibleItems = items.filter((it) => !it.isDeleted && !it.isProcessed);
-  const visibleItemsAgenda = visibleItems.slice(1);
-
-
-  const [isEditingAll, setIsEditingAll] = useState(false);
-
-  const handleEditClick = () => {
-    console.log("isEditingMode on")
-    setIsEditingAll(true);
-  };
-
-
-  const toggleEditMode = () => {
-    console.log("isEditingMode")
-    setIsEditingAll(!isEditingAll);
-  };
-
-  const [showTimers, setShowTimers] = useState(false);
-
-  const handleShowTimers = () => {
-    console.log("Show Timers triggered from Agenda Component.");
-    setShowTimers((prev) => !prev);
-  };
-
+  const currentItem = getCurrentItem();
+  const visibleItems = getVisibleItems();
 
   // Fetch agenda items on mount
   useEffect(() => {
@@ -80,7 +65,7 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
           body: JSON.stringify({
             meeting_id: 'a8f52a02-5aa8-45ec-9549-79ad2a194fa4',
             agenda_item: item.text,
-            duration_seconds: item.timerValue || 0
+            duration_seconds: item.newTimerValue || 0
           })
         });
 
@@ -100,100 +85,105 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
     } catch (error) {
       console.error('Error reloading items:', error);
     }
+  };
 
-    // // After successful save, you can trigger saveSuccess
-    // saveSuccess(items);
+  const handleEditClick = () => {
+    console.log("isEditingMode on");
+    toggleEditingMode();
+  };
+
+  const handleCancel = () => {
+    if (hasUnsavedChanges()) {
+      const confirmed = window.confirm(
+        'You have unsaved changes. Are you sure you want to cancel? This action is irreversible.'
+      );
+      if (!confirmed) return;
+    }
+    resetItems();
+    toggleEditingMode();
+  };
+
+  const handleSave = () => {
+    saveItems();
+    toggleEditingMode();
   };
 
   return (
     <>
       <div className="w-[80%] relative">
         <div className="bg-stone-400/95 p-10 rounded-lg space-y-4">
-
-
-        {/* show dropdown menu if user is a host */}
+          {/* Header with dropdown menu for hosts */}
           {role === 'host' && (
             <div className="flex justify-between items-center">
               <h2 className="font-semibold text-lg">next on the agenda…</h2>
-              {role === 'host' && (
-                <DropdownMenu onEditClick={handleEditClick} />
-              )}
+              <DropdownMenu onEditClick={handleEditClick} />
             </div>
           )}
 
-
-          {/* if there are no agenda items to render, render a placeholder
-          otherwise, 
-              if editing mode is on, render all items (including header) and allow the items to be edited,
-              otherwise, display only items from second onward, block editing */}
+          {/* Agenda Items */}
           {visibleItems.length === 0 ? (
             <AgendaItem
               renderAsDiv={true}
-              item={{ id: "placeholder", text: "", originalText: "", isNew: false, isEdited: false, isDeleted: false, isProcessed: false, timerValue: 0, isEditedTimer: false, originalTimerValue: 0 }}
+              item={{ 
+                id: "placeholder", 
+                text: "", 
+                originalText: "", 
+                isNew: false, 
+                isEdited: false, 
+                isDeleted: false, 
+                isProcessed: false, 
+                timerValue: 0, 
+                originalTimerValue: 0,
+                newTimerValue: 0,
+                isEditedTimer: false 
+              }}
               onChange={changeItem}
               onChangeTimer={changeItemTimer}
               onRemove={removeItem}
-              canEdit={true}
-              showTimers={showTimers}
+              canEdit={isEditingMode}
+              showTimers={showAllTimers}
             />
           ) : (
-            isEditingAll ? (
-              visibleItems.map((item) => (
+            <ul className="space-y-2 list-none mb-2">
+              {visibleItems.map((item) => (
                 <AgendaItem
                   key={item.id}
                   item={item}
                   onChange={changeItem}
                   onChangeTimer={changeItemTimer}
                   onRemove={removeItem}
-                  canEdit={true}
-                  showTimers={showTimers}
+                  canEdit={isEditingMode || currentItem?.id === item.id}
+                  showTimers={showAllTimers}
+                  isCurrentItem={currentItem?.id === item.id}
                 />
-              ))
-            ) : (
-              <ul className="space-y-2 list-none mb-2">
-                {visibleItemsAgenda.map((item) => (
-                  <AgendaItem
-                    key={item.id}
-                    item={item}
-                    onChange={changeItem}
-                    onChangeTimer={changeItemTimer}
-                    onRemove={removeItem}
-                    canEdit={false}
-                    showTimers={showTimers}
-                  />
-                ))}
-              </ul>
-            )
+              ))}
+            </ul>
           )}
 
-          {isEditingAll && <BtnAddAgendaItem onAdd={addItem} />}
+          {/* Add Agenda Item Button */}
+          {isEditingMode && <BtnAddAgendaItem onAdd={addItem} />}
 
-
-          {/* if fields are being edited, show CANCEL, SAVE buttons */}
-          {isEditingAll && (
-
+          {/* Timer Toggle Button and Save/Cancel Buttons */}
+          {isEditingMode && (
             <>
-              {/* button add/remove all timers (right padding of the Agenda Component) */}
-              <div
-                className="w-[10%] h-full absolute top-0 right-0 cursor-pointer flex items-center justify-center group"
-                onClick={handleShowTimers}
-              >
-                <div
-                  className="w-full h-full flex items-center justify-center 
-               group-hover:border group-hover:border-gray-300 group-hover:rounded-md group-hover:border-dashed"
-                >
-                  <BtnDisplayAllTimers showTimers={showTimers}/>
+              {/* Add/Remove All Timers Button */}
+              <div className="w-[10%] h-full absolute top-0 right-0 cursor-pointer flex items-center justify-center group">
+                <div className="w-full h-full flex items-center justify-center 
+                  group-hover:border group-hover:border-gray-300 group-hover:rounded-md group-hover:border-dashed">
+                  {showAllTimers ? <BtnRemoveAllTimers /> : <BtnAddAllTimers />}
                 </div>
               </div>
+
+              {/* Save/Cancel Buttons */}
               <div className="flex gap-2">
                 <button
-                  onClick={() => { resetItems(); toggleEditMode(); }}
+                  onClick={handleCancel}
                   className="flex-1 rounded-full border border-black/10 hover:bg-stone-400 h-10 sm:h-12"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={() => { saveItems(); toggleEditMode(); }}
+                  onClick={handleSave}
                   className="flex-1 rounded-full bg-red-800/85 text-white hover:bg-red-900/90 h-10 sm:h-12"
                 >
                   Save

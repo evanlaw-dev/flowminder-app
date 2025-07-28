@@ -13,6 +13,7 @@ interface AgendaItemProps {
   renderAsDiv?: boolean;
   canEdit?: boolean;
   showTimers?: boolean;
+  isCurrentItem?: boolean;
 }
 
 function AgendaItem({
@@ -23,6 +24,7 @@ function AgendaItem({
   renderAsDiv = false,
   canEdit = false,
   showTimers = false,
+  isCurrentItem = false,
 }: AgendaItemProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -73,8 +75,69 @@ function AgendaItem({
   };
 
   const handleTimerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTimerValue = parseInt(e.target.value, 10) || 0;
-    onChangeTimer(item.id, newTimerValue);
+    const inputValue = e.target.value;
+    
+    // Parse natural language input
+    const parsedValue = parseTimerInput(inputValue);
+    
+    onChangeTimer(item.id, parsedValue);
+  };
+
+  const parseTimerInput = (input: string): number => {
+    // Handle empty input
+    if (!input.trim()) return 0;
+    
+    // Handle pure numbers (seconds)
+    if (/^\d+$/.test(input)) {
+      return parseInt(input, 10);
+    }
+    
+    // Handle MM:SS format
+    const timeMatch = input.match(/^(\d+):(\d{1,2})$/);
+    if (timeMatch) {
+      const minutes = parseInt(timeMatch[1], 10);
+      const seconds = parseInt(timeMatch[2], 10);
+      return minutes * 60 + seconds;
+    }
+    
+    // Handle natural language (e.g., "5m", "2m30s", "1h")
+    const naturalMatch = input.match(/^(\d+)([mhs])$/i);
+    if (naturalMatch) {
+      const value = parseInt(naturalMatch[1], 10);
+      const unit = naturalMatch[2].toLowerCase();
+      
+      switch (unit) {
+        case 'h': return value * 3600; // hours to seconds
+        case 'm': return value * 60;   // minutes to seconds
+        case 's': return value;        // seconds
+        default: return 0;
+      }
+    }
+    
+    // Handle combined format (e.g., "2m30s")
+    const combinedMatch = input.match(/^(\d+)m(\d+)s$/i);
+    if (combinedMatch) {
+      const minutes = parseInt(combinedMatch[1], 10);
+      const seconds = parseInt(combinedMatch[2], 10);
+      return minutes * 60 + seconds;
+    }
+    
+    // If no pattern matches, try to parse as number
+    const numValue = parseInt(input, 10);
+    return isNaN(numValue) ? 0 : numValue;
+  };
+
+  const handleTimerIncrement = (increment: number) => {
+    const currentValue = item.newTimerValue;
+    const newValue = Math.max(0, currentValue + (increment * 60)); // Increment by minutes
+    onChangeTimer(item.id, newValue);
+  };
+
+  const formatTimer = (seconds: number) => {
+    if (seconds === 0) return '0:00';
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -84,7 +147,8 @@ function AgendaItem({
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className={`flex items-center gap-2 ${showTimers ? 'w-full' : ''}`}>
-        <div className={`relative ${showTimers ? 'w-[80%]' : 'w-full'}`}>
+        {/* Agenda Text - 70% width when timers are shown */}
+        <div className={`relative ${showTimers ? 'w-[70%]' : 'w-full'}`}>
           {isEmpty && !isEditing && (
             <span className="absolute left-3 top-2 text-gray-400 italic pointer-events-none select-none">
               {ADD_ITEM_PLACEHOLDER}
@@ -93,21 +157,23 @@ function AgendaItem({
 
           <div
             ref={divRef}
-            contentEditable={canEdit}  // <-- Conditionally editable
+            contentEditable={canEdit}
             suppressContentEditableWarning
             onClick={handleClick}
             onBlurCapture={handleBlur}
             onInput={handleInput}
+            title={!canEdit && item.text.length > 80 ? item.text : undefined}
             className={`p-2 w-full min-h-[2rem] whitespace-pre-wrap break-words overflow-y-auto rounded-lg focus:outline-none 
               ${isEditing ? 'pr-10 border-blue-100' : 'border-gray-300 hover:border-gray-400'}
               ${isEmpty ? 'text-gray-400 italic' : 'text-black'}
               ${canEdit ? 'focus:ring-2' : 'cursor-default select-none'}
+              ${!canEdit ? 'max-w-full overflow-hidden text-ellipsis' : ''}
             `}
             spellCheck={false}
-            tabIndex={canEdit ? 0 : -1}  // disable tab navigation when not editable
+            tabIndex={canEdit ? 0 : -1}
           />
 
-          {/* remove agenda item button ("X") */}
+          {/* Remove agenda item button ("X") */}
           {isHovered && canEdit && (
             <button
               className="absolute right-full top-1/2 -translate-y-1/2 text-red-600 hover:text-red-800 transition cursor-pointer"
@@ -120,21 +186,45 @@ function AgendaItem({
           )}
         </div>
 
-        {/* Timer Input Field */}
-        <div className={`${showTimers ? '' : 'hidden'} w-[25%] m-1 w-28 p-1 border rounded text-sm`}>
-          {canEdit ? (
-            <input
-              type="number"
-              className="w-full p-1"
-              value={item.timerValue}
-              onChange={handleTimerChange}
-              placeholder="Timer (s)"
-            />
-          ) : (
-            item.timerValue || '0:00'
-          )}
-        </div>
-
+        {/* Timer Input Field - 30% width when timers are shown */}
+        {showTimers && (
+          <div className="w-[30%] flex items-center">
+            {canEdit ? (
+              <div className="w-full flex items-center">
+                <input
+                  type="text"
+                  className="flex-1 p-2 border border-gray-300 rounded-l text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={item.newTimerValue === 0 ? '' : formatTimer(item.newTimerValue)}
+                  onChange={handleTimerChange}
+                  placeholder="0:00"
+                  title="Enter time as: 5m, 2:30, 1h, or 90s"
+                />
+                <div className="flex flex-col">
+                  <button
+                    type="button"
+                    onClick={() => handleTimerIncrement(1)}
+                    className="px-2 py-1 border border-gray-300 border-l-0 text-xs hover:bg-gray-100"
+                    title="Add 1 minute"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTimerIncrement(-1)}
+                    className="px-2 py-1 border border-gray-300 border-l-0 border-t-0 text-xs hover:bg-gray-100"
+                    title="Subtract 1 minute"
+                  >
+                    ▼
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full p-2 text-sm text-gray-600 bg-gray-50 rounded">
+                {formatTimer(item.newTimerValue)}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </Wrapper>
   );
