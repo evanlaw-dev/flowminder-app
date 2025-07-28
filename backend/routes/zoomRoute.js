@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const zoomController = require('../controllers/zoomController.js');
-const { exchangeCodeForToken, getZoomUserInfo } = require('../middleware/ZoomMiddleware.js');
+const { exchangeCodeForToken, getZoomUserInfo } = require('../middleware/zoomMiddleware.js');
 
 /**
  * Organizes all the routes associated with Zoom

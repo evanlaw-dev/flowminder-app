@@ -13,7 +13,8 @@ export default function LoginPage() {
         <AuthLoginButton
           providerName="Zoom"
           logoSrc="/zoom_logo.png"
-          redirectUrl="http://localhost:4000/zoom/oauth"
+          // redirectUrl="http://localhost:4000/zoom/oauth"
+          redirectUrl="https://flowminder-app.onrender.com/zoom/oauth"
         />
       </div>
     </div>
