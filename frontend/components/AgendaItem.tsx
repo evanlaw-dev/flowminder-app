@@ -29,6 +29,8 @@ function AgendaItem({
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isEmpty, setIsEmpty] = useState(item.text.trim() === '');
+  const [truncated, setTruncated] = useState(true);
+  
   const divRef = useRef<HTMLDivElement | null>(null);
 
   const Wrapper: React.ElementType = renderAsDiv ? 'div' : 'li';
@@ -41,6 +43,8 @@ function AgendaItem({
   }, [item.text]);
 
   const handleClick = () => {
+    setTruncated(prev => !prev);  // Toggle truncate/expand
+    
     if (!canEdit) return;  // Prevent editing when canEdit is false
     setIsEditing(true);
     setIsEmpty(false);
@@ -98,11 +102,9 @@ function AgendaItem({
             onInput={handleInput}
             // onBlur={handleTimerBlur}
             title={!canEdit && item.text.length > 80 ? item.text : undefined}
-            className={`p-2 w-full min-h-[2rem] whitespace-pre-wrap break-words overflow-y-auto rounded-lg focus:outline-none 
-              ${isEditing ? 'pr-10 border-blue-100' : 'border-gray-300 hover:border-gray-400'}
-              ${isEmpty ? 'text-gray-400 italic' : 'text-black'}
+            className={`p-2 w-full min-h-[2rem]  rounded-lg focus:outline-none 
               ${canEdit ? 'focus:ring-2' : 'cursor-default select-none'}
-              ${!canEdit ? 'max-w-full overflow-hidden text-ellipsis' : ''}
+              ${!canEdit && truncated ? 'truncate' : 'whitespace-normal break-words'}
             `}
             spellCheck={false}
             tabIndex={canEdit ? 0 : -1}
