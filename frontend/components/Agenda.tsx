@@ -5,7 +5,7 @@ import BtnAddAgendaItem from "./BtnAddAgendaItem";
 import BtnAddAllTimers from "./BtnAddAllTimers";
 import BtnRemoveAllTimers from "./BtnRemoveAllTimers";
 import { useAgendaStore } from '@/stores/useAgendaStore';
-import { saveItemsToBackend } from '@/stores/agendaService'
+import { saveItemsToBackend } from '@/services/agendaService'
 import DropdownMenu from "./DropdownMenu";
 
 export default function Agenda({ role = "participant" }: { role?: "host" | "participant" }) {

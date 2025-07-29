@@ -1,4 +1,4 @@
-import { AgendaItemType } from "./useAgendaStore";
+import { AgendaItemType } from "../stores/useAgendaStore";
 
 export async function saveItemsToBackend(
   items: AgendaItemType[],
