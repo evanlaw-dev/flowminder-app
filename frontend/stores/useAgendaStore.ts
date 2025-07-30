@@ -83,7 +83,7 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
         set((state) => ({
             items: state.items.map((it) =>
                 it.id === id
-                    ? { ...it, text, isEdited: text !== it.originalText }
+                    ? { ...it, text, isEdited: text.trim() !== it.originalText.trim() }
                     : it
             ),
         })),
@@ -104,7 +104,7 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
     removeItem: (id) =>
         set((state) => ({
             items: state.items.map((it) =>
-                it.id === id ? { ...it, isDeleted: true } : it
+                it.id === id ? { ...it, isDeleted: true, isProcessed: true } : it
             ),
         })),
 
@@ -186,9 +186,10 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
         return visibleItems.slice(1);
     },
 
+    // Changes are considered unsaved if an item has been edited or deleted, but not just added.
     hasUnsavedChanges: () => {
         const { items } = get();
-        return items.some((it) => it.isEdited || it.isEditedTimer || it.isNew);
+        return items.some((it) => (it.isEdited || it.isEditedTimer || it.isDeleted) && !(it.isDeleted && it.isNew));
     },
     
 }));

@@ -13,7 +13,7 @@ export async function saveItemsToBackend(
   });
 
   // 2. Save all non-deleted items by re-POSTing them
-  const itemsToSave = items.filter(it => !it.isDeleted && it.text.trim() !== "");
+  const itemsToSave = items.filter(it => !it.isDeleted && !it.isProcessed && it.text.trim() !== "");
   const savedItems: AgendaItemType[] = [];
 
   for (const item of itemsToSave) {
