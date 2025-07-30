@@ -39,12 +39,12 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
       });
   }, [loadItems]);
 
-    const saveItems = async () => {
+  const saveItems = async () => {
     try {
       await saveItemsToBackend(items, saveSuccess);
-      console.log('Items saved successfully');
-    } catch (error) {
-      console.error('Failed to save items:', error);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save agenda — please try again.");
     }
   };
 
@@ -85,18 +85,18 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
           {visibleItems.length === 0 ? (
             <AgendaItem
               renderAsDiv={true}
-              item={{ 
-                id: "placeholder", 
-                text: "", 
-                originalText: "", 
-                isNew: false, 
-                isEdited: false, 
-                isDeleted: false, 
-                isProcessed: false, 
-                timerValue: 0, 
+              item={{
+                id: "placeholder",
+                text: "",
+                originalText: "",
+                isNew: false,
+                isEdited: false,
+                isDeleted: false,
+                isProcessed: false,
+                timerValue: 0,
                 originalTimerValue: 0,
                 newTimerValue: 0,
-                isEditedTimer: false 
+                isEditedTimer: false
               }}
               onChange={changeItem}
               onChangeTimer={changeItemTimer}
