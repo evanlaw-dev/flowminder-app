@@ -12,6 +12,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.use((req, res, next) => {
+  console.log('🔵 Express Received:', req.method, req.url);
+  next();
+});
+
 //Temporary 
 app.get('/', (req, res) => {
   res.send('Server is running');
@@ -68,20 +73,16 @@ app.post('/agenda_items', async (req, res) => {
   const {
     meeting_id,
     agenda_item,
-    duration_seconds = 300,
-    order_index,
-    actual_start,
-    actual_end,
-    status = 'pending'
+    duration_seconds,
   } = req.body;
 
   try {
     const result = await pool.query(
       `INSERT INTO agenda_items 
-        (meeting_id, agenda_item, duration_seconds, order_index, actual_start, actual_end, status, created_at) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) 
+        (meeting_id, agenda_item, duration_seconds) 
+       VALUES ($1, $2, $3) 
        RETURNING *`,
-      [meeting_id, agenda_item, duration_seconds, order_index, actual_start, actual_end, status]
+      [meeting_id, agenda_item, duration_seconds]
     );
 
     res.json({ success: true, item: result.rows[0] });
@@ -138,39 +139,25 @@ app.get('/agenda_items', async (req, res) => {
 // PATCH /agenda_items/:id - Update an existing agenda item
 app.patch('/agenda_items/:id', async (req, res) => {
   const { id } = req.params;
-  const { meeting_id, ...updateFields } = req.body;
-
-  if (!meeting_id) {
-    return res.status(400).json({ success: false, error: 'Missing meeting_id' });
-  }
+  const { agenda_item, duration_seconds } = req.body;
 
   try {
     const result = await pool.query(
       `UPDATE agenda_items
-       SET agenda_item = COALESCE($3, agenda_item),
-           duration_seconds = COALESCE($4, duration_seconds),
-           order_index = COALESCE($5, order_index),
-           actual_start = COALESCE($6, actual_start),
-           actual_end = COALESCE($7, actual_end),
-           status = COALESCE($8, status)
-       WHERE id = $1 AND meeting_id = $2
+       SET agenda_item = COALESCE($2, agenda_item),
+           duration_seconds = COALESCE($3, duration_seconds)
+       WHERE id = $1
        RETURNING *`,
       [
         id,
-        meeting_id,
-        updateFields.agenda_item,
-        updateFields.duration_seconds,
-        updateFields.order_index,
-        updateFields.actual_start,
-        updateFields.actual_end,
-        updateFields.status
+        agenda_item,
+        duration_seconds,
       ]
     );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Agenda item not found' });
     }
-
     res.json({ success: true, item: result.rows[0] });
   } catch (err) {
     console.error('Error updating agenda item:', err);

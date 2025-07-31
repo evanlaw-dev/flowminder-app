@@ -30,7 +30,7 @@ function AgendaItem({
   const [isEditing, setIsEditing] = useState(false);
   const [isEmpty, setIsEmpty] = useState(item.text.trim() === '');
   const [truncated, setTruncated] = useState(true);
-  
+
   const divRef = useRef<HTMLDivElement | null>(null);
 
   const Wrapper: React.ElementType = renderAsDiv ? 'div' : 'li';
@@ -44,7 +44,7 @@ function AgendaItem({
 
   const handleClick = () => {
     setTruncated(prev => !prev);  // Toggle truncate/expand
-    
+
     if (!canEdit) return;  // Prevent editing when canEdit is false
     setIsEditing(true);
     setIsEmpty(false);
@@ -128,7 +128,7 @@ function AgendaItem({
           <div className="w-[30%] flex items-center min-w-0">
             <Timer
               canEdit={canEdit}
-              timerValue={item.newTimerValue}
+              timerValue={item.timerValue}
               onChangeTimer={(val) => onChangeTimer(item.id, val)}
             />
           </div>
