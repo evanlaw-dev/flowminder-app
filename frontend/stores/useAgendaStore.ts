@@ -42,7 +42,6 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
     isEditingMode: false,
 
     loadItems: (items) => {
-        console.debug('Loading agenda items:', items);  // Debug log
         set(() => ({
 
             items: items.map((it) => ({
@@ -175,7 +174,6 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
     getVisibleItems: () => {
         const { items, isEditingMode } = get();
         const visibleItems = items.filter((it) => !it.isDeleted && !it.isProcessed);
-        console.debug('Visible agenda items:', visibleItems); // Debug log
 
         // if in editing mode, include the current item in the agenda list
         if (isEditingMode) {

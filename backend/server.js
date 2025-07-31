@@ -12,11 +12,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use((req, res, next) => {
-  console.log('🔵 Express Received:', req.method, req.url);
-  next();
-});
-
 //Temporary 
 app.get('/', (req, res) => {
   res.send('Server is running');
@@ -68,8 +63,6 @@ io.on('connection', (socket) => {
 
 // POST /agenda_items - Create a new agenda item
 app.post('/agenda_items', async (req, res) => {
-  console.log('POST /agenda_items (meeting_id query param)', req.query.meeting_id);
-
   const {
     meeting_id,
     agenda_item,
@@ -115,7 +108,6 @@ app.delete('/agenda_items', async (req, res) => {
 // GET /agenda_items?meeting_id=xxx - Fetch agenda items for a meeting
 app.get('/agenda_items', async (req, res) => {
   const { meeting_id } = req.query;
-  console.log('GET /agenda_items (meeting_id query param)', meeting_id);
 
   if (!meeting_id) {
     return res.status(400).json({ success: false, error: 'Missing meeting_id' });
@@ -168,7 +160,6 @@ app.patch('/agenda_items/:id', async (req, res) => {
 // DELETE /agenda_items/:id - Delete an agenda item by ID
 app.delete('/agenda_items/:id', async (req, res) => {
   const { id } = req.params;
-  console.log(`Attempting to DELETE agenda item with id: ${id}`);
 
   try {
     const result = await pool.query(
@@ -181,7 +172,6 @@ app.delete('/agenda_items/:id', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Agenda item not found' });
     }
 
-    console.log(`Deleted agenda item with ID ${id}`);
     res.json({ success: true, item: result.rows[0] });
   } catch (err) {
     console.error('Error deleting agenda item:', err);

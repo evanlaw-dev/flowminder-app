@@ -30,7 +30,6 @@ export async function fetchAgendaItemsOnMount(
   }
 
   const body = (await res.json()) as { items: AgendaItemResponse[] };
-  console.debug('Fetched agenda items:', body.items);
 
   return body.items.map(item => ({
     id: item.id,
@@ -68,7 +67,6 @@ export async function saveItemsToBackend(
           const { item: saved } = await res.json();
           item.id = saved.id;
           item.isNew = false;
-          console.debug(`CREATED item, got id=`, item.id);
         })
     )
   );
@@ -76,7 +74,6 @@ export async function saveItemsToBackend(
   // UPDATE
   await Promise.all(
     toUpdate.map(async item => {
-      console.debug(`--> PATCH /agenda_items/${item.id}`, item);
       const res = await fetch(`${backendUrl}/agenda_items/${item.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -92,7 +89,6 @@ export async function saveItemsToBackend(
         throw new Error(`PATCH failed: ${res.status}`);
       } else {
         item.isEdited = false;
-        console.debug(`PATCH succeeded for item ${item.id}`);
       }
     })
   );
@@ -100,7 +96,6 @@ export async function saveItemsToBackend(
   // DELETE
   await Promise.all(
     toDelete.map(async item => {
-      console.debug(`→ DELETE /agenda_items/${item.id}`);
       const res = await fetch(`${backendUrl}/agenda_items/${item.id}`, {
         method: 'DELETE',
       });
@@ -109,8 +104,6 @@ export async function saveItemsToBackend(
         console.warn(`DELETE 404 – item ${item.id} not found (skipping).`);
       } else if (!res.ok) {
         throw new Error(`DELETE failed: ${res.status}`);
-      } else {
-        console.debug(`DELETE succeeded for item ${item.id}`);
       }
     })
   );
@@ -124,7 +117,6 @@ export async function saveItemsToBackend(
   }
 
   const body2 = (await listRes.json()) as { items: AgendaItemResponse[] };
-  console.debug('Refreshed agenda items:', body2.items);
 
   // Map to full AgendaItemType for saveSuccess
   const freshItems: AgendaItemType[] = body2.items.map(item => ({
