@@ -6,7 +6,7 @@ interface BtnRemoveAllTimersProps {
 }
 
 export default function BtnRemoveAllTimers({ className = '' }: BtnRemoveAllTimersProps) {
-    const { showAllTimers, toggleAllTimers, hasUnsavedChanges } = useAgendaStore();
+    const { toggleAllTimers, hasUnsavedChanges } = useAgendaStore();
 
     const handleClick = () => {
         // If there are unsaved changes, show a confirmation dialog

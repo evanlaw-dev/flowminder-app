@@ -32,7 +32,7 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
   // Fetch agenda items on mount
   useEffect(() => {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-    fetch(`${backendUrl}/agenda?meeting_id=a8f52a02-5aa8-45ec-9549-79ad2a194fa4`)
+    fetch(`${backendUrl}/agenda_items?meeting_id=a8f52a02-5aa8-45ec-9549-79ad2a194fa4`)
       .then((res) => res.json())
       .then((data) => {
         loadItems(data.items);

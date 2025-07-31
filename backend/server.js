@@ -9,6 +9,8 @@ const { Parser } = require('json2csv');
 const zoomRoutes = require('./routes/zoomRoute.js');
 
 const app = express();
+app.use(cors());
+app.use(express.json());
 
 //Temporary 
 app.get('/', (req, res) => {
@@ -25,9 +27,6 @@ const io = new Server(server, {
     methods: ['GET', 'POST', 'DELETE']
   }
 });
-
-app.use(cors());
-app.use(express.json());
 
 // PostgreSQL connection
 const pool = new Pool({
@@ -62,19 +61,144 @@ io.on('connection', (socket) => {
   });
 });
 
-// POST /agenda - Create a new agenda item
-app.post('/agenda', async (req, res) => {
-  const { meeting_id, agenda_item, duration_seconds } = req.body;
-  console.log("Creating agenda item:", { meeting_id, agenda_item, duration_seconds });
+// POST /agenda_items - Create a new agenda item
+app.post('/agenda_items', async (req, res) => {
+  console.log('POST /agenda_items (meeting_id query param)', req.query.meeting_id);
+
+  const {
+    meeting_id,
+    agenda_item,
+    duration_seconds = 300,
+    order_index,
+    actual_start,
+    actual_end,
+    status = 'pending'
+  } = req.body;
+
   try {
     const result = await pool.query(
-      'INSERT INTO agenda_items (meeting_id, agenda_item, duration_seconds) VALUES ($1, $2, $3) RETURNING *',
-      [meeting_id, agenda_item, duration_seconds]
+      `INSERT INTO agenda_items 
+        (meeting_id, agenda_item, duration_seconds, order_index, actual_start, actual_end, status, created_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) 
+       RETURNING *`,
+      [meeting_id, agenda_item, duration_seconds, order_index, actual_start, actual_end, status]
     );
+
     res.json({ success: true, item: result.rows[0] });
   } catch (err) {
     console.error('Error inserting into agenda_items:', err);
     res.status(500).json({ success: false, error: 'Failed to save agenda item' });
+  }
+});
+
+// DELETE /agenda_items?meeting_id=xxx - Clear all agenda items for a meeting
+app.delete('/agenda_items', async (req, res) => {
+  const { meeting_id } = req.query;
+
+  if (!meeting_id) {
+    return res.status(400).json({ success: false, error: 'Missing meeting_id' });
+  }
+
+  try {
+    await pool.query(
+      'DELETE FROM agenda_items WHERE meeting_id = $1',
+      [meeting_id]
+    );
+    res.json({ success: true, message: 'All agenda items cleared' });
+  } catch (error) {
+    console.error('Error clearing agenda items:', error);
+    res.status(500).json({ success: false, error: 'Failed to clear agenda items' });
+  }
+});
+
+// GET /agenda_items?meeting_id=xxx - Fetch agenda items for a meeting
+app.get('/agenda_items', async (req, res) => {
+  const { meeting_id } = req.query;
+  console.log('GET /agenda_items (meeting_id query param)', meeting_id);
+
+  if (!meeting_id) {
+    return res.status(400).json({ success: false, error: 'Missing meeting_id' });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT id, meeting_id, agenda_item, duration_seconds, order_index, actual_start, actual_end, status, created_at
+       FROM agenda_items
+       WHERE meeting_id = $1
+       ORDER BY order_index ASC NULLS LAST, created_at ASC`,
+      [meeting_id]
+    );
+    res.json({ success: true, items: result.rows });
+  } catch (error) {
+    console.error('Error fetching agenda items:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch agenda items' });
+  }
+});
+
+// PATCH /agenda_items/:id - Update an existing agenda item
+app.patch('/agenda_items/:id', async (req, res) => {
+  const { id } = req.params;
+  const { meeting_id, ...updateFields } = req.body;
+
+  if (!meeting_id) {
+    return res.status(400).json({ success: false, error: 'Missing meeting_id' });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE agenda_items
+       SET agenda_item = COALESCE($3, agenda_item),
+           duration_seconds = COALESCE($4, duration_seconds),
+           order_index = COALESCE($5, order_index),
+           actual_start = COALESCE($6, actual_start),
+           actual_end = COALESCE($7, actual_end),
+           status = COALESCE($8, status)
+       WHERE id = $1 AND meeting_id = $2
+       RETURNING *`,
+      [
+        id,
+        meeting_id,
+        updateFields.agenda_item,
+        updateFields.duration_seconds,
+        updateFields.order_index,
+        updateFields.actual_start,
+        updateFields.actual_end,
+        updateFields.status
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Agenda item not found' });
+    }
+
+    res.json({ success: true, item: result.rows[0] });
+  } catch (err) {
+    console.error('Error updating agenda item:', err);
+    res.status(500).json({ success: false, error: 'Failed to update agenda item' });
+  }
+});
+
+// DELETE /agenda_items/:id - Delete an agenda item by ID
+app.delete('/agenda_items/:id', async (req, res) => {
+  const { id } = req.params;
+  console.log(`Attempting to DELETE agenda item with id: ${id}`);
+
+  try {
+    const result = await pool.query(
+      'DELETE FROM agenda_items WHERE id::text = $1 RETURNING *',
+      [id]
+    );
+
+    if (!result.rows.length) {
+      console.log(`Agenda item with ID ${id} not found in DB.`);
+      return res.status(404).json({ success: false, error: 'Agenda item not found' });
+    }
+
+    console.log(`Deleted agenda item with ID ${id}`);
+    res.json({ success: true, item: result.rows[0] });
+  } catch (err) {
+    console.error('Error deleting agenda item:', err);
+    res.status(500).json({ success: false, error: 'Could not delete agenda item' });
   }
 });
 
@@ -86,50 +210,17 @@ app.post('/action', async (req, res) => {
   }
   const timestamp = new Date().toISOString();
   try {
-    // Save to DB
     await pool.query(
       'INSERT INTO actions (meeting_id, action_type, timestamp) VALUES ($1, $2, $3)',
       [meeting_id, action_type, timestamp]
     );
-    // Save to session state for undo
     sessionState[meeting_id] = { action_type, timestamp };
-    // Emit to clients
     io.to(meeting_id).emit('action', { meeting_id, action_type, timestamp });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to record action' });
   }
 });
-
-// PATCH /agenda/:id - Update an existing agenda item
-app.patch('/agenda/:id', async (req, res) => {
-  const { id } = req.params;  // Get the item ID from the URL
-  const { meeting_id, agenda_item, duration_seconds } = req.body;  // Get the updated data from the request body
-
-  try {
-    const result = await pool.query(
-    `UPDATE agenda_items
-        SET agenda_item      = $2,
-            duration_seconds = $3
-      WHERE id         = $1
-        AND meeting_id = $4
-      RETURNING id, agenda_item AS text, duration_seconds`,
-    [id, agenda_item, duration_seconds, meeting_id]
-  );
-
-    if (result.rows.length === 0) {
-      // Item with given ID not found
-      return res.status(404).json({ success: false, error: 'Agenda item not found' });
-    }
-
-    res.json({ success: true, item: result.rows[0] });  // Send back the updated item
-  } catch (err) {
-    console.error('Error updating agenda item:', err);
-    res.status(500).json({ success: false, error: 'Failed to update agenda item' });
-  }
-});
-
-
 
 // GET /actions/:meetingId - Return full action history
 app.get('/actions/:meetingId', async (req, res) => {
@@ -186,64 +277,6 @@ app.get('/download/:meetingId', async (req, res) => {
   }
 });
 
-// GET /agenda?meeting_id=xxx
-app.get('/agenda', async (req, res) => {
-  const { meeting_id } = req.query;
-
-  if (!meeting_id) {
-    return res.status(400).json({ success: false, error: 'Missing meeting_id' });
-  }
-
-  try {
-    const result = await pool.query(
-      'SELECT id, agenda_item AS text, duration_seconds FROM agenda_items WHERE meeting_id = $1 ORDER BY id ASC',
-      [meeting_id]
-    );
-    res.json({ success: true, items: result.rows });
-  } catch (error) {
-    console.error('Error fetching agenda items:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch agenda items' });
-  }
-});
-
-// DELETE /agenda?meeting_id=xxx - Clear all agenda items for a meeting
-app.delete('/agenda', async (req, res) => {
-  const { meeting_id } = req.query;
-
-  if (!meeting_id) {
-    return res.status(400).json({ success: false, error: 'Missing meeting_id' });
-  }
-
-  try {
-    await pool.query(
-      'DELETE FROM agenda_items WHERE meeting_id = $1',
-      [meeting_id]
-    );
-    res.json({ success: true, message: 'All agenda items cleared' });
-  } catch (error) {
-    console.error('Error clearing agenda items:', error);
-    res.status(500).json({ success: false, error: 'Failed to clear agenda items' });
-  }
-});
-// DELETE /agenda/:id - Clear an agenda item by ID
-app.delete('/agenda/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const result = await pool.query(
-      'DELETE FROM agenda_items WHERE id = $1 RETURNING *',
-      [id]
-    );
-    if (!result.rows.length) {
-      return res.status(404).json({ success: false, error: 'Not found' });
-    }
-    res.json({ success: true, item: result.rows[0] });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, error: 'Could not delete' });
-  }
-});
-
-
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -252,4 +285,4 @@ app.get('/health', (req, res) => {
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
-}); 
+});

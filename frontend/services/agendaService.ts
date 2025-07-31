@@ -15,7 +15,7 @@ export async function saveItemsToBackend(
   // 2) CREATE new items
   await Promise.all(
     toCreate.map(item =>
-      fetch(`${backendUrl}/agenda`, {
+      fetch(`${backendUrl}/agenda_items`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -37,14 +37,14 @@ export async function saveItemsToBackend(
   // 3) UPDATE edited items (tolerate 404 as “that row’s already gone”)
   await Promise.all(
     toUpdate.map(async item => {
-      console.debug(`→ PATCH /agenda/${item.id}`, {
+      console.debug(`→ PATCH /agenda_items/${item.id}`, {
         id: item.id,
         type: typeof item.id,
         text: item.text,
         duration: item.newTimerValue
       });
 
-      const res = await fetch(`${backendUrl}/agenda/${item.id}`, {
+      const res = await fetch(`${backendUrl}/agenda_items/${item.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -67,8 +67,8 @@ export async function saveItemsToBackend(
   // 4) DELETE removed items (also tolerate 404)
   await Promise.all(
     toDelete.map(async item => {
-      console.debug(`→ DELETE /agenda/${item.id}`);
-      const res = await fetch(`${backendUrl}/agenda/${item.id}`, {
+      console.debug(`→ DELETE /agenda_items/${item.id}`);
+      const res = await fetch(`${backendUrl}/agenda_items/${item.id}`, {
         method: 'DELETE'
       });
 
@@ -83,7 +83,7 @@ export async function saveItemsToBackend(
   );
 
   // 5) REFRESH the full list from the server
-  const listRes = await fetch(`${backendUrl}/agenda?meeting_id=${meetingId}`);
+  const listRes = await fetch(`${backendUrl}/agenda_items?meeting_id=${meetingId}`);
   if (!listRes.ok) {
     throw new Error(`Failed to fetch updated agenda: ${listRes.status}`);
   }

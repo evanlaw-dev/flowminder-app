@@ -67,7 +67,7 @@ export default function Header() {
     // Timer input/edit logic is now handled by AgendaTimer
 
     return (
-        <div className="relative w-[80%] bg-stone-700/95 rounded-lg shadow-md text-center p-4">
+        <div className="relative w-[80%] bg-stone-700/95 rounded-lg shadow-md text-center p-4 px-12 break-words">
             <div className="flex flex-col text-white">
                 {/* render placeholder if there are is no agenda item to render */}
                 {currentItem ? (
