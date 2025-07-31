@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const zoomController = require('../controllers/zoomController.js');
-const { exchangeCodeForToken, getZoomUserInfo } = require('../middleware/zoomMiddleware.js');
+const { exchangeCodeForToken, getZoomUserInfo } = require('../middleware/ZoomMiddleware.js');
+const { addNewToken, deleteToken } = require('../middleware/tokenDataMiddleware.js');
+const { addNewUserInfo } = require('../middleware/userDataMiddleware.js');
 
 /**
  * Organizes all the routes associated with Zoom
@@ -10,11 +12,14 @@ const { exchangeCodeForToken, getZoomUserInfo } = require('../middleware/zoomMid
 //get authorization code route
 router.get('/oauth', zoomController.oauth);
 
-//get authentication token route
-//need to pass along to middleware for saving into DB and redirect, adding session, and redirect to frontend
+//get authentication token route, save token, save user info, redirect to meeting page
 router.get('/oauth/callback',
   exchangeCodeForToken,
-  getZoomUserInfo
+  getZoomUserInfo,
+  deleteToken,
+  addNewToken,
+  addNewUserInfo,
+  zoomController.redirectToMeeting
 );
 
 module.exports = router;
