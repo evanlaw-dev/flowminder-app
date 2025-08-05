@@ -5,8 +5,9 @@ import BtnAddAgendaItem from "./BtnAddAgendaItem";
 import BtnAddAllTimers from "./BtnAddAllTimers";
 import BtnRemoveAllTimers from "./BtnRemoveAllTimers";
 import { useAgendaStore } from '@/stores/useAgendaStore';
-import { saveItemsToBackend } from '@/services/agendaService'
+import { fetchAgendaItemsOnMount, saveItemsToBackend } from '@/services/agendaService'
 import DropdownMenu from "./DropdownMenu";
+import { meetingId } from "../services/agendaService"
 
 export default function Agenda({ role = "participant" }: { role?: "host" | "participant" }) {
   const {
@@ -31,20 +32,20 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
 
   // Fetch agenda items on mount
   useEffect(() => {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-    fetch(`${backendUrl}/agenda?meeting_id=a8f52a02-5aa8-45ec-9549-79ad2a194fa4`)
-      .then((res) => res.json())
-      .then((data) => {
-        loadItems(data.items);
+    fetchAgendaItemsOnMount(meetingId)
+      .then(loadItems)          // <— loadItems now gets exactly the shape it wants
+      .catch((err) => {
+        console.error(err);
+        alert("Could not load agenda items");
       });
   }, [loadItems]);
 
-    const saveItems = async () => {
+  const saveItems = async () => {
     try {
       await saveItemsToBackend(items, saveSuccess);
-      console.log('Items saved successfully');
-    } catch (error) {
-      console.error('Failed to save items:', error);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save agenda — please try again.");
     }
   };
 
@@ -85,18 +86,17 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
           {visibleItems.length === 0 ? (
             <AgendaItem
               renderAsDiv={true}
-              item={{ 
-                id: "placeholder", 
-                text: "", 
-                originalText: "", 
-                isNew: false, 
-                isEdited: false, 
-                isDeleted: false, 
-                isProcessed: false, 
-                timerValue: 0, 
+              item={{
+                id: "placeholder",
+                text: "",
+                originalText: "",
+                isNew: false,
+                isEdited: false,
+                isDeleted: false,
+                isProcessed: false,
+                timerValue: 0,
                 originalTimerValue: 0,
-                newTimerValue: 0,
-                isEditedTimer: false 
+                isEditedTimer: false
               }}
               onChange={changeItem}
               onChangeTimer={changeItemTimer}

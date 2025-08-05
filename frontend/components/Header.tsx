@@ -38,8 +38,8 @@ export default function Header() {
 
     // Start timer when current item changes
     useEffect(() => {
-        if (currentItem && currentItem.newTimerValue > 0) {
-            setRemainingTime(currentItem.newTimerValue);
+        if (currentItem && currentItem.timerValue > 0) {
+            setRemainingTime(currentItem.timerValue);
             setIsTimerRunning(false); // Reset timer state
         } else {
             setRemainingTime(0);
@@ -60,14 +60,14 @@ export default function Header() {
     const resetTimer = () => {
         setIsTimerRunning(false);
         if (currentItem) {
-            setRemainingTime(currentItem.newTimerValue);
+            setRemainingTime(currentItem.timerValue);
         }
     };
 
     // Timer input/edit logic is now handled by AgendaTimer
 
     return (
-        <div className="relative w-[80%] bg-stone-700/95 rounded-lg shadow-md text-center p-4">
+        <div className="relative w-[80%] bg-stone-700/95 rounded-lg shadow-md text-center p-4 px-12 break-words">
             <div className="flex flex-col text-white">
                 {/* render placeholder if there are is no agenda item to render */}
                 {currentItem ? (
@@ -79,11 +79,11 @@ export default function Header() {
                             <div className="w-auto w-full flex items-center justify-center gap-2">                            {isEditingMode ? (
                                 <Timer
                                     canEdit={true}
-                                    timerValue={currentItem.newTimerValue}
+                                    timerValue={currentItem.timerValue}
                                     onChangeTimer={(newValue) => changeItemTimer(currentItem.id, newValue)}
                                 />
                             ) : (
-                                currentItem.newTimerValue > 0 && (
+                                currentItem.timerValue > 0 && (
                                     <div className="flex items-center gap-2">
                                         <p className="text-sm">Timer: {(() => {
                                             const minutes = Math.floor(remainingTime / 60);

@@ -59,7 +59,7 @@ describe('Agenda Store Actions', () => {
         changeItemTimer('1', 45);
 
         const item = useAgendaStore.getState().items[0];
-        expect(item.newTimerValue).toBe(45);
+        expect(item.timerValue).toBe(45);
         expect(item.isEditedTimer).toBe(true);
     });
 

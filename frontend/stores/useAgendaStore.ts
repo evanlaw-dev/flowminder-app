@@ -9,9 +9,8 @@ export interface AgendaItemType {
     isEdited: boolean;
     isDeleted: boolean;
     isProcessed: boolean;
-    timerValue: number;
-    originalTimerValue: number;
-    newTimerValue: number;
+    timerValue: number; // Current timer value (may be edited)
+    originalTimerValue: number; // Original timer value before any edits, deletes
     isEditedTimer: boolean;
 }
 
@@ -42,8 +41,9 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
     showAllTimers: false,
     isEditingMode: false,
 
-    loadItems: (items) =>
+    loadItems: (items) => {
         set(() => ({
+
             items: items.map((it) => ({
                 ...it,
                 originalText: it.text,
@@ -53,11 +53,11 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
                 isProcessed: false,
                 timerValue: it.duration_seconds ?? it.timerValue ?? 0,
                 originalTimerValue: it.duration_seconds ?? it.timerValue ?? 0,
-                newTimerValue: it.duration_seconds ?? it.timerValue ?? 0,
                 isEditedTimer: false,
             })),
             currentItemIndex: 0,
-        })),
+        }));
+    },
 
     addItem: () =>
         set((state) => ({
@@ -73,7 +73,6 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
                     isProcessed: false,
                     timerValue: 0,
                     originalTimerValue: 0,
-                    newTimerValue: 0,
                     isEditedTimer: false,
                 },
             ],
@@ -92,10 +91,10 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
         set((state) => ({
             items: state.items.map((it) =>
                 it.id === id
-                    ? { 
-                        ...it, 
-                        newTimerValue: timerValue, 
-                        isEditedTimer: timerValue !== it.originalTimerValue 
+                    ? {
+                        ...it,
+                        timerValue: timerValue,
+                        isEditedTimer: timerValue !== it.originalTimerValue
                     }
                     : it
             ),
@@ -115,7 +114,7 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
                 .map((it) => ({
                     ...it,
                     text: it.originalText,
-                    newTimerValue: it.originalTimerValue,
+                    timerValue: it.originalTimerValue,
                     isEdited: false,
                     isDeleted: false,
                     isEditedTimer: false,
@@ -129,7 +128,6 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
                 originalText: it.text,
                 originalTimerValue: it.timerValue,
                 timerValue: it.timerValue,
-                newTimerValue: it.timerValue,
                 isNew: false,
                 isEdited: false,
                 isDeleted: false,
@@ -176,12 +174,12 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
     getVisibleItems: () => {
         const { items, isEditingMode } = get();
         const visibleItems = items.filter((it) => !it.isDeleted && !it.isProcessed);
-        
+
         // if in editing mode, include the current item in the agenda list
         if (isEditingMode) {
             return visibleItems;
         }
-        
+
         // Otherwise, exclude the current item (first item) from the agenda list
         return visibleItems.slice(1);
     },
@@ -191,5 +189,5 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
         const { items } = get();
         return items.some((it) => (it.isEdited || it.isEditedTimer || it.isDeleted) && !(it.isDeleted && it.isNew));
     },
-    
+
 }));
