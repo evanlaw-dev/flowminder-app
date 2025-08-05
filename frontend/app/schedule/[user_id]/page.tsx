@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Agenda from '@/components/Agenda';
 
 export default function SchedulePage() {
@@ -12,6 +12,15 @@ export default function SchedulePage() {
     new Date().toISOString().slice(0,16) // YYYY-MM-DDThh:mm
   );
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false); // to ensure the component is mounted before 
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    setStartTime(new Date().toISOString().slice(0,16));
+  }, []);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -41,43 +50,50 @@ export default function SchedulePage() {
     router.push(`/meeting/${zoomUserId}`);
   };
 
+  if (!mounted) {
+    return null;
+  }
   return (
-    <div className="flex h-screen">
-      {/* — Left: Schedule Form — */}
-      <div className="w-1/3 p-6 space-y-4">
-        <h2 className="text-xl font-semibold">Schedule a Zoom Meeting</h2>
-        <label className="block">
-          <span className="text-sm">Topic</span>
-          <input
-            type="text"
-            value={topic}
-            onChange={e => setTopic(e.target.value)}
-            className="mt-1 w-full border rounded px-2 py-1"
-          />
-        </label>
-        <label className="block">
-          <span className="text-sm">Start Time</span>
-          <input
-            type="datetime-local"
-            value={startTime}
-            onChange={e => setStartTime(e.target.value)}
-            className="mt-1 w-full border rounded px-2 py-1"
-          />
-        </label>
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className={`mt-4 w-full py-2 rounded text-white ${
-            loading ? 'bg-gray-400' : 'bg-green-600'
-          }`}
-        >
-          {loading ? 'Scheduling…' : 'Schedule Meeting'}
-        </button>
-      </div>
-
-      {/* — Right: Your Agenda Builder — */}
-      <div className="w-2/3 bg-stone-100 p-6 overflow-auto">
-        <Agenda role="host" />
+    <div className="flex flex-col items-center justify-center h-screen box-border p-6">
+      <div className="bg-white dark:bg-black p-6 rounded-lg w-full max-w-3xl">
+        <div className="flex h-[70vh] justify-end gap-8">
+          {/* LEFT FORM */}
+          <div className="w-1/3 p-4 space-y-4">
+            <h2 className="text-xl font-semibold text-black dark:text-black">Schedule a Zoom Meeting</h2>
+            <label className="block">
+              <span className="text-sm">Topic</span>
+              <input
+                type="text"
+                value={topic}
+                onChange={e => setTopic(e.target.value)}
+                className="mt-1 w-full border rounded px-2 py-1"
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm">Start Time</span>
+              {/* this is the calendar/meeting time input */}
+              <input
+                type="datetime-local"
+                value={startTime}
+                onChange={e => setStartTime(e.target.value)}
+                className="mt-1 w-full border rounded px-2 py-1"
+              />
+            </label>
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className={`mt-4 w-full py-2 rounded text-white ${
+                loading ? 'bg-gray-400' : 'bg-green-600'
+              }`}
+            >
+              {loading ? 'Scheduling…' : 'Schedule Meeting'}
+            </button>
+          </div>
+          {/* RIGHT AGENDA */}
+          <div className="w-1/2 overflow-auto">
+            <Agenda role="host" />
+          </div>
+        </div>
       </div>
     </div>
   );
