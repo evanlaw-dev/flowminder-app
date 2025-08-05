@@ -55,3 +55,16 @@ body::before {
 main {
   background-color: var(--background);
 }
+
+/* Calendar icon invert based on theme on the schedule meeting page */
+:root {
+  --calendar-invert: 0;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --calendar-invert: 1;
+  }
+}
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(var(--calendar-invert));
+}
