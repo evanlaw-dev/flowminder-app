@@ -2,9 +2,10 @@ import {FaPlus} from "react-icons/fa6";
 
 interface ButtonAddAgendaItemProps {
   onAdd: () => void;
+  toggleEditingMode: () => void;
 }
 
-const BtnAddAgendaItem: React.FC<ButtonAddAgendaItemProps> = ({ onAdd }) => {
+const BtnAddAgendaItem: React.FC<ButtonAddAgendaItemProps> = ({ onAdd, toggleEditingMode }) => {
 
   return (
     <li
@@ -14,7 +15,10 @@ const BtnAddAgendaItem: React.FC<ButtonAddAgendaItemProps> = ({ onAdd }) => {
           className={`w-full flex items-center justify-between px-1.5 py-1.5 cursor-pointer rounded-lg border border-gray-300 bg-stone-400/60 hover:scale-105 border-dashed transition-all duration-200 focus:outline-none`}
           aria-label="Add an agenda item"
           title="Add an agenda item"
-          onClick={onAdd}
+          onClick={() => {
+            onAdd();
+            toggleEditingMode();
+          }}
           type="button"
         >
           {/* Simulated faded lines */}

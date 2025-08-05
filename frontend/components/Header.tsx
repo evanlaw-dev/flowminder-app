@@ -4,7 +4,7 @@ import Timer from './Timer';
 import Image from 'next/image';
 import BtnAddTimerForCurrentItem from './BtnAddTimerForCurrentItem';
 
-export default function Header() {
+export default function Header({ role = "participant" }: { role?: "host" | "participant" }) {
     const placeholder = `No items to display.`;
     const { getCurrentItem, getVisibleItems, nextItem, changeItemTimer, isEditingMode } = useAgendaStore();
     const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -13,7 +13,6 @@ export default function Header() {
     const currentItem = getCurrentItem();
     const visibleItems = getVisibleItems();
 
-    // Use AgendaTimer for formatting in edit mode
 
     // Timer countdown effect
     useEffect(() => {
@@ -67,7 +66,7 @@ export default function Header() {
     // Timer input/edit logic is now handled by AgendaTimer
 
     return (
-        <div className="relative w-[80%] bg-stone-700/95 rounded-lg shadow-md text-center p-4 px-12 break-words">
+        <div className="relative flex-shrink-0 bg-stone-700/95 rounded-lg shadow-md text-center py-4 px-12 break-words">
             <div className="flex flex-col text-white">
                 {/* render placeholder if there are is no agenda item to render */}
                 {currentItem ? (
@@ -129,7 +128,7 @@ export default function Header() {
                 )}
             </div>
 
-            {visibleItems.length > 0 && (
+            {visibleItems.length > 0 && role === 'host' && (
                 <>
                     <button
                         onClick={nextItem}

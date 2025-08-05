@@ -6,8 +6,11 @@ import Header from '@/components/Header';
 import Nudge from '@/components/Nudge';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+import { useAgendaStore } from '@/stores/useAgendaStore';
+import BtnCancelSave from '@/components/BtnCancelSave';
 
-function ClientOnlyAgendaWrapper() {
+// Wrapper that reads role from URL and renders HomeLayout
+function HomeWrapper() {
   const searchParams = useSearchParams();
   // Default role is 'participant' unless explicitly set to 'host'
   const role = searchParams.get('role') === 'host' ? 'host' : 'participant';
@@ -50,4 +53,8 @@ export default function Home() {
       </Suspense>
     </main>
   );
+}
+
+export default function Home() {
+  return <HomeWrapper />;
 }
