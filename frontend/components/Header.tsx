@@ -9,6 +9,8 @@ export default function Header({ role = "participant" }: { role?: "host" | "part
     const { getCurrentItem, getVisibleItems, nextItem, changeItemTimer, isEditingMode } = useAgendaStore();
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [remainingTime, setRemainingTime] = useState(0);
+    const [truncated, setTruncated] = useState(true);
+
 
     const currentItem = getCurrentItem();
     const visibleItems = getVisibleItems();
@@ -63,6 +65,10 @@ export default function Header({ role = "participant" }: { role?: "host" | "part
         }
     };
 
+    const handleClick = () => {
+        setTruncated(prev => !prev);  // Toggle truncate/expand
+    };
+
     // Timer input/edit logic is now handled by AgendaTimer
 
     return (
@@ -71,53 +77,54 @@ export default function Header({ role = "participant" }: { role?: "host" | "part
                 {/* render placeholder if there are is no agenda item to render */}
                 {currentItem ? (
                     <>
-                        <h1 className="text-lg font-semibold">{currentItem.text}</h1>
+                        <h1 onClick={handleClick} className={`text-lg font-semibold ${truncated ? 'line-clamp-2 lg:line-clamp-3' : ''}`}>{currentItem.text}</h1>
 
                         {/* Timer section */}
                         <div className="mt-2 flex items-center justify-center">
-                            <div className="w-auto w-full flex items-center justify-center gap-2">                            {isEditingMode ? (
-                                <Timer
-                                    canEdit={true}
-                                    timerValue={currentItem.timerValue}
-                                    onChangeTimer={(newValue) => changeItemTimer(currentItem.id, newValue)}
-                                />
-                            ) : (
-                                currentItem.timerValue > 0 && (
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-sm">Timer: {(() => {
-                                            const minutes = Math.floor(remainingTime / 60);
-                                            const seconds = remainingTime % 60;
-                                            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                                        })()}</p>
-                                        <div className="flex gap-1">
-                                            {!isTimerRunning ? (
+                            <div className="w-auto w-full flex items-center justify-center gap-2">
+                                {isEditingMode ? (
+                                    <Timer
+                                        canEdit={true}
+                                        timerValue={currentItem.timerValue}
+                                        onChangeTimer={(newValue) => changeItemTimer(currentItem.id, newValue)}
+                                    />
+                                ) : (
+                                    currentItem.timerValue > 0 && (
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-sm">Timer: {(() => {
+                                                const minutes = Math.floor(remainingTime / 60);
+                                                const seconds = remainingTime % 60;
+                                                return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                                            })()}</p>
+                                            <div className="flex gap-1">
+                                                {!isTimerRunning ? (
+                                                    <button
+                                                        onClick={startTimer}
+                                                        className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+                                                        title="Start timer"
+                                                    >
+                                                        ▶
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={pauseTimer}
+                                                        className="px-2 py-1 text-xs bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                                                        title="Pause timer"
+                                                    >
+                                                        ⏸
+                                                    </button>
+                                                )}
                                                 <button
-                                                    onClick={startTimer}
-                                                    className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
-                                                    title="Start timer"
+                                                    onClick={resetTimer}
+                                                    className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+                                                    title="Reset timer"
                                                 >
-                                                    ▶
+                                                    ↺
                                                 </button>
-                                            ) : (
-                                                <button
-                                                    onClick={pauseTimer}
-                                                    className="px-2 py-1 text-xs bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                                                    title="Pause timer"
-                                                >
-                                                    ⏸
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={resetTimer}
-                                                className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
-                                                title="Reset timer"
-                                            >
-                                                ↺
-                                            </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                )
-                            )}
+                                    )
+                                )}
                                 {/* Add Timer Button */}
                                 <BtnAddTimerForCurrentItem />
                             </div>

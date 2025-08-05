@@ -80,12 +80,12 @@ function AgendaItem({
 
   return (
     <Wrapper
-      className="relative mr-3 border-b border-gray-200 group"
+      className="pt-2 relative hover:shadow border-b border-gray-200 group"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className={`flex items-center gap-2 ${showTimers ? 'w-full' : ''}`}>
-        {/* Agenda Text - 70% width when timers are shown */}
+        {/* Agenda Text - 70% width when ctimers are shown */}
         <div className={`relative ${showTimers ? 'w-[70%]' : 'w-full'}`}>
           {isEmpty && !isEditing && (
             <span className="absolute left-3 top-2 text-gray-400 italic pointer-events-none select-none">
@@ -102,9 +102,9 @@ function AgendaItem({
             onInput={handleInput}
             // onBlur={handleTimerBlur}
             title={!canEdit && item.text.length > 80 ? item.text : undefined}
-            className={`p-2 w-full min-h-[2rem]  rounded-lg focus:outline-none 
+            className={`py-2 pl-1 pr-8 w-[95%] mx-auto justify-right min-h-[2rem]  rounded-lg focus:outline-none 
               ${canEdit ? 'focus:ring-2' : 'cursor-default select-none'}
-              ${!canEdit && truncated ? 'truncate' : 'whitespace-normal break-words'}
+              ${truncated ? 'truncate' : 'whitespace-normal break-words'}
             `}
             spellCheck={false}
             tabIndex={canEdit ? 0 : -1}
@@ -113,7 +113,7 @@ function AgendaItem({
           {/* Remove agenda item button ("X") */}
           {isHovered && canEdit && (
             <button
-              className="absolute right-full top-1/2 -translate-y-1/2 text-red-600 hover:text-red-800 transition cursor-pointer"
+              className="absolute right-5 top-1/2 -translate-y-1/2 text-red-600 hover:text-red-800 transition cursor-pointer"
               title={REMOVE_ITEM_PLACEHOLDER}
               aria-label={REMOVE_ITEM_PLACEHOLDER}
               onClick={() => onRemove(item.id)}

@@ -51,6 +51,18 @@ export async function saveItemsToBackend(
   items: AgendaItemType[],
   saveSuccess: (items: AgendaItemType[]) => void
 ): Promise<AgendaItemType[]> {
+
+
+  // Clean up empty items
+  items.forEach(it => {
+    console.log('Checking item:', it);
+    if (it.text?.trim() === '') {
+      it.isDeleted = true;
+      console.log('Marking item as deleted:', it);
+    }
+  });
+
+
   // Partition into create / update / delete
   const toCreate = items.filter(it => it.isNew && !it.isDeleted);
   const toUpdate = items.filter(it => !it.isNew && (it.isEdited || it.isEditedTimer) && !it.isDeleted);

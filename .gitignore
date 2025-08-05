@@ -5,3 +5,6 @@
 
 # Node
 node_modules/
+
+# OS-specific files
+.DS_Store
