@@ -29,21 +29,24 @@ type AgendaStore = {
     nextItem: () => void;
     processCurrentItem: () => void;
     toggleAllTimers: () => void;
+    setEditingMode: (flag: boolean) => void;
     toggleEditingMode: () => void;
     getCurrentItem: () => AgendaItemType | null;
     getVisibleItems: () => AgendaItemType[];
     hasUnsavedChanges: () => boolean;
-    lastAddedItemId: string | null;  
+    lastAddedItemId: string | null;
     clearLastAddedItemId: () => void;
 
 };
+
+
 
 export const useAgendaStore = create<AgendaStore>((set, get) => ({
     items: [],
     currentItemIndex: 0,
     showAllTimers: false,
     isEditingMode: false,
-    lastAddedItemId: null, 
+    lastAddedItemId: null,
 
 
     loadItems: (items) => {
@@ -64,7 +67,7 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
         }));
     },
 
-   addItem: () => {
+    addItem: () => {
         const newItemId = uuid();
         set((state) => ({
             items: [
@@ -173,6 +176,11 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
             isEditingMode: !state.isEditingMode,
         })),
 
+    setEditingMode: (flag: boolean) =>
+        set(() => ({
+            isEditingMode: flag,
+        })),
+
     getCurrentItem: () => {
         const { items } = get();
         const visibleItems = items.filter((it) => !it.isDeleted && !it.isProcessed);
@@ -189,7 +197,7 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
         }
 
         // Otherwise, exclude the current item (first item) from the agenda list
-        return visibleItems.slice(1);
+        return visibleItems.slice(1).filter((it) => it.text.trim() !== '');
     },
 
     // Changes are considered unsaved if an item has been edited or deleted, but not just added.
@@ -199,6 +207,5 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
     },
 
     clearLastAddedItemId: () => set({ lastAddedItemId: null }),
-
 
 }));

@@ -33,7 +33,7 @@ function BtnCancelSave() {
         <div className="flex gap-2">
             <button
                 onClick={handleCancel}
-                className="flex-1 rounded-full border border-black/10 hover:bg-stone-400 h-10 sm:h-12"
+                className="flex-1 rounded-full border border-black/10 hover:bg-stone-100/30 h-10 sm:h-12"
             >
                 Cancel
             </button>

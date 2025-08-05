@@ -2,8 +2,8 @@
 import React, { useEffect, useRef } from "react";
 import AgendaItem from "./AgendaItem";
 import BtnAddAgendaItem from "./BtnAddAgendaItem";
-import BtnAddAllTimers from "./BtnAddAllTimers";
-import BtnRemoveAllTimers from "./BtnRemoveAllTimers";
+// import BtnAddAllTimers from "./BtnAddAllTimers";
+// import BtnRemoveAllTimers from "./BtnRemoveAllTimers";
 import { useAgendaStore } from '@/stores/useAgendaStore';
 import { fetchAgendaItemsOnMount } from '@/services/agendaService'
 import DropdownMenu from "./DropdownMenu";
@@ -25,6 +25,7 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
     clearLastAddedItemId
   } = useAgendaStore();
 
+  const setEditingMode = useAgendaStore((state) => state.setEditingMode); 
   const currentItem = getCurrentItem();
   const visibleItems = getVisibleItems();
   const newItemRef = useRef<HTMLLIElement>(null);
@@ -39,24 +40,24 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
       });
   }, [loadItems]);
 
-    useEffect(() => {
-        if (lastAddedItemId && newItemRef.current) {
-            newItemRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            clearLastAddedItemId();  
-        }
-    }, [lastAddedItemId]);
+  useEffect(() => {
+    if (lastAddedItemId && newItemRef.current) {
+      newItemRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      clearLastAddedItemId();
+    }
+  }, [lastAddedItemId]);
 
   return (
-    <div className="rounded-xl overflow-hidden">
-      <div className="flex-1 relative overflow-y-auto max-h-[var(--panel-list-height-max)] min-h-0">
-        <div className="bg-stone-400/95 p-10 rounded-lg space-y-4">
+    <div className="overflow-hidden px-3 pb-3 h-full">
+      <div className="flex flex-col relative overflow-y-auto max-h-[var(--panel-list-height-max)] min-h-0">
+        <div className="rounded-lg">
           {/* Header with dropdown menu for hosts */}
-          {role === 'host' && (
-            <div className="flex justify-between items-center">
-              <h2 className="font-semibold text-lg">next on the agenda…</h2>
+          <div className={`sticky shadow-b-md top-0 pt-5 z-20 bg-white flex justify-between items-center`}>
+            <h2 className="font-semibold ml-3 text-lg">next on the agenda…</h2>
+            {role === 'host' && (
               <DropdownMenu onEditClick={toggleEditingMode} />
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Agenda Items */}
           {visibleItems.length === 0 ? (
@@ -81,7 +82,7 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
               showTimers={showAllTimers}
             />
           ) : (
-            <ul className="space-y-2 list-none mb-2">
+            <ul className="list-none mb-2">
               {visibleItems.map((item) => (
                 <AgendaItem
                   key={item.id}
@@ -98,12 +99,16 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
           )}
 
           {/* Add Agenda Item Button */}
-          {role==='host' && <BtnAddAgendaItem onAdd={addItem} toggleEditingMode={toggleEditingMode} />}
-
-          {/* Timer Toggle Button and Save/Cancel Buttons */}
+          {role === 'host' && (
+            <BtnAddAgendaItem
+              onAdd={addItem}
+              setEditingMode={() => setEditingMode(true)} 
+            />
+          )}
+          {/* Timer Toggle Button and Save/Cancel Buttons
           {isEditingMode && (
             <>
-              {/* Add/Remove All Timers Button */}
+              Add/Remove All Timers Button
               <div className="w-[10%] h-full absolute top-0 right-0 cursor-pointer flex items-center justify-center group">
                 <div className="w-full h-full flex items-center justify-center 
                   group-hover:border group-hover:border-gray-300 group-hover:rounded-md group-hover:border-dashed">
@@ -111,7 +116,7 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
                 </div>
               </div>
             </>
-          )}
+          )} */}
         </div>
       </div>
     </div>
