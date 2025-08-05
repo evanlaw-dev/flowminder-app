@@ -8,6 +8,10 @@ const { Pool } = require('pg');
 const { Parser } = require('json2csv');
 const zoomRoutes = require('./routes/zoomRoute.js');
 
+// Import and use meeting routes
+const meetingRoutes = require('./routes/meetingRoutes');
+
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -263,3 +267,6 @@ const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
 });
+
+// Use meeting routes
+app.use('/api/meetings', meetingRoutes);
