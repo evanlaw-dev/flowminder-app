@@ -80,7 +80,7 @@ function AgendaItem({
 
   return (
     <Wrapper
-      className="relative mr-3 last:border-0 border-b border-gray-200 group"
+      className="relative mr-3 border-b border-gray-200 group"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

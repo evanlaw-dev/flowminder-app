@@ -5,7 +5,7 @@ import Request from './Request'
 
 function RequestsWrapper() {
   return (
-    <div className='w-[87%] flex flex-row gap-2 p-4 pt-0 text-center'>
+    <div className='flex-shrink-0 flex flex-row gap-1 text-center'>
       {/* Display number of requests here */}
       <Request text="Requests for extra time" count={3} /> 
       <Request text="Requests to move along" count={5} />

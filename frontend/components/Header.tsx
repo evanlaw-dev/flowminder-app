@@ -4,7 +4,7 @@ import Timer from './Timer';
 import Image from 'next/image';
 import BtnAddTimerForCurrentItem from './BtnAddTimerForCurrentItem';
 
-export default function Header() {
+export default function Header({ role = "participant" }: { role?: "host" | "participant" }) {
     const placeholder = `No items to display.`;
     const { getCurrentItem, getVisibleItems, nextItem, changeItemTimer, isEditingMode } = useAgendaStore();
     const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -13,7 +13,6 @@ export default function Header() {
     const currentItem = getCurrentItem();
     const visibleItems = getVisibleItems();
 
-    // Use AgendaTimer for formatting in edit mode
 
     // Timer countdown effect
     useEffect(() => {
@@ -38,8 +37,8 @@ export default function Header() {
 
     // Start timer when current item changes
     useEffect(() => {
-        if (currentItem && currentItem.newTimerValue > 0) {
-            setRemainingTime(currentItem.newTimerValue);
+        if (currentItem && currentItem.timerValue > 0) {
+            setRemainingTime(currentItem.timerValue);
             setIsTimerRunning(false); // Reset timer state
         } else {
             setRemainingTime(0);
@@ -60,14 +59,14 @@ export default function Header() {
     const resetTimer = () => {
         setIsTimerRunning(false);
         if (currentItem) {
-            setRemainingTime(currentItem.newTimerValue);
+            setRemainingTime(currentItem.timerValue);
         }
     };
 
     // Timer input/edit logic is now handled by AgendaTimer
 
     return (
-        <div className="relative w-[80%] bg-stone-700/95 rounded-lg shadow-md text-center p-4 px-12 break-words">
+        <div className="relative flex-shrink-0 bg-stone-700/95 rounded-lg shadow-md text-center py-4 px-12 break-words">
             <div className="flex flex-col text-white">
                 {/* render placeholder if there are is no agenda item to render */}
                 {currentItem ? (
@@ -79,11 +78,11 @@ export default function Header() {
                             <div className="w-auto w-full flex items-center justify-center gap-2">                            {isEditingMode ? (
                                 <Timer
                                     canEdit={true}
-                                    timerValue={currentItem.newTimerValue}
+                                    timerValue={currentItem.timerValue}
                                     onChangeTimer={(newValue) => changeItemTimer(currentItem.id, newValue)}
                                 />
                             ) : (
-                                currentItem.newTimerValue > 0 && (
+                                currentItem.timerValue > 0 && (
                                     <div className="flex items-center gap-2">
                                         <p className="text-sm">Timer: {(() => {
                                             const minutes = Math.floor(remainingTime / 60);
@@ -129,7 +128,7 @@ export default function Header() {
                 )}
             </div>
 
-            {visibleItems.length > 0 && (
+            {visibleItems.length > 0 && role === 'host' && (
                 <>
                     <button
                         onClick={nextItem}

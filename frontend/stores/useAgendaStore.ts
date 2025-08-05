@@ -33,6 +33,9 @@ type AgendaStore = {
     getCurrentItem: () => AgendaItemType | null;
     getVisibleItems: () => AgendaItemType[];
     hasUnsavedChanges: () => boolean;
+    lastAddedItemId: string | null;  
+    clearLastAddedItemId: () => void;
+
 };
 
 export const useAgendaStore = create<AgendaStore>((set, get) => ({
@@ -40,6 +43,8 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
     currentItemIndex: 0,
     showAllTimers: false,
     isEditingMode: false,
+    lastAddedItemId: null, 
+
 
     loadItems: (items) => {
         set(() => ({
@@ -59,12 +64,13 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
         }));
     },
 
-    addItem: () =>
+   addItem: () => {
+        const newItemId = uuid();
         set((state) => ({
             items: [
                 ...state.items,
                 {
-                    id: uuid(),
+                    id: newItemId,
                     text: '',
                     originalText: '',
                     isNew: true,
@@ -76,7 +82,9 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
                     isEditedTimer: false,
                 },
             ],
-        })),
+            lastAddedItemId: newItemId,  // <-- Track it here
+        }));
+    },
 
     changeItem: (id, text) =>
         set((state) => ({
@@ -189,5 +197,8 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
         const { items } = get();
         return items.some((it) => (it.isEdited || it.isEditedTimer || it.isDeleted) && !(it.isDeleted && it.isNew));
     },
+
+    clearLastAddedItemId: () => set({ lastAddedItemId: null }),
+
 
 }));

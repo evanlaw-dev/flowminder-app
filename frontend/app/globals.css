@@ -6,6 +6,12 @@
   --foreground: #171717;
   --font-sans: var(--font-geist-sans, Arial, Helvetica, sans-serif);
   --font-mono: var(--font-geist-mono, monospace);
+  --panel-list-height-max: calc(100vh 
+    - 4rem /* header height */
+    - 3rem /* buttons height */
+    - 8rem /* stats height */
+    - 2rem /* extra padding / margins */
+  );
 }
 
 /* Dark mode theme variables */
@@ -27,13 +33,9 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
-  position: relative;
   z-index: 0;
   margin: 0;
   padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 /* Background image overlay with opacity */
@@ -51,6 +53,8 @@ body::before {
   z-index: -1;
   pointer-events: none;
 }
+
+
 
 main {
   background-color: var(--background);
