@@ -19,16 +19,19 @@ export default function SchedulePage() {
     const agendaItems = await window.localStorage.getItem('agendaItems'); 
     // (or import your store directly)
 
-    const res = await fetch('/api/meetings/schedule', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: zoomUserId,
-        topic,
-        startTime,
-        agendaItems, 
-      }),
-    });
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/meetings/schedule`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: zoomUserId,
+          topic,
+          startTime,
+          agendaItems, 
+        }),
+      }
+    );
 
     if (!res.ok) {
       alert('Failed to schedule meeting');
@@ -44,7 +47,7 @@ export default function SchedulePage() {
   return (
     <div className="flex h-screen">
       {/* — Left: Schedule Form — */}
-      <div className="w-1/3 p-6 space-y-4">
+      <div className="w-1/4 p-6 space-y-4">
         <h2 className="text-xl font-semibold">Schedule a Zoom Meeting</h2>
         <label className="block">
           <span className="text-sm">Topic</span>
@@ -76,7 +79,7 @@ export default function SchedulePage() {
       </div>
 
       {/* — Right: Your Agenda Builder — */}
-      <div className="w-2/3 bg-stone-100 p-6 overflow-auto">
+      <div className="w-3/4 bg-stone-100 p-6 overflow-auto">
         <Agenda role="host" />
       </div>
     </div>
