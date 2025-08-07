@@ -24,17 +24,17 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ onEditClick }) => {
     }, []);
 
     return (
-        <div className="relative flex justify-end z-10">
+        <div className="relative z-10">
             <button
                 onClick={() => setOpen(!open)}
-                className="px-4 py-2 text-white rounded-lg cursor-pointer"
+                className="pl-2 py-2 text-white rounded-lg cursor-pointer"
             >
                 <Image
                     src="/ellipsis-vertical-solid-full.svg"
                     alt="Next"
                     width={24}
                     height={24}
-                    className="h-full"
+                    className="w-6 h-6 min-h-[18px] min-w-[18px]"
                 />
             </button>
             {open && (

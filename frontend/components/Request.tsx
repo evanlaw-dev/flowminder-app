@@ -2,7 +2,7 @@ import React from 'react'
 
 function Request({ text, count }: { text: string; count: number }) {
   return (
-    <div className="w-[50%] bg-stone-700/95 text-white text-wrap p-4 rounded-lg shadow-md">
+    <div className="w-[50%] bg-emerald-800 text-white p-4 rounded-lg shadow-md">
       <h2 className="text-md font-semibold mb-2">{text}</h2>
       <h1 className='text-2xl font-bold text-center'>{count}</h1>
       </div>
