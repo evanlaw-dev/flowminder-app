@@ -30,7 +30,7 @@ function BtnCancelSave() {
         toggleEditingMode();
     };
     return (
-        <div className="flex gap-2 mb-2">
+        <div className="flex gap-2 mb-2 pt-2 px-2">
             <button
                 onClick={handleCancel}
                 className="flex-1 rounded-full border border-black/10 hover:bg-stone-100/30 h-10 sm:h-12"

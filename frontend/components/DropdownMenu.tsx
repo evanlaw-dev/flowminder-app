@@ -1,13 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { Edit, Eye, Trash2 } from 'lucide-react';
+import { Edit, Clock8, ClockAlert, Trash2 } from 'lucide-react';
 import Image from "next/image";
+import { useAgendaStore } from '@/stores/useAgendaStore';
 
-
-interface DropdownMenuProps {
-  onEditClick: () => void;
-}
-
-const DropdownMenu: React.FC<DropdownMenuProps> = ({ onEditClick }) => {
+export default function DropdownMenu() {
+    const { showAllTimers, toggleAllTimers, toggleEditingMode } = useAgendaStore();
     const [open, setOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -22,6 +19,7 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ onEditClick }) => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, []);
+
 
     return (
         <div className="relative z-10">
@@ -42,13 +40,22 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ onEditClick }) => {
                     ref={menuRef}
                     className="absolute top-full right-0 mr-2 w-48 bg-white shadow-lg rounded-2xl p-2"
                 >
-                    <div onClick={onEditClick} className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
-                        <Edit className="w-4 h-4"/>
+                    <div onClick={toggleEditingMode} className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
+                        <Edit className="w-4 h-4" />
                         <span>Edit</span>
                     </div>
-                    <div className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
-                        <Eye className="w-4 h-4" />
-                        <span>Visibility Settings</span>
+                    <div onClick={toggleAllTimers} className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
+                        {showAllTimers ? (
+                            <>
+                                <ClockAlert className="w-4 h-4" />
+                                <span>Remove Timers</span>
+                            </>
+                        ) : (
+                            <>
+                                <Clock8 className="w-4 h-4" />
+                                <span>Add Timers</span>
+                            </>
+                        )}              
                     </div>
                     <div className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer text-red-500">
                         <Trash2 className="w-4 h-4" />
@@ -59,5 +66,5 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ onEditClick }) => {
         </div>
     );
 }
-export default DropdownMenu;
+
 

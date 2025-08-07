@@ -3,7 +3,7 @@ import React from 'react';
 import Agenda from '@/components/Agenda';
 import RequestsWrapper from '@/components/RequestsWrapper';
 import Header from '@/components/Header';
-import Nudge from '@/components/Nudge';
+import NudgeWrapper from '@/components/NudgeWrapper';
 import BtnCancelSave from '@/components/BtnCancelSave';
 import { useSearchParams } from 'next/navigation';
 

@@ -106,7 +106,7 @@ const AgendaTimer: React.FC<TimerProps> = ({ canEdit, timerValue, onChangeTimer 
           </div>
         </div>
       ) : (
-        <div className="w-full p-1.5 text-sm text-gray-600 bg-white rounded min-w-0 overflow-hidden text-ellipsis">
+        <div className="w-full p-1.5 text-sm text-gray-600 rounded min-w-0 overflow-hidden text-ellipsis">
           {formatTimer(timerValue)}
         </div>
       )}

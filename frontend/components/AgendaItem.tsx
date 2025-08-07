@@ -1,7 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
 import { AgendaItemType } from '@/stores/useAgendaStore';
-import Timer from "./Timer"
+import Timer from "./Timer";
+import scrollIntoView from 'scroll-into-view-if-needed';
+
 
 const ADD_ITEM_PLACEHOLDER = 'Add an agenda item';
 const REMOVE_ITEM_PLACEHOLDER = 'Remove this agenda item';
@@ -11,10 +13,10 @@ interface AgendaItemProps {
   onChange: (id: string, newText: string) => void;
   onChangeTimer: (id: string, timerValue: number) => void;
   onRemove: (id: string) => void;
-  renderAsDiv?: boolean;
   canEdit?: boolean;
   showTimers?: boolean;
   isCurrentItem?: boolean;
+  autoFocus?: boolean; 
 }
 
 function AgendaItem({
@@ -22,19 +24,19 @@ function AgendaItem({
   onChange,
   onChangeTimer,
   onRemove,
-  renderAsDiv = false,
   canEdit = false,
   showTimers = false,
+  autoFocus = false,
 }: AgendaItemProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isEmpty, setIsEmpty] = useState(item.text.trim() === '');
   const [truncated, setTruncated] = useState(true);
 
+  const liRef = useRef<HTMLLIElement | null>(null);
   const divRef = useRef<HTMLDivElement | null>(null);
 
-  const Wrapper: React.ElementType = renderAsDiv ? 'div' : 'li';
-
+  // Keep placeholder state in sync
   useEffect(() => {
     if (divRef.current) {
       divRef.current.innerText = item.text;
@@ -42,10 +44,28 @@ function AgendaItem({
     }
   }, [item.text]);
 
-  const handleClick = () => {
-    setTruncated(prev => !prev);  // Toggle truncate/expand
+useEffect(() => {
+  if (autoFocus && liRef.current) {
+    requestAnimationFrame(() => {
+      scrollIntoView(liRef.current!, {
+        scrollMode: 'if-needed',
+        block: 'center',
+        inline: 'nearest',
+        behavior: 'smooth',
+        boundary: (parent) => parent.classList.contains('overflow-y-auto'),
+      });
 
-    if (!canEdit) return;  // Prevent editing when canEdit is false
+      if (canEdit && divRef.current) {
+        divRef.current.focus();
+        setIsEditing(true);
+      }
+    });
+  }
+}, [autoFocus, canEdit]);
+
+  const handleClick = () => {
+    setTruncated(prev => !prev);
+    if (!canEdit) return;
     setIsEditing(true);
     setIsEmpty(false);
     setTimeout(() => {
@@ -54,7 +74,7 @@ function AgendaItem({
   };
 
   const handleBlur = () => {
-    if (!canEdit) return; // Do nothing if editing is disabled
+    if (!canEdit) return;
     setIsEditing(false);
     setTimeout(() => {
       if (!divRef.current) return;
@@ -79,13 +99,13 @@ function AgendaItem({
   };
 
   return (
-    <Wrapper
+    <li
+      ref={liRef}
       className="pt-2 relative hover:shadow border-b border-gray-200 group"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className={`flex items-center gap-2 ${showTimers ? 'w-full' : ''}`}>
-        {/* Agenda Text - 70% width when ctimers are shown */}
         <div className={`relative ${showTimers ? 'w-[70%]' : 'w-full'}`}>
           {isEmpty && !isEditing && (
             <span className="absolute left-3 top-2 text-gray-400 italic pointer-events-none select-none">
@@ -100,9 +120,8 @@ function AgendaItem({
             onClick={handleClick}
             onBlurCapture={handleBlur}
             onInput={handleInput}
-            // onBlur={handleTimerBlur}
             title={!canEdit && item.text.length > 80 ? item.text : undefined}
-            className={`py-2 pl-1 pr-8 w-[95%] mx-auto justify-right min-h-[2rem]  rounded-lg focus:outline-none 
+            className={`py-2 pl-1 pr-8 w-[95%] mx-auto justify-right min-h-[2rem] rounded-lg focus:outline-none 
               ${canEdit ? 'focus:ring-2' : 'cursor-default select-none'}
               ${truncated ? 'truncate' : 'whitespace-normal break-words'}
             `}
@@ -110,7 +129,6 @@ function AgendaItem({
             tabIndex={canEdit ? 0 : -1}
           />
 
-          {/* Remove agenda item button ("X") */}
           {isHovered && canEdit && (
             <button
               className="absolute right-5 top-1/2 -translate-y-1/2 text-red-600 hover:text-red-800 transition cursor-pointer"
@@ -123,7 +141,6 @@ function AgendaItem({
           )}
         </div>
 
-        {/* Timer Input Field - 30% width when timers are shown */}
         {showTimers && (
           <div className="w-[30%] flex items-center min-w-0">
             <Timer
@@ -134,7 +151,7 @@ function AgendaItem({
           </div>
         )}
       </div>
-    </Wrapper>
+    </li>
   );
 }
 
