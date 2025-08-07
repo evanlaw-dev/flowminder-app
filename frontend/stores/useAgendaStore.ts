@@ -36,7 +36,6 @@ type AgendaStore = {
     hasUnsavedChanges: () => boolean;
     lastAddedItemId: string | null;
     clearLastAddedItemId: () => void;
-
 };
 
 
@@ -87,6 +86,9 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
             ],
             lastAddedItemId: newItemId,  // <-- Track it here
         }));
+        setTimeout(() => {
+            set({ lastAddedItemId: newItemId });
+        }, 0);
     },
 
     changeItem: (id, text) =>

@@ -72,12 +72,12 @@ export default function Header({ role = "participant" }: { role?: "host" | "part
     // Timer input/edit logic is now handled by AgendaTimer
 
     return (
-        <div className="relative flex-shrink-0 bg-stone-700/95 rounded-lg shadow-md text-center py-4 px-12 break-words">
+        <div className="relative flex-shrink-0 rounded-lg text-center py-4 px-12 break-words">
             <div className="flex flex-col text-white">
                 {/* render placeholder if there are is no agenda item to render */}
                 {currentItem ? (
                     <>
-                        <h1 onClick={handleClick} className={`text-lg font-semibold ${truncated ? 'line-clamp-2 lg:line-clamp-3' : ''}`}>{currentItem.text}</h1>
+                        <h1 onClick={handleClick} className={`text-lg text-amber-400 font-semibold ${truncated ? 'line-clamp-3 lg:line-clamp-4' : ''}`}>{currentItem.text}</h1>
 
                         {/* Timer section */}
                         <div className="mt-2 flex items-center justify-center">

@@ -2,8 +2,12 @@
 
 /* Root theme variables */
 :root {
-  --background: #ffffff;
+  --background: rgba(226, 225, 217, 1);
   --foreground: #171717;
+  --primary: rgba(255, 251, 248, 1);
+  --secondary: #024a6A;
+  --primary-text: rgba(23, 23, 23, 1);
+  --secondary-text: rgba(23, 23, 23, 0.8);
   --font-sans: var(--font-geist-sans, Arial, Helvetica, sans-serif);
   --font-mono: var(--font-geist-mono, monospace);
 }
@@ -17,7 +21,8 @@
 }
 
 
-html, body {
+html,
+body {
   min-height: 100vh;
 }
 
@@ -52,4 +57,23 @@ body::before {
 
 main {
   background-color: var(--background);
+}
+
+.hide-scrollbar-on-default::-webkit-scrollbar {
+  width: 10px;
+  /* Or your desired width */
+  background-color: transparent;
+}
+
+.hide-scrollbar-on-default::-webkit-scrollbar-thumb {
+  background-color: transparent;
+}
+
+.show-scrollbar-on-hover:hover::-webkit-scrollbar-thumb {
+  background-color: #888;
+  /* Or your desired scrollbar thumb color */
+}
+
+.shadow-bottom {
+  box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1);
 }
