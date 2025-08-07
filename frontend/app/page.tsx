@@ -4,12 +4,9 @@ import Agenda from '@/components/Agenda';
 import RequestsWrapper from '@/components/RequestsWrapper';
 import Header from '@/components/Header';
 import Nudge from '@/components/Nudge';
-import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
-import { useAgendaStore } from '@/stores/useAgendaStore';
 import BtnCancelSave from '@/components/BtnCancelSave';
+import { useSearchParams } from 'next/navigation';
 
-// Wrapper that reads role from URL and renders HomeLayout
 function HomeWrapper() {
   const searchParams = useSearchParams();
   // Default role is 'participant' unless explicitly set to 'host'

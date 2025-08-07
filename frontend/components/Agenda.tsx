@@ -9,7 +9,7 @@ import { fetchAgendaItemsOnMount } from '@/services/agendaService'
 import DropdownMenu from "./DropdownMenu";
 import { meetingId } from "../services/agendaService"
 
-export default function Agenda({ role = "participant" }: { role?: "host" | "participant" }) {
+export default function Agenda({ role = "participant", isScrolledDown }: { role?: "host" | "participant", isScrolledDown: boolean }) {
   const {
     loadItems,
     addItem,
@@ -48,40 +48,16 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
   }, [lastAddedItemId]);
 
   return (
-    <div className="overflow-hidden px-3 pb-3 h-full">
-      <div className="flex flex-col relative overflow-y-auto max-h-[var(--panel-list-height-max)] min-h-0">
-        <div className="rounded-lg">
+    <>
           {/* Header with dropdown menu for hosts */}
-          <div className={`sticky shadow-b-md top-0 pt-5 z-20 bg-white flex justify-between items-center`}>
-            <h2 className="font-semibold ml-3 text-lg">next on the agenda…</h2>
+          <div className={`sticky top-0 z-30 ${isScrolledDown ? 'shadow-md ' : ''}`}>
+          <div className={`pt-2 ml-2 mr-4 pb-1 bg-white flex justify-between items-center`}>
+            <h2 className="font-semibold text-lg truncate">next on the agenda…</h2>
             {role === 'host' && (
               <DropdownMenu onEditClick={toggleEditingMode} />
             )}
           </div>
-
-          {/* Agenda Items */}
-          {visibleItems.length === 0 ? (
-            <AgendaItem
-              renderAsDiv={true}
-              item={{
-                id: "placeholder",
-                text: "",
-                originalText: "",
-                isNew: false,
-                isEdited: false,
-                isDeleted: false,
-                isProcessed: false,
-                timerValue: 0,
-                originalTimerValue: 0,
-                isEditedTimer: false
-              }}
-              onChange={changeItem}
-              onChangeTimer={changeItemTimer}
-              onRemove={removeItem}
-              canEdit={isEditingMode}
-              showTimers={showAllTimers}
-            />
-          ) : (
+          </div>
             <ul className="list-none mb-2">
               {visibleItems.map((item) => (
                 <AgendaItem
@@ -96,7 +72,6 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
                 />
               ))}
             </ul>
-          )}
 
           {/* Add Agenda Item Button */}
           {role === 'host' && (
@@ -117,8 +92,6 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
               </div>
             </>
           )} */}
-        </div>
-      </div>
-    </div>
+        </>
   );
 }
