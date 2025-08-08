@@ -17,7 +17,6 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
     changeItemTimer,
     showAllTimers,
     isEditingMode,
-    toggleEditingMode,
     getCurrentItem,
     getVisibleItems,
     lastAddedItemId,
@@ -44,7 +43,7 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
         <div className={`pt-2 ml-2 mr-4 pb-1 bg-[var(--primary)] flex justify-between items-center`}>
           <h2 className="font-semibold text-lg truncate">next on the agenda…</h2>
           {role === 'host' && (
-            <DropdownMenu onEditClick={toggleEditingMode} onTimerClick={toggleEditingMode} />
+            <DropdownMenu />
           )}
         </div>
       </div>
