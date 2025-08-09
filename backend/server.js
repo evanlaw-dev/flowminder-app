@@ -25,6 +25,8 @@ app.get('/', (req, res) => {
 
 // Zoom routes
 app.use('/zoom', zoomRoutes);
+app.use('/api/meetings', meetingRoutes);
+
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -269,6 +271,3 @@ const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
 });
-
-// Use meeting routes
-app.use('/api/meetings', meetingRoutes);
