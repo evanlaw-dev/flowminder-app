@@ -1,3 +1,53 @@
+// Append agenda text to the next upcoming Zoom meeting for the user
+const appendAgendaToNextMeeting = async (req, res) => {
+  try {
+    const { items } = req.body; // expect [{ agenda_item, duration_seconds }, ...]
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: 'No agenda items provided' });
+    }
+
+    // 1) List upcoming meetings
+    const listRes = await axios.get(`${ZOOM_BASE}/users/me/meetings`, {
+      headers: authHeaders(req.zoomAccessToken),
+      params: { type: 'upcoming' },
+    });
+    const meetings = listRes?.data?.meetings || [];
+    if (!meetings.length) {
+      return res.status(404).json({ message: 'No upcoming meetings found to append agenda to.' });
+    }
+
+    // pick the soonest upcoming meeting
+    const sorted = meetings
+      .map(m => ({ ...m, _start: new Date(m.start_time || 0).getTime() }))
+      .sort((a, b) => a._start - b._start);
+    const target = sorted[0];
+    if (!target?.id) {
+      return res.status(404).json({ message: 'Could not resolve a meeting id.' });
+    }
+
+    // 2) Format agenda text
+    const agendaText = items
+      .map((it, i) => {
+        const mins = Math.round((it.duration_seconds || 0) / 60);
+        const label = it.agenda_item || it.text || '';
+        return `${i + 1}. ${label}${mins ? ` — ${mins} min` : ''}`;
+      })
+      .join('\n');
+
+    // 3) PATCH meeting agenda
+    await axios.patch(
+      `${ZOOM_BASE}/meetings/${target.id}`,
+      { agenda: agendaText },
+      { headers: authHeaders(req.zoomAccessToken) }
+    );
+
+    return res.json({ success: true, meetingId: target.id });
+  } catch (err) {
+    return res
+      .status(err?.response?.status || 500)
+      .json(err?.response?.data || { message: 'appendAgendaToNextMeeting failed' });
+  }
+};
 // backend/controllers/zoomController.js
 const axios = require('axios');
 const ZOOM_BASE = 'https://api.zoom.us/v2';
@@ -112,4 +162,5 @@ module.exports = {
   getEvent,
   createSingleUseLink,
   createSchedule,
+  appendAgendaToNextMeeting,
 };

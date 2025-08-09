@@ -1,3 +1,4 @@
+'import { useAgendaStore } from "@/stores/useAgendaStore";'
 'use client';
 
 // import { useRouter, useParams } from 'next/navigation';
@@ -8,6 +9,7 @@ import Agenda from '@/components/Agenda';
 export default function SchedulePage() {
   // const router = useRouter();
   const { user_id: zoomUserId } = useParams();
+  const { items } = useAgendaStore();
   const [topic, setTopic] = useState('');
   const [startTime, setStartTime] = useState('');
   const [loading, setLoading] = useState(false);
@@ -63,6 +65,27 @@ export default function SchedulePage() {
   };
 
 
+  const handleSyncAgenda = async () => {
+    try {
+      const base = process.env.NEXT_PUBLIC_BACKEND_URL as string;
+      const payload = { items: items.map(it => ({ agenda_item: it.text, duration_seconds: it.timerValue })) };
+      const resp = await fetch(`${base}/zoom/meetings/append-agenda?userId=${zoomUserId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!resp.ok) {
+        const err = await resp.text();
+        alert('Failed to sync agenda to Zoom');
+        console.error(err);
+        return;
+      }
+      alert('Agenda synced to your next Zoom meeting.');
+    } catch (e) {
+      console.error(e);
+      alert('Could not sync agenda');
+    }
+  };
   // const handleSubmit = async () => {
   //   setLoading(true);
   //   // grab agenda items from your store
@@ -131,6 +154,12 @@ export default function SchedulePage() {
               }`}
             >
               {loading ? 'Scheduling…' : 'Schedule Meeting'}
+            </button>
+            <button
+              onClick={handleSyncAgenda}
+              className="mt-2 w-full py-2 rounded text-white bg-blue-600"
+            >
+              Sync Agenda to Next Zoom Meeting
             </button>
           </div>
           {/* RIGHT AGENDA */}

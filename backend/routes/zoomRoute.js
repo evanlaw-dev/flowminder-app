@@ -37,6 +37,8 @@ router.get('/events/:eventId', attachAccessToken, zoomController.getEvent);
 
 // WRITE — create a single‑use scheduling link for a schedule
 router.post('/schedules/:scheduleId/single-use-link', attachAccessToken, zoomController.createSingleUseLink);
+// WRITE — append agenda items (from our app) to the next upcoming Zoom meeting
+router.post('/meetings/append-agenda', attachAccessToken, zoomController.appendAgendaToNextMeeting);
 // WRITE — create a schedule (event type) using Zoom Scheduler API
 router.post('/schedules', attachAccessToken, zoomController.createSchedule);
 
