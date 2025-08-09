@@ -13,11 +13,6 @@ export default function SchedulePage() {
     new Date().toISOString().slice(0,16) // YYYY-MM-DDThh:mm
   );
   const [loading, setLoading] = useState(false);
-  const [mounted, setMounted] = useState(false); // to ensure the component is mounted before 
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     setStartTime(new Date().toISOString().slice(0,16));
@@ -79,9 +74,6 @@ export default function SchedulePage() {
   //   router.push(`/meeting/${zoomUserId}`);
   // };
 
-  if (!mounted) {
-    return null;
-  }
   return (
     <div className="flex flex-col items-center justify-center h-screen box-border p-6">
       <div className="bg-white dark:bg-black p-6 rounded-lg w-full max-w-3xl">
@@ -100,7 +92,6 @@ export default function SchedulePage() {
             </label>
             <label className="block">
               <span className="text-sm">Start Time</span>
-              {/* this is the calendar/meeting time input */}
               <input
                 type="datetime-local"
                 value={startTime}

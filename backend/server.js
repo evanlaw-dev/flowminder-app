@@ -13,8 +13,7 @@ const zoomRoutes = require('./routes/zoomRoute.js');
 // Import and use meeting routes
 const meetingRoutes = require('./routes/meetingRoutes');
 
-//  Express app setup
-// express.json parses incoming JSON requests and puts the parsed data in req.body
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -28,7 +27,9 @@ app.get('/', (req, res) => {
 app.use('/zoom', zoomRoutes);
 app.use('/api/meetings', meetingRoutes);
 
-// socket.io + http server setup
+// Use meeting routes
+app.use('/api/meetings', meetingRoutes);
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
