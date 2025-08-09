@@ -79,35 +79,14 @@ export default function SchedulePage() {
     }
   };
 
-  const handleSyncAgenda = async () => {
-    try {
-      const base = process.env.NEXT_PUBLIC_BACKEND_URL as string;
-      const payload = { items: items.map(it => ({ agenda_item: it.text, duration_seconds: it.timerValue })) };
-      const resp = await fetch(`${base}/zoom/meetings/append-agenda?userId=${zoomUserId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!resp.ok) {
-        const err = await resp.text();
-        console.error(err);
-        alert('Failed to sync agenda to Zoom');
-        return;
-      }
-      alert('Agenda synced to your next Zoom meeting.');
-    } catch (e) {
-      console.error(e);
-      alert('Could not sync agenda');
-    }
-  };
 
   return (
     <div className="flex flex-col items-center justify-center h-screen box-border p-6">
       <div className="bg-white dark:bg-black p-6 rounded-lg w-full max-w-3xl">
         {scheduled && meetingInfo ? (
           <div className="space-y-4">
-            <h2 className="text-2xl font-semibold text-black">Meeting scheduled ✅</h2>
-            <div className="text-sm text-black">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">FlowMinder Meeting scheduled</h2>
+            <div className="text-sm text-gray-800 dark:text-gray-200">
               <div><span className="font-medium">Topic:</span> {meetingInfo.topic || topic || 'FlowMinder Meeting'}</div>
               <div>
                 <span className="font-medium">When:</span>{' '}
@@ -160,12 +139,6 @@ export default function SchedulePage() {
                 className={`mt-4 w-full py-2 rounded text-white ${loading ? 'bg-gray-400' : 'bg-green-600'}`}
               >
                 {loading ? 'Scheduling…' : 'Schedule Meeting'}
-              </button>
-              <button
-                onClick={handleSyncAgenda}
-                className="mt-2 w-full py-2 rounded text-white bg-blue-600"
-              >
-                Sync Agenda to Next Zoom Meeting
               </button>
             </div>
 
