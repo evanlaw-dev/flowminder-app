@@ -1,5 +1,12 @@
 import { create } from 'zustand';
 import { v4 as uuid } from 'uuid';
+import { syncProcessed } from '../services/agendaService';
+
+const processingStack: string[] = [];
+const processingQueue = new Set<string>();
+const processingUndoQueue = new Set<string>();
+let debounceTimerProcess: ReturnType<typeof setTimeout> | null = null;
+let debounceTimerUnprocess: ReturnType<typeof setTimeout> | null = null;
 
 export interface AgendaItemType {
     id: string;
@@ -9,9 +16,10 @@ export interface AgendaItemType {
     isEdited: boolean;
     isDeleted: boolean;
     isProcessed: boolean;
-    timerValue: number; // Current timer value (may be edited)
-    originalTimerValue: number; // Original timer value before any edits, deletes
+    timerValue: number;
+    originalTimerValue: number;
     isEditedTimer: boolean;
+    processedAt?: string | null;  
 }
 
 type AgendaStore = {
@@ -19,7 +27,7 @@ type AgendaStore = {
     currentItemIndex: number;
     showAllTimers: boolean;
     isEditingMode: boolean;
-    loadItems: (items: { id: string; text: string; duration_seconds?: number; timerValue?: number }[]) => void;
+    loadItems: (items: { id: string; text: string; duration_seconds?: number; timerValue?: number; isProcessed?: boolean; }[]) => void;
     addItem: () => void;
     changeItem: (id: string, text: string) => void;
     changeItemTimer: (id: string, timerValue: number) => void;
@@ -27,6 +35,7 @@ type AgendaStore = {
     resetItems: () => void;
     saveSuccess: (savedItems: AgendaItemType[]) => void;
     nextItem: () => void;
+    previousItem: () => void;
     processCurrentItem: () => void;
     toggleAllTimers: () => void;
     setEditingMode: (flag: boolean) => void;
@@ -38,8 +47,6 @@ type AgendaStore = {
     clearLastAddedItemId: () => void;
 };
 
-
-
 export const useAgendaStore = create<AgendaStore>((set, get) => ({
     items: [],
     currentItemIndex: 0,
@@ -47,17 +54,15 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
     isEditingMode: false,
     lastAddedItemId: null,
 
-
     loadItems: (items) => {
         set(() => ({
-
             items: items.map((it) => ({
                 ...it,
                 originalText: it.text,
                 isNew: false,
                 isEdited: false,
                 isDeleted: false,
-                isProcessed: false,
+                isProcessed: it.isProcessed ?? false,
                 timerValue: it.duration_seconds ?? it.timerValue ?? 0,
                 originalTimerValue: it.duration_seconds ?? it.timerValue ?? 0,
                 isEditedTimer: false,
@@ -84,7 +89,7 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
                     isEditedTimer: false,
                 },
             ],
-            lastAddedItemId: newItemId,  // <-- Track it here
+            lastAddedItemId: newItemId,
         }));
         setTimeout(() => {
             set({ lastAddedItemId: newItemId });
@@ -150,14 +155,40 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
         })),
 
     nextItem: () => {
-        const { items } = get();
-        const visibleItems = items.filter((it) => !it.isDeleted && !it.isProcessed);
-        if (visibleItems.length === 0) return; // No more items to process
+        const { items, currentItemIndex } = get();
+        const visibleItems = items.filter(it => !it.isDeleted && !it.isProcessed);
+        if (visibleItems.length === 0) return;
 
         const currentItemId = visibleItems[0].id;
-        const updatedItems = items.map((it) =>
-            it.id === currentItemId ? { ...it, isProcessed: true } : it
+        const now = new Date().toISOString();
+
+        const updatedItems = items.map(it =>
+            it.id === currentItemId
+                ? { ...it, isProcessed: true, processedAt: now }
+                : it
         );
+
+        processingStack.push(currentItemId);
+        processingQueue.add(currentItemId);
+        startDebounceSync(true, get);
+
+        set({ items: updatedItems, currentItemIndex: currentItemIndex + 1 });
+    },
+
+    previousItem: () => {
+        if (processingStack.length === 0) return;
+
+        const lastProcessedId = processingStack.pop();
+        if (!lastProcessedId) return;
+
+        const updatedItems = get().items.map(it =>
+            it.id === lastProcessedId
+                ? { ...it, isProcessed: false, processedAt: null }
+                : it
+        );
+
+        processingUndoQueue.add(lastProcessedId);
+        startDebounceSync(false, get);
 
         set({ items: updatedItems });
     },
@@ -170,7 +201,7 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
     toggleAllTimers: () =>
         set((state) => ({
             showAllTimers: !state.showAllTimers,
-            isEditingMode: !state.showAllTimers, // Enter editing mode when showing timers
+            isEditingMode: !state.showAllTimers,
         })),
 
     toggleEditingMode: () =>
@@ -193,21 +224,49 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
         const { items, isEditingMode } = get();
         const visibleItems = items.filter((it) => !it.isDeleted && !it.isProcessed);
 
-        // if in editing mode, include the current item in the agenda list
         if (isEditingMode) {
             return visibleItems;
         }
 
-        // Otherwise, exclude the current item (first item) from the agenda list
         return visibleItems.slice(1).filter((it) => it.text.trim() !== '');
     },
 
-    // Changes are considered unsaved if an item has been edited or deleted, but not just added.
     hasUnsavedChanges: () => {
         const { items } = get();
         return items.some((it) => (it.isEdited || it.isEditedTimer || it.isDeleted) && !(it.isDeleted && it.isNew));
     },
 
     clearLastAddedItemId: () => set({ lastAddedItemId: null }),
-
 }));
+
+function startDebounceSync(isProcessing: boolean, get: () => AgendaStore) {
+    const timerRef = isProcessing ? debounceTimerProcess : debounceTimerUnprocess;
+    if (timerRef) clearTimeout(timerRef);
+
+    const queue = isProcessing ? processingQueue : processingUndoQueue;
+
+    const newTimer = setTimeout(async () => {
+        if (queue.size === 0) return;
+
+        const payload = Array.from(queue).map(id => {
+            const item = get().items.find((it: AgendaItemType) => it.id === id);
+            return {
+                id,
+                isProcessed: isProcessing,
+                processedAt: isProcessing ? item?.processedAt : null,
+            };
+        });
+
+        queue.clear();
+
+        try {
+            await syncProcessed(payload);
+        } catch (err) {
+            console.error('Failed to sync processed items:', err);
+            payload.forEach(({ id }) => queue.add(id)); // retry on next run
+        }
+    }, 500);
+
+    if (isProcessing) debounceTimerProcess = newTimer;
+    else debounceTimerUnprocess = newTimer;
+}

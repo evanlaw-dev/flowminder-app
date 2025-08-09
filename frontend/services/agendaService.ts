@@ -10,6 +10,7 @@ type AgendaItemResponse = {
   meeting_id: string;
   agenda_item: string;
   duration_seconds?: number;
+  status: string;
 };
 
 // Frontend expects this shape
@@ -17,6 +18,7 @@ export interface AgendaItemPayload {
   id: string;
   text: string;
   duration_seconds?: number;
+  isProcessed: boolean;
 }
 
 /**
@@ -36,6 +38,7 @@ export async function fetchAgendaItemsOnMount(
     id: item.id,
     text: item.agenda_item,
     duration_seconds: item.duration_seconds,
+    isProcessed: (item.status == 'processed'),
   }));
 }
 
@@ -148,4 +151,21 @@ export async function saveItemsToBackend(
   // Update store
   saveSuccess(freshItems);
   return freshItems;
+}
+
+// Agenda Service that takes care of updates for adding a processing flag
+// The queue of items has the structure: id: UUID, isProcessed: boolean
+export async function syncProcessed(items: { id: string; isProcessed: boolean }[]) {
+  const res = await fetch(`${backendUrl}/agenda_items/batch-process`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      meeting_id: meetingId,
+      items,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to sync processed flags: ${res.status}`);
+  }
 }
