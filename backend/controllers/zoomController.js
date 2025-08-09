@@ -87,6 +87,22 @@ const createSingleUseLink = async (req, res) => {
   }
 };
 
+// Create a Scheduler schedule (event type)
+const createSchedule = async (req, res) => {
+  try {
+    const { data } = await axios.post(
+      `${ZOOM_BASE}/scheduler/schedules`,
+      req.body,
+      { headers: authHeaders(req.zoomAccessToken) }
+    );
+    res.status(201).json(data);
+  } catch (err) {
+    res
+      .status(err?.response?.status || 500)
+      .json(err?.response?.data || { message: 'zoom createSchedule failed' });
+  }
+};
+
 module.exports = {
   oauth,
   redirectToMeeting,
@@ -95,4 +111,5 @@ module.exports = {
   listEvents,
   getEvent,
   createSingleUseLink,
+  createSchedule,
 };

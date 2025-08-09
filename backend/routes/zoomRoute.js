@@ -37,5 +37,7 @@ router.get('/events/:eventId', attachAccessToken, zoomController.getEvent);
 
 // WRITE — create a single‑use scheduling link for a schedule
 router.post('/schedules/:scheduleId/single-use-link', attachAccessToken, zoomController.createSingleUseLink);
+// WRITE — create a schedule (event type) using Zoom Scheduler API
+router.post('/schedules', attachAccessToken, zoomController.createSchedule);
 
 module.exports = router;

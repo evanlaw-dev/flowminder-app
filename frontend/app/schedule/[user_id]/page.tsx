@@ -36,7 +36,17 @@ export default function SchedulePage() {
       const s = await fetch(`${base}/zoom/schedules?userId=${zoomUserId}`);
       if (!s.ok) { alert('No schedules found'); setLoading(false); return; }
       const schedules = await s.json();
-      const scheduleId = schedules?.items?.[0]?.schedule_id; // pick one (or filter)
+      console.log('list schedules resp', schedules);
+      
+      const list = Array.isArray(schedules?.items)
+        ? schedules.items
+        : Array.isArray(schedules?.schedules)
+          ? schedules.schedules
+          : [];
+      
+      if (!list.length) { alert('No schedule available'); setLoading(false); return; }
+      
+      const scheduleId = list[0]?.schedule_id || list[0]?.id;
       if (!scheduleId) { alert('No schedule available'); setLoading(false); return; }
   
       // 2) mint a single-use link and redirect to Zoom booking page
