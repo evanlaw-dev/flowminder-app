@@ -6,6 +6,8 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const { Pool } = require('pg');
 const { Parser } = require('json2csv');
+
+// middleware to parse zoomroute
 const zoomRoutes = require('./routes/zoomRoute.js');
 
 // Import and use meeting routes

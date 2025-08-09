@@ -1,11 +1,12 @@
 'use client';
 
-import { useRouter, useParams } from 'next/navigation';
+// import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Agenda from '@/components/Agenda';
 
 export default function SchedulePage() {
-  const router = useRouter();
+  // const router = useRouter();
   const { user_id: zoomUserId } = useParams();
   const [topic, setTopic] = useState('');
   const [startTime, setStartTime] = useState('');
@@ -20,36 +21,68 @@ export default function SchedulePage() {
     setStartTime(new Date().toISOString().slice(0,16));
   }, []);
 
+
   const handleSubmit = async () => {
     setLoading(true);
-    // grab agenda items from your store
-    const agendaItems = await window.localStorage.getItem('agendaItems'); 
-    // (or import your store directly)
-
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/meetings/schedule`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: zoomUserId,
-          topic,
-          startTime,
-          agendaItems, 
-        }),
+    try {
+      const base = process.env.NEXT_PUBLIC_BACKEND_URL as string;
+      if (!base) {
+        alert('Missing NEXT_PUBLIC_BACKEND_URL');
+        setLoading(false);
+        return;
       }
-    );
-
-    if (!res.ok) {
-      alert('Failed to schedule meeting');
+  
+      // 1) fetch schedules for this Zoom user
+      const s = await fetch(`${base}/zoom/schedules?userId=${zoomUserId}`);
+      if (!s.ok) { alert('No schedules found'); setLoading(false); return; }
+      const schedules = await s.json();
+      const scheduleId = schedules?.items?.[0]?.schedule_id; // pick one (or filter)
+      if (!scheduleId) { alert('No schedule available'); setLoading(false); return; }
+  
+      // 2) mint a single-use link and redirect to Zoom booking page
+      const res = await fetch(`${base}/zoom/schedules/${scheduleId}/single-use-link?userId=${zoomUserId}`, { method: 'POST' });
+      if (!res.ok) { alert('Failed to create scheduling link'); setLoading(false); return; }
+      const { scheduling_url } = await res.json();
+      window.location.href = scheduling_url;
+    } catch (err) {
+      console.error(err);
+      alert('Something went wrong scheduling');
+    } finally {
       setLoading(false);
-      return;
     }
-    await res.json();
-    // const { meetingId } = await res.json();
-    // redirect back to your host hub
-    router.push(`/meeting/${zoomUserId}`);
   };
+
+
+  // const handleSubmit = async () => {
+  //   setLoading(true);
+  //   // grab agenda items from your store
+  //   const agendaItems = await window.localStorage.getItem('agendaItems'); 
+  //   // (or import your store directly)
+
+  //   const res = await fetch(
+  //     `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/meetings/schedule`,
+  //     {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({
+  //         userId: zoomUserId,
+  //         topic,
+  //         startTime,
+  //         agendaItems, 
+  //       }),
+  //     }
+  //   );
+
+  //   if (!res.ok) {
+  //     alert('Failed to schedule meeting');
+  //     setLoading(false);
+  //     return;
+  //   }
+  //   await res.json();
+  //   // const { meetingId } = await res.json();
+  //   // redirect back to your host hub
+  //   router.push(`/meeting/${zoomUserId}`);
+  // };
 
   if (!mounted) {
     return null;

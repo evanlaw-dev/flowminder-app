@@ -56,7 +56,39 @@ const addNewToken = async (req, res, next) => {
   }
 };
 
+
+// attachAccessToken: fetch saved token for a user and attach to req
+const attachAccessToken = async (req, res, next) => {
+  try {
+    // allow userId from query, params, or body
+    const user_id = req.query.userId || req.params.user_id || req.body.userId;
+    if (!user_id) return res.status(400).json({ error: 'Missing userId' });
+
+    const { data, error } = await supabase
+      .from('zoom_tokens')
+      .select('access_token')
+      .eq('user_id', user_id)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Token lookup error:', error);
+      return res.status(500).json({ error: 'Token lookup failed' });
+    }
+    if (!data?.access_token) {
+      return res.status(401).json({ error: 'No Zoom token on file for user' });
+    }
+
+    req.zoomAccessToken = data.access_token;
+    next();
+  } catch (e) {
+    console.error('attachAccessToken failed:', e);
+    res.status(500).json({ error: 'attachAccessToken failed' });
+  }
+};
+
+
 module.exports = {
   deleteToken,
   addNewToken,
+  attachAccessToken,
 };

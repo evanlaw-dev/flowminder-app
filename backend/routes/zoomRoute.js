@@ -2,8 +2,12 @@ const express = require('express');
 const router = express.Router();
 const zoomController = require('../controllers/zoomController.js');
 const { exchangeCodeForToken, getZoomUserInfo } = require('../middleware/zoomMiddleware.js');
-const { addNewToken, deleteToken } = require('../middleware/tokenDataMiddleware.js');
+// const { addNewToken, deleteToken } = require('../middleware/tokenDataMiddleware.js');
 const { addNewUserInfo } = require('../middleware/userDataMiddleware.js');
+
+// const tokenData = require('../middleware/tokenDataMiddleware');     // loads user token/tenant
+// const zoomMiddleware = require('../middleware/zoomMiddleware');     // attaches req.zoomAccessToken
+const { addNewToken, deleteToken, attachAccessToken } = require('../middleware/tokenDataMiddleware.js');
 
 /**
  * Organizes all the routes associated with Zoom
@@ -21,5 +25,17 @@ router.get('/oauth/callback',
   addNewUserInfo,
   zoomController.redirectToMeeting
 );
+
+// READ — schedules
+router.get('/schedules', attachAccessToken, zoomController.listSchedules);
+router.get('/schedules/:scheduleId', attachAccessToken, zoomController.getSchedule);
+
+// READ — events
+router.get('/events', attachAccessToken, zoomController.listEvents);
+router.get('/events/:eventId', attachAccessToken, zoomController.getEvent);
+
+
+// WRITE — create a single‑use scheduling link for a schedule
+router.post('/schedules/:scheduleId/single-use-link', attachAccessToken, zoomController.createSingleUseLink);
 
 module.exports = router;
