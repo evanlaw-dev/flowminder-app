@@ -30,6 +30,7 @@ app.use('/api/meetings', meetingRoutes);
 // Use meeting routes
 app.use('/api/meetings', meetingRoutes);
 
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {

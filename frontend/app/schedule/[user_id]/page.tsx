@@ -1,12 +1,11 @@
 'use client';
 
-// import { useRouter, useParams } from 'next/navigation';
+import { useAgendaStore } from '@/stores/useAgendaStore';
 import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Agenda from '@/components/Agenda';
 
 export default function SchedulePage() {
-  // const router = useRouter();
   const { user_id: zoomUserId } = useParams();
   const [topic, setTopic] = useState('');
   const [startTime, setStartTime] = useState(
@@ -14,65 +13,80 @@ export default function SchedulePage() {
   );
   const [loading, setLoading] = useState(false);
 
+  // Pre-fill the datetime-local with "now" (uses local time format YYYY-MM-DDTHH:MM)
   useEffect(() => {
-    setStartTime(new Date().toISOString().slice(0,16));
+    setStartTime(new Date().toISOString().slice(0, 16));
   }, []);
-
 
   const handleSubmit = async () => {
     setLoading(true);
-    // grab agenda items from your store
-    const agendaItems = await window.localStorage.getItem('agendaItems'); 
-    // (or import your store directly)
+    try {
+      const base = process.env.NEXT_PUBLIC_BACKEND_URL as string;
+      if (!base) throw new Error('Missing NEXT_PUBLIC_BACKEND_URL');
 
-    const res = await fetch('/api/meetings/schedule', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: zoomUserId,
-        topic,
-        startTime,
-        agendaItems, 
-      }),
-    });
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    if (!res.ok) {
+      // Map agenda store items into the shape backend expects
+      const agenda = items.map(it => ({
+        agenda_item: it.text,
+        duration_seconds: it.timerValue,
+      }));
+
+      const res = await fetch(`${base}/api/meetings/schedule`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: zoomUserId as string,
+          topic,
+          startTime,     // backend converts to ISO(UTC)
+          items: agenda, // backend also accepts agendaItems string; either works
+          timeZone,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        console.error('Create meeting failed:', err);
+        alert('Failed to schedule meeting');
+        return;
+      }
+
+      const data = await res.json(); // { success, meetingId, start_url, join_url }
+      if (data.start_url) {
+        // Host link: open Zoom to start the meeting
+        window.location.href = data.start_url;
+      } else {
+        alert(`Meeting created: ${data.meetingId}`);
+      }
+    } catch (e) {
+      console.error(e);
       alert('Failed to schedule meeting');
+    } finally {
       setLoading(false);
     }
   };
 
-
-  // const handleSubmit = async () => {
-  //   setLoading(true);
-  //   // grab agenda items from your store
-  //   const agendaItems = await window.localStorage.getItem('agendaItems'); 
-  //   // (or import your store directly)
-
-  //   const res = await fetch(
-  //     `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/meetings/schedule`,
-  //     {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({
-  //         userId: zoomUserId,
-  //         topic,
-  //         startTime,
-  //         agendaItems, 
-  //       }),
-  //     }
-  //   );
-
-  //   if (!res.ok) {
-  //     alert('Failed to schedule meeting');
-  //     setLoading(false);
-  //     return;
-  //   }
-  //   await res.json();
-  //   // const { meetingId } = await res.json();
-  //   // redirect back to your host hub
-  //   router.push(`/meeting/${zoomUserId}`);
-  // };
+  const handleSyncAgenda = async () => {
+    try {
+      const base = process.env.NEXT_PUBLIC_BACKEND_URL as string;
+      const payload = { items: items.map(it => ({ agenda_item: it.text, duration_seconds: it.timerValue })) };
+      const resp = await fetch(`${base}/zoom/meetings/append-agenda?userId=${zoomUserId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!resp.ok) {
+        const err = await resp.text();
+        console.error(err);
+        alert('Failed to sync agenda to Zoom');
+        return;
+      }
+      alert('Agenda synced to your next Zoom meeting.');
+    } catch (e) {
+      console.error(e);
+      alert('Could not sync agenda');
+    }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center h-screen box-border p-6">
@@ -102,13 +116,12 @@ export default function SchedulePage() {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className={`mt-4 w-full py-2 rounded text-white ${
-                loading ? 'bg-gray-400' : 'bg-green-600'
-              }`}
+              className={`mt-4 w-full py-2 rounded text-white ${loading ? 'bg-gray-400' : 'bg-green-600'}`}
             >
               {loading ? 'Scheduling…' : 'Schedule Meeting'}
             </button>
           </div>
+
           {/* RIGHT AGENDA */}
           <div className="w-1/2 overflow-auto">
             <Agenda role="host" />
