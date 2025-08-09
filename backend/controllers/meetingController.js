@@ -27,10 +27,18 @@ exports.scheduleMeeting = async (req, res) => {
       })
       .join('\n');
 
+    // Zoom accepts two formats for start_time:
+    // 1) "yyyy-MM-dd'T'HH:mm:ss'Z'" (UTC) and 2) "yyyy-MM-dd'T'HH:mm:ss" (local) + timezone
+    // Send local time string + timezone to avoid server TZ ambiguity.
+    // If coming from <input type="datetime-local"> it's usually "YYYY-MM-DDTHH:MM" (no seconds)
+    const startLocal = (typeof startTime === 'string' && startTime.length === 16)
+      ? `${startTime}:00`
+      : startTime; // assume seconds present
+
     const payload = {
       topic: (topic || '').trim() || 'FlowMinder Meeting',
       type: 2, // scheduled
-      start_time: new Date(startTime).toISOString(), // Zoom expects ISO UTC
+      start_time: startLocal, // local time string (no 'Z')
       timezone: timeZone || undefined,
       agenda: agendaText || undefined,
       settings: {
@@ -55,6 +63,9 @@ exports.scheduleMeeting = async (req, res) => {
     return res.json({
       success: true,
       meetingId: zoomRes.data.id,
+      topic: zoomRes.data.topic,
+      start_time: zoomRes.data.start_time,
+      timezone: zoomRes.data.timezone,
       start_url: zoomRes.data.start_url,
       join_url: zoomRes.data.join_url,
     });
