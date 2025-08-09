@@ -1,11 +1,12 @@
 'use client';
 
-import { useRouter, useParams } from 'next/navigation';
+// import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Agenda from '@/components/Agenda';
 
 export default function SchedulePage() {
-  const router = useRouter();
+  // const router = useRouter();
   const { user_id: zoomUserId } = useParams();
   const [topic, setTopic] = useState('');
   const [startTime, setStartTime] = useState(
@@ -21,6 +22,7 @@ export default function SchedulePage() {
   useEffect(() => {
     setStartTime(new Date().toISOString().slice(0,16));
   }, []);
+
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -42,13 +44,40 @@ export default function SchedulePage() {
     if (!res.ok) {
       alert('Failed to schedule meeting');
       setLoading(false);
-      return;
     }
-    await res.json();
-    // const { meetingId } = await res.json();
-    // redirect back to your host hub
-    router.push(`/meeting/${zoomUserId}`);
   };
+
+
+  // const handleSubmit = async () => {
+  //   setLoading(true);
+  //   // grab agenda items from your store
+  //   const agendaItems = await window.localStorage.getItem('agendaItems'); 
+  //   // (or import your store directly)
+
+  //   const res = await fetch(
+  //     `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/meetings/schedule`,
+  //     {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({
+  //         userId: zoomUserId,
+  //         topic,
+  //         startTime,
+  //         agendaItems, 
+  //       }),
+  //     }
+  //   );
+
+  //   if (!res.ok) {
+  //     alert('Failed to schedule meeting');
+  //     setLoading(false);
+  //     return;
+  //   }
+  //   await res.json();
+  //   // const { meetingId } = await res.json();
+  //   // redirect back to your host hub
+  //   router.push(`/meeting/${zoomUserId}`);
+  // };
 
   if (!mounted) {
     return null;
