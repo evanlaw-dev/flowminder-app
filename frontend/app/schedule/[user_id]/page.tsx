@@ -1,5 +1,6 @@
-'import { useAgendaStore } from "@/stores/useAgendaStore";'
 'use client';
+
+import { useAgendaStore } from '@/stores/useAgendaStore';
 
 // import { useRouter, useParams } from 'next/navigation';
 import { useParams } from 'next/navigation';
