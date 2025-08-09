@@ -147,6 +147,59 @@ app.get('/agenda_items', async (req, res) => {
   }
 });
 
+
+app.post('/agenda_items/batch-process', async (req, res) => {
+  const { meeting_id, items } = req.body;
+
+  if (!meeting_id) {
+    return res.status(400).json({ success: false, error: 'Missing meeting_id' });
+  }
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ success: false, error: 'Invalid payload' });
+  }
+
+const now = new Date().toISOString();
+const statusCase = [];
+const processedAtCase = [];
+const values = [meeting_id]; // $1 = meeting_id
+
+const processedAtValues = [];
+
+items.forEach(({ id, isProcessed }, idx) => {
+  const idPos = idx + 2; // $2, $3, ...
+  const processedAtPos = idPos + items.length; // for processed_at params after all IDs
+
+  statusCase.push(`WHEN id = $${idPos} THEN '${isProcessed ? 'processed' : 'pending'}'`);
+  processedAtCase.push(`WHEN id = $${idPos} THEN $${processedAtPos}::timestamptz`);
+
+  values.push(id);
+  processedAtValues.push(isProcessed ? now : null);
+});
+
+// Append processed_at values at the end of the values array
+values.push(...processedAtValues);
+
+const idPlaceholders = values.slice(1, items.length + 1).map((_, i) => `$${i + 2}`).join(', ');
+
+const query = `
+  UPDATE agenda_items
+  SET
+    status = CASE ${statusCase.join(' ')} END,
+    processed_at = CASE ${processedAtCase.join(' ')} END
+  WHERE meeting_id = $1
+    AND id IN (${idPlaceholders})
+`;
+
+try {
+  await pool.query(query, values);
+  res.json({ success: true, updated: items.length });
+} catch (err) {
+  console.error('Batch update failed:', err);
+  res.status(500).json({ success: false, error: err.message });
+}
+});
+
+
 // PATCH /agenda_items/:id - Update an existing agenda item
 app.patch('/agenda_items/:id', async (req, res) => {
   const { id } = req.params;

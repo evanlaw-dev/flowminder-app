@@ -6,7 +6,7 @@ import BtnAddTimerForCurrentItem from './BtnAddTimerForCurrentItem';
 
 export default function Header({ role = "participant" }: { role?: "host" | "participant" }) {
     const placeholder = `No items to display.`;
-    const { getCurrentItem, getVisibleItems, nextItem, changeItemTimer, isEditingMode } = useAgendaStore();
+    const { getCurrentItem, previousItem, getVisibleItems, nextItem, changeItemTimer, isEditingMode } = useAgendaStore();
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [remainingTime, setRemainingTime] = useState(0);
     const [truncated, setTruncated] = useState(true);
@@ -136,7 +136,7 @@ export default function Header({ role = "participant" }: { role?: "host" | "part
             </div>
 
             {visibleItems.length > 0 && role === 'host' && (
-                <>
+                <div className='flex flex-col'>
                     <button
                         onClick={nextItem}
                         className="group absolute right-4 top-1/2 transform -translate-y-1/2 w-6 h-6 cursor-pointer"
@@ -153,7 +153,23 @@ export default function Header({ role = "participant" }: { role?: "host" | "part
                             Next Item
                         </span>
                     </button>
-                </>
+                    <button
+                        onClick={previousItem}
+                        className="group absolute right-10 top-3/4 transform -translate-y-1/2 w-6 h-6 cursor-pointer"
+                    >
+                        <Image
+                            src="/arrow-right-solid-full.svg"
+                            alt="Prev"
+                            width={10}
+                            height={10}
+                            className="w-full h-full"
+                        />
+                        {/* tooltip on hover */}
+                        <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 text-xs text-white bg-red-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            Previous Item
+                        </span>
+                    </button>
+                </div>
             )}
         </div>
     );
