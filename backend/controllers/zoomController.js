@@ -28,18 +28,16 @@ const appendAgendaToNextMeeting = async (req, res) => {
     // 2) Format agenda text
     const agendaText = items
       .map((it, i) => {
-        const total = Number(it.duration_seconds) || 0;
-        const mm = String(Math.floor(total / 60)).padStart(2, '0');
-        const ss = String(total % 60).padStart(2, '0');
+        const mins = Math.round((it.duration_seconds || 0) / 60);
         const label = it.agenda_item || it.text || '';
-        return `${i + 1} - ${label} - ${mm}:${ss}`;
+        return `${i + 1}. ${label}${mins ? ` — ${mins} min` : ''}`;
       })
       .join('\n');
 
     // 3) PATCH meeting agenda
     await axios.patch(
       `${ZOOM_BASE}/meetings/${target.id}`,
-      { agenda: String(agendaText).replace(/\n/g, '\r\n') },
+      { agenda: agendaText },
       { headers: authHeaders(req.zoomAccessToken) }
     );
 

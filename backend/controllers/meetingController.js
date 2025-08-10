@@ -67,25 +67,6 @@ exports.scheduleMeeting = async (req, res) => {
       }
     );
 
-    // Ensure agenda text is present on the Zoom meeting by PATCHing it (some accounts ignore agenda on create)
-    try {
-      if (agendaText) {
-        const crlfAgenda = String(agendaText).replace(/\n/g, '\r\n');
-        await axios.patch(
-          `https://api.zoom.us/v2/meetings/${zoomRes.data.id}`,
-          { agenda: crlfAgenda },
-          {
-            headers: {
-              Authorization: `Bearer ${req.zoomAccessToken}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-      }
-    } catch (patchErr) {
-      console.warn('Zoom agenda PATCH failed:', patchErr?.response?.data || patchErr.message);
-    }
-
     // --- Persist meeting + agenda items to our DB ---
     // Resolve host email from Supabase zoom_users table
     let hostEmail = null;
