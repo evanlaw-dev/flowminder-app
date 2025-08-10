@@ -34,6 +34,10 @@ router.get('/schedules/:scheduleId', attachAccessToken, zoomController.getSchedu
 router.get('/events', attachAccessToken, zoomController.listEvents);
 router.get('/events/:eventId', attachAccessToken, zoomController.getEvent);
 
+// READ — meetings (Zoom Meetings API)
+router.get('/meetings/upcoming', attachAccessToken, zoomController.listUpcomingMeetings);
+router.get('/meetings/:meetingId', attachAccessToken, zoomController.getMeetingDetails);
+
 
 // WRITE — create a single‑use scheduling link for a schedule
 router.post('/schedules/:scheduleId/single-use-link', attachAccessToken, zoomController.createSingleUseLink);

@@ -153,6 +153,63 @@ const createSchedule = async (req, res) => {
   }
 };
 
+// List upcoming Zoom meetings for the authenticated user (host)
+const listUpcomingMeetings = async (req, res) => {
+  try {
+    const { data } = await axios.get(`${ZOOM_BASE}/users/me/meetings`, {
+      headers: authHeaders(req.zoomAccessToken),
+      params: { type: 'upcoming', page_size: 30 },
+    });
+
+    const meetings = Array.isArray(data?.meetings) ? data.meetings : [];
+
+    // Enrich with details (start_url, join_url, timezone, agenda)
+    const detailed = await Promise.all(
+      meetings.map(async (m) => {
+        try {
+          const det = await axios.get(`${ZOOM_BASE}/meetings/${m.id}`, {
+            headers: authHeaders(req.zoomAccessToken),
+          });
+          const d = det.data || {};
+          return {
+            id: m.id,
+            topic: d.topic || m.topic,
+            start_time: d.start_time || m.start_time,
+            timezone: d.timezone || data?.timezone || undefined,
+            start_url: d.start_url,
+            join_url: d.join_url,
+            agenda: d.agenda || '',
+          };
+        } catch (_) {
+          return {
+            id: m.id,
+            topic: m.topic,
+            start_time: m.start_time,
+            timezone: data?.timezone || undefined,
+          };
+        }
+      })
+    );
+
+    res.json({ items: detailed });
+  } catch (err) {
+    res.status(err?.response?.status || 500).json(err?.response?.data || { message: 'listUpcomingMeetings failed' });
+  }
+};
+
+// Get full details for a specific Zoom meeting id
+const getMeetingDetails = async (req, res) => {
+  try {
+    const { meetingId } = req.params;
+    const { data } = await axios.get(`${ZOOM_BASE}/meetings/${meetingId}`, {
+      headers: authHeaders(req.zoomAccessToken),
+    });
+    res.json(data);
+  } catch (err) {
+    res.status(err?.response?.status || 500).json(err?.response?.data || { message: 'getMeetingDetails failed' });
+  }
+};
+
 module.exports = {
   oauth,
   redirectToMeeting,
@@ -162,5 +219,7 @@ module.exports = {
   getEvent,
   createSingleUseLink,
   createSchedule,
+  listUpcomingMeetings,
+  getMeetingDetails,
   appendAgendaToNextMeeting,
 };
