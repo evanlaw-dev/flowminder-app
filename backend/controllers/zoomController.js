@@ -1,3 +1,9 @@
+// backend/controllers/zoomController.js
+const axios = require('axios');
+const ZOOM_BASE = 'https://api.zoom.us/v2';
+const jwt = require('jsonwebtoken');  // for generating JWT for Meeting SDK
+
+
 // Append agenda text to the next upcoming Zoom meeting for the user
 const appendAgendaToNextMeeting = async (req, res) => {
   try {
@@ -48,9 +54,7 @@ const appendAgendaToNextMeeting = async (req, res) => {
       .json(err?.response?.data || { message: 'appendAgendaToNextMeeting failed' });
   }
 };
-// backend/controllers/zoomController.js
-const axios = require('axios');
-const ZOOM_BASE = 'https://api.zoom.us/v2';
+
 
 function authHeaders(token) {
   return {
@@ -210,6 +214,52 @@ const getMeetingDetails = async (req, res) => {
   }
 };
 
+
+// Generate Meeting SDK signature using Client ID/Client Secret
+const getMeetingSdkSignature = (req, res) => {
+  try {
+    const sdkKey = process.env.ZOOM_CLIENT_ID;        // your Client ID
+    const sdkSecret = process.env.ZOOM_CLIENT_SECRET; // your Client Secret
+    const { meetingNumber, role = 0, expirationSeconds = 3600, videoWebRtcMode = 1 } = req.body || {};
+
+    if (!sdkKey || !sdkSecret) return res.status(500).json({ error: 'Missing Client ID/Secret on server' });
+    if (!meetingNumber) return res.status(400).json({ error: 'meetingNumber required' });
+
+    const iat = Math.floor(Date.now() / 1000) - 30;
+    const exp = iat + 60 * 60; // 1h JWT lifetime
+    const tokenExp = iat + Math.max(1800, Math.min(Number(expirationSeconds), 172800)); // 30m–48h
+
+    const payload = {
+      sdkKey,                 // (Client ID)
+      mn: String(meetingNumber),
+      role: Number(role),     // 0 attendee, 1 host
+      iat,
+      exp,
+      appKey: sdkKey,
+      tokenExp,
+      videoWebRtcMode: Number(videoWebRtcMode),
+    };
+
+    const signature = jwt.sign(payload, sdkSecret, { algorithm: 'HS256' });
+    res.json({ signature });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to generate signature' });
+  }
+};
+
+// Host ZAK via saved OAuth access token
+const getZak = async (req, res) => {
+  try {
+    const { data } = await axios.get(`${ZOOM_BASE}/users/me/zak`, {
+      headers: authHeaders(req.zoomAccessToken),
+    });
+    res.json({ zak: data?.token || data?.zak || data });
+  } catch (err) {
+    res.status(err?.response?.status || 500).json(err?.response?.data || { message: 'getZak failed' });
+  }
+};
+
+
 module.exports = {
   oauth,
   redirectToMeeting,
@@ -222,4 +272,6 @@ module.exports = {
   listUpcomingMeetings,
   getMeetingDetails,
   appendAgendaToNextMeeting,
+  getMeetingSdkSignature,
+  getZak,
 };

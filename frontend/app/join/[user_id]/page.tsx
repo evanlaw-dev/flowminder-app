@@ -78,6 +78,10 @@ export default function JoinPage() {
                   onClick={() => copy(m.join_url)}
                   disabled={!m.join_url}
                 >Copy join link</button>
+                <button
+                  className="px-3 py-2 rounded bg-blue-600 text-white"
+                  onClick={() => router.push(`/MeetingSession/${zoomUserId as string}/${m.id}?role=1`)}
+                >Open in app</button>
               </div>
             </li>
           ))}

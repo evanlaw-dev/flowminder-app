@@ -46,4 +46,8 @@ router.post('/meetings/append-agenda', attachAccessToken, zoomController.appendA
 // WRITE — create a schedule (event type) using Zoom Scheduler API
 router.post('/schedules', attachAccessToken, zoomController.createSchedule);
 
+// AUTH — Meeting SDK signature + ZAK
+router.post('/sdk-signature', zoomController.getMeetingSdkSignature);
+router.get('/zak', attachAccessToken, zoomController.getZak);
+
 module.exports = router;
