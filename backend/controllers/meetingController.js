@@ -86,12 +86,13 @@ exports.scheduleMeeting = async (req, res) => {
     try {
       await client.query('BEGIN');
 
-      // Insert into meetings table
+      // Insert into meetings table (with host_id)
       const meetInsert = await client.query(
-        `INSERT INTO meetings (host_email, meeting_title, scheduled_start, meeting_status, zoom_meeting_id)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO meetings (host_id, host_email, meeting_title, scheduled_start, meeting_status, zoom_meeting_id)
+         VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING id`,
         [
+          String(userId),
           hostEmail || 'unknown@zoom',
           payload.topic,
           zoomRes.data.start_time, // Zoom returns ISO in UTC
@@ -133,6 +134,7 @@ exports.scheduleMeeting = async (req, res) => {
       start_url: zoomRes.data.start_url,
       join_url: zoomRes.data.join_url,
       meeting_uuid: meetingUuid,
+      host_id: userId,
     });
   } catch (err) {
     return res
