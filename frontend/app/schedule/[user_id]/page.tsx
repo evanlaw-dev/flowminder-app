@@ -2,16 +2,14 @@
 'use client';
 
 import { useAgendaStore } from '@/stores/useAgendaStore';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Agenda from '@/components/Agenda';
-// import { setMeetingId } from '@/services/agendaService';
 
 export default function SchedulePage() {
   const { user_id: zoomUserId } = useParams();
-
+  const router = useRouter();
   const { items } = useAgendaStore();
-  // const { items, resetItems } = useAgendaStore();
 
   const [topic, setTopic] = useState('');
   const [startTime, setStartTime] = useState('');
@@ -27,16 +25,6 @@ export default function SchedulePage() {
   }>(null);
 
 
-// Reset agenda items when the scheduling page loads
-  // useEffect(() => {
-  //   resetItems(); // wipe any leftover items in memory
-  //   try {
-  //     setMeetingId(crypto.randomUUID()); // temp container so /agenda_items?meeting_id=... returns []
-  //   } catch {
-  //     setMeetingId(String(Date.now()));  // fallback
-  //   }
-  // }, [resetItems]);
-  
 
   // Pre-fill the datetime-local with "now" (uses local time format YYYY-MM-DDTHH:MM)
   useEffect(() => {
@@ -77,10 +65,6 @@ export default function SchedulePage() {
       }
 
       const data = await res.json(); // { success, meetingId, ... }
-
-      // Set meetingId in agenda service for future requests
-      // if (data.meeting_uuid) setMeetingId(String(data.meeting_uuid));
-
       setMeetingInfo(data);
       setScheduled(true);
     } catch (e) {
@@ -129,6 +113,10 @@ export default function SchedulePage() {
                 onClick={copyJoinLink}
                 className="px-4 py-2 rounded bg-stone-700 text-white"
               >Copy join link</button>
+              <button
+                onClick={() => router.push(`/meeting/${zoomUserId as string}`)}
+                className="px-4 py-2 rounded bg-gray-600 text-white"
+              >Go back to main page</button>
             </div>
           </div>
         ) : (
