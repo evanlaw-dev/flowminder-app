@@ -52,11 +52,71 @@ exports.scheduleMeeting = async (req, res) => {
       }
     );
 
+    // --- Persist meeting + agenda items to our DB ---
+    // Resolve host email from Supabase zoom_users table
+    let hostEmail = null;
+    try {
+      const { data: userRow } = await supabase
+        .from('zoom_users')
+        .select('email')
+        .eq('user_id', userId)
+        .maybeSingle();
+      hostEmail = userRow?.email || null;
+    } catch (_) {
+      // non-fatal; proceed without email
+    }
+
+    const client = await pool.connect();
+    let meetingUuid = null;
+    try {
+      await client.query('BEGIN');
+
+      // Insert into meetings table (with host_id)
+      const meetInsert = await client.query(
+        `INSERT INTO meetings (host_id, host_email, meeting_title, scheduled_start, meeting_status, zoom_meeting_id)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id`,
+        [
+          String(userId),
+          hostEmail || 'unknown@zoom',
+          payload.topic,
+          zoomRes.data.start_time, // Zoom returns ISO in UTC
+          'scheduled',
+          String(zoomRes.data.id),
+        ]
+      );
+      meetingUuid = meetInsert.rows[0].id;
+
+      // Insert agenda items tied to meeting id
+      if (Array.isArray(parsed) && parsed.length) {
+        for (let i = 0; i < parsed.length; i++) {
+          const it = parsed[i];
+          const label = it.agenda_item || it.text || '';
+          const duration = Number(it.duration_seconds) || 0;
+          await client.query(
+            `INSERT INTO agenda_items (meeting_id, agenda_item, duration_seconds, order_index)
+             VALUES ($1, $2, $3, $4)`,
+            [meetingUuid, label, duration, i + 1]
+          );
+        }
+      }
+
+      await client.query('COMMIT');
+    } catch (dbErr) {
+      try { await client.query('ROLLBACK'); } catch (_) {}
+      console.error('DB persist failed:', dbErr);
+      // We still return Zoom success so the user flow isn’t blocked
+    } finally {
+      client.release();
+    }
+
     return res.json({
       success: true,
       meetingId: zoomRes.data.id,
       start_url: zoomRes.data.start_url,
       join_url: zoomRes.data.join_url,
+      meeting_uuid: meetingUuid,
+      host_id: userId,
     });
   } catch (err) {
     return res

@@ -1,17 +1,43 @@
+// schedule/[user_id]/page.tsx
 'use client';
 
 import { useAgendaStore } from '@/stores/useAgendaStore';
 import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Agenda from '@/components/Agenda';
+import { setMeetingId } from '@/services/agendaService';
 
 export default function SchedulePage() {
   const { user_id: zoomUserId } = useParams();
+  // const { items } = useAgendaStore();
+  const { items, resetItems } = useAgendaStore();
+
   const [topic, setTopic] = useState('');
   const [startTime, setStartTime] = useState(
     new Date().toISOString().slice(0,16) // YYYY-MM-DDThh:mm
   );
   const [loading, setLoading] = useState(false);
+  const [scheduled, setScheduled] = useState(false);
+  const [meetingInfo, setMeetingInfo] = useState<null | {
+    meetingId: number | string;
+    topic?: string;
+    start_time?: string;
+    timezone?: string;
+    start_url?: string;
+    join_url?: string;
+  }>(null);
+
+
+// Reset agenda items when the scheduling page loads
+  useEffect(() => {
+    resetItems(); // wipe any leftover items in memory
+    try {
+      setMeetingId(crypto.randomUUID()); // temp container so /agenda_items?meeting_id=... returns []
+    } catch {
+      setMeetingId(String(Date.now()));  // fallback
+    }
+  }, [resetItems]);
+  
 
   // Pre-fill the datetime-local with "now" (uses local time format YYYY-MM-DDTHH:MM)
   useEffect(() => {
@@ -51,13 +77,13 @@ export default function SchedulePage() {
         return;
       }
 
-      const data = await res.json(); // { success, meetingId, start_url, join_url }
-      if (data.start_url) {
-        // Host link: open Zoom to start the meeting
-        window.location.href = data.start_url;
-      } else {
-        alert(`Meeting created: ${data.meetingId}`);
-      }
+      const data = await res.json(); // { success, meetingId, ... }
+
+      // Set meetingId in agenda service for future requests
+      if (data.meeting_uuid) setMeetingId(String(data.meeting_uuid));
+
+      setMeetingInfo(data);
+      setScheduled(true);
     } catch (e) {
       console.error(e);
       alert('Failed to schedule meeting');
