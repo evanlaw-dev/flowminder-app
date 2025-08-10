@@ -1,11 +1,11 @@
 import { AgendaItemType } from "../stores/useAgendaStore";
 
-// export const meetingId = 'a8f52a02-5aa8-45ec-9549-79ad2a194fa4'; // hardcoded for testing
+export const meetingId = 'a8f52a02-5aa8-45ec-9549-79ad2a194fa4'; // hardcoded for testing
 
 
 // dynamic meetingId
-export let meetingId: string = "";
-export const setMeetingId = (id: string) => { meetingId = id; };
+// export let meetingId: string = "";
+// export const setMeetingId = (id: string) => { meetingId = id; };
 
 const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
 
