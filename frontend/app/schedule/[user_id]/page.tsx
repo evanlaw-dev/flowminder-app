@@ -113,10 +113,12 @@ export default function SchedulePage() {
                 onClick={copyJoinLink}
                 className="px-4 py-2 rounded bg-stone-700 text-white"
               >Copy join link</button>
+            </div>
+            <div className="mt-6">
               <button
                 onClick={() => router.push(`/meeting/${zoomUserId as string}`)}
                 className="px-4 py-2 rounded bg-gray-600 text-white"
-              >Go back to main page</button>
+              >Back</button>
             </div>
           </div>
         ) : (
@@ -149,6 +151,12 @@ export default function SchedulePage() {
               >
                 {loading ? 'Scheduling…' : 'Schedule Meeting'}
               </button>
+              <div className="mt-6">
+                <button
+                  onClick={() => router.push(`/meeting/${zoomUserId as string}`)}
+                  className="px-4 py-2 rounded bg-gray-600 text-white"
+                  >Back</button>
+              </div>
             </div>
 
             {/* RIGHT AGENDA */}
