@@ -1,8 +1,28 @@
 import { create } from 'zustand';
 import { v4 as uuid } from 'uuid';
-import { syncProcessed } from '../services/agendaService';
+import { meetingId, syncProcessed } from '../services/agendaService';
 
-const processingStack: string[] = [];
+
+function getStorageKey(meetingId: string) {
+  return `processingStack_${meetingId}`;
+}
+
+function loadProcessingStack(meetingId: string): string[] {
+  try {
+    const stored = sessionStorage.getItem(getStorageKey(meetingId));
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveProcessingStack(meetingId: string, stack: string[]) {
+  sessionStorage.setItem(getStorageKey(meetingId), JSON.stringify(stack));
+}
+
+// Loads stack from sessionStorage on init
+const processingStack: string[] = loadProcessingStack(meetingId);
+
 const processingQueue = new Set<string>();
 const processingUndoQueue = new Set<string>();
 let debounceTimerProcess: ReturnType<typeof setTimeout> | null = null;
@@ -169,6 +189,8 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
         );
 
         processingStack.push(currentItemId);
+        saveProcessingStack(meetingId, processingStack);
+
         processingQueue.add(currentItemId);
         startDebounceSync(true, get);
 
@@ -180,6 +202,8 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
 
         const lastProcessedId = processingStack.pop();
         if (!lastProcessedId) return;
+
+        saveProcessingStack(meetingId, processingStack); 
 
         const updatedItems = get().items.map(it =>
             it.id === lastProcessedId
