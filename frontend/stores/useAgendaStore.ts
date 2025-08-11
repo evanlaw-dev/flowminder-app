@@ -169,7 +169,7 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
                 isNew: false,
                 isEdited: false,
                 isDeleted: false,
-                isProcessed: false,
+                isProcessed: it.isProcessed,
                 isEditedTimer: false,
             })),
         })),
