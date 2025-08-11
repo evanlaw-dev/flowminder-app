@@ -142,7 +142,7 @@ export async function saveItemsToBackend(
     isNew: false,
     isEdited: false,
     isDeleted: false,
-    isProcessed: false,
+    isProcessed: item.status === "processed",
     timerValue: item.duration_seconds ?? 0,
     originalTimerValue: item.duration_seconds ?? 0,
     isEditedTimer: false,
