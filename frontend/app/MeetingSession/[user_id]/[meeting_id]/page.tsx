@@ -5,6 +5,7 @@ import React from 'react';
 import * as ReactDOM from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import Script from 'next/script';
 
 // Type augmentation for globals some SDKs expect
 declare global {
@@ -125,6 +126,8 @@ export default function MeetingSessionPage() {
 
   return (
     <div className="min-h-screen p-4">
+      <Script src="https://unpkg.com/react@18/umd/react.production.min.js" strategy="beforeInteractive" />
+      <Script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" strategy="beforeInteractive" />
       <div className="mb-3">
         <button onClick={() => router.back()} className="px-4 py-2 rounded bg-gray-600 text-white">Back</button>
       </div>
