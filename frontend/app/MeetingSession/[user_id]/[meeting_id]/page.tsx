@@ -1,11 +1,16 @@
 // frontend/app/MeetingSession/[user_id]/[meeting_id]/page.tsx
 'use client';
 
+import React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import ZoomMtgEmbedded from '@zoom/meetingsdk/embedded';
 
-// Type helpers for the Zoom Embedded SDK (non-React module)
-type ZoomEmbeddedModule = typeof import('@zoom/meetingsdk/embedded');
+declare global {
+  interface Window {
+    React?: typeof import('react');
+  }
+}
 
 interface ZoomClient {
   init(opts: {
@@ -23,10 +28,11 @@ interface ZoomClient {
   }): Promise<void>;
 }
 
-export default function InProgressPage() {
-  const { user_id: zoomUserId, meeting_id } = useParams(); // param name matches folder: [meeting_id]
+export default function MeetingSessionPage() {
+  const { user_id: zoomUserId, meeting_id } = useParams();
   const search = useSearchParams();
   const router = useRouter();
+
   const role = Number(search.get('role') || '0'); // 0 attendee, 1 host
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -34,68 +40,53 @@ export default function InProgressPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [joining, setJoining] = useState(true);
-  const [zoomMod, setZoomMod] = useState<ZoomEmbeddedModule | null>(null);
 
   const base = process.env.NEXT_PUBLIC_BACKEND_URL as string;
-  const sdkKey = process.env.NEXT_PUBLIC_ZOOM_SDK_KEY as string; // Client ID on the client
+  const sdkKey = process.env.NEXT_PUBLIC_ZOOM_SDK_KEY as string; // your Client ID
 
-  // Load the non-React Zoom module on the client
+  // Some SDKs expect a global React. Expose it (harmless if already present).
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const mod = await import('@zoom/meetingsdk/embedded');
-        if (mounted) setZoomMod(mod);
-      } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : String(e);
-        setError(msg);
-        setJoining(false);
-      }
-    })();
-    return () => { mounted = false; };
+    if (typeof window !== 'undefined' && !window.React) {
+      window.React = React;
+    }
   }, []);
 
-  // Initialize and join when ready
   useEffect(() => {
     (async () => {
       try {
         if (!base) throw new Error('Missing NEXT_PUBLIC_BACKEND_URL');
         if (!sdkKey) throw new Error('Missing NEXT_PUBLIC_ZOOM_SDK_KEY (Client ID)');
-        if (!zoomMod) return; // wait for module to load
         if (!containerRef.current) throw new Error('Container missing');
 
-        // Create the client once
+        // Create client once
         if (!clientRef.current) {
-          // createClient exists on the module — cast to our minimal interface
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const created = (zoomMod as any).createClient?.();
-          if (!created) throw new Error('Zoom SDK not ready');
-          clientRef.current = created as ZoomClient;
+          const created = (ZoomMtgEmbedded as unknown as { createClient: () => ZoomClient }).createClient();
+          clientRef.current = created;
         }
-        const client = clientRef.current;
+        const client = clientRef.current as ZoomClient;
 
         const meetingNumber = String(meeting_id);
 
-        // 1) Get server-side signature (uses Client ID/Secret)
+        // Get Meeting SDK signature from backend (uses your Client ID/Secret)
         const sigRes = await fetch(`${base}/zoom/sdk-signature`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ meetingNumber, role }),
         });
         if (!sigRes.ok) throw new Error(await sigRes.text());
-        const { signature } = await sigRes.json();
+        const { signature } = (await sigRes.json()) as { signature: string };
 
-        // 2) Host needs ZAK
+        // If hosting, fetch ZAK
         let zak: string | undefined;
         if (role === 1) {
           const zakRes = await fetch(`${base}/zoom/zak?userId=${zoomUserId}`);
           if (!zakRes.ok) throw new Error(await zakRes.text());
-          const j = await zakRes.json();
-          zak = j?.zak;
+          const j = (await zakRes.json()) as { zak?: string };
+          zak = j.zak;
           if (!zak) throw new Error('Failed to get host ZAK');
         }
 
-        // 3) Init + join
+        // Init + join
         await client.init({
           zoomAppRoot: containerRef.current,
           language: 'en-US',
@@ -111,13 +102,14 @@ export default function InProgressPage() {
           zak,
         });
       } catch (e: unknown) {
+        console.error('MeetingSession error:', e);
         const msg = e instanceof Error ? e.message : String(e);
         setError(msg);
       } finally {
         setJoining(false);
       }
     })();
-  }, [base, sdkKey, zoomMod, meeting_id, role, zoomUserId]);
+  }, [base, sdkKey, meeting_id, role, zoomUserId]);
 
   return (
     <div className="min-h-screen p-4">
