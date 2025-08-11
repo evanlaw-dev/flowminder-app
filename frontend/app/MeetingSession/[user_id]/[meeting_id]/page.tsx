@@ -2,13 +2,15 @@
 'use client';
 
 import React from 'react';
+import * as ReactDOM from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import ZoomMtgEmbedded from '@zoom/meetingsdk/embedded';
 
+// Type augmentation for globals some SDKs expect
 declare global {
   interface Window {
     React?: typeof import('react');
+    ReactDOM?: typeof import('react-dom');
   }
 }
 
@@ -17,7 +19,7 @@ interface ZoomClient {
     zoomAppRoot: HTMLDivElement;
     language?: string;
     customize?: Record<string, unknown>;
-  }): Promise<void>;
+  }): Promise<unknown> | unknown;   // was Promise<void>
   join(opts: {
     sdkKey: string;
     signature: string;
@@ -25,7 +27,7 @@ interface ZoomClient {
     password?: string;
     userName: string;
     zak?: string;
-  }): Promise<void>;
+  }): Promise<unknown> | unknown;   // was Promise<void>
 }
 
 export default function MeetingSessionPage() {
@@ -44,13 +46,6 @@ export default function MeetingSessionPage() {
   const base = process.env.NEXT_PUBLIC_BACKEND_URL as string;
   const sdkKey = process.env.NEXT_PUBLIC_ZOOM_SDK_KEY as string; // your Client ID
 
-  // Some SDKs expect a global React. Expose it (harmless if already present).
-  useEffect(() => {
-    if (typeof window !== 'undefined' && !window.React) {
-      window.React = React;
-    }
-  }, []);
-
   useEffect(() => {
     (async () => {
       try {
@@ -58,12 +53,29 @@ export default function MeetingSessionPage() {
         if (!sdkKey) throw new Error('Missing NEXT_PUBLIC_ZOOM_SDK_KEY (Client ID)');
         if (!containerRef.current) throw new Error('Container missing');
 
+        // Ensure globals before loading the SDK
+        if (typeof window !== 'undefined') {
+          if (!window.React) window.React = React;
+          if (!window.ReactDOM) window.ReactDOM = ReactDOM;
+        }
+
+        // Dynamically import the Embedded SDK AFTER globals are set
+        const imported = await import('@zoom/meetingsdk/embedded');
+        const maybeEmbedded: unknown = (imported as { default?: unknown }).default ?? imported;
+
+        // Narrow to an object with a createClient function
+        const maybeCreate = (maybeEmbedded as Record<string, unknown>).createClient as unknown;
+        if (typeof maybeCreate !== 'function') {
+          throw new Error('Zoom Embedded SDK did not expose createClient');
+        }
+
         // Create client once
         if (!clientRef.current) {
-          const created = (ZoomMtgEmbedded as unknown as { createClient: () => ZoomClient }).createClient();
-          clientRef.current = created;
+          const created = (maybeCreate as () => unknown)();
+          clientRef.current = created as ZoomClient;
         }
         const client = clientRef.current as ZoomClient;
+
 
         const meetingNumber = String(meeting_id);
 
