@@ -116,7 +116,7 @@ app.get('/agenda_items', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT id, meeting_id, agenda_item, duration_seconds, is_processed, last_updated
+      `SELECT id, meeting_id, agenda_item, duration_seconds
        FROM agenda_items
        WHERE meeting_id = $1
        ORDER BY id ASC`,
@@ -266,8 +266,9 @@ app.get('/participants', async (req, res) => {
   try {
     const result = await pool.query(
       'SELECT id, name, email, role FROM meeting_participants WHERE meeting_id = $1 ORDER BY name ASC',
-      [meeting_id]
+      [participant_id, meeting_id]
     );
+    
     res.json({ success: true, participants: result.rows });
   } catch (error) {
     console.error('Error fetching participants:', error);
