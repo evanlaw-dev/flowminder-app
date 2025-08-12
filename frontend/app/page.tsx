@@ -2,19 +2,22 @@
 
 import { Suspense } from 'react';
 import { useAgendaStore } from '@/stores/useAgendaStore';
+import React from 'react';
 import Agenda from '@/components/Agenda';
 import RequestsWrapper from '@/components/RequestsWrapper';
 import Header from '@/components/Header';
 import BtnCancelSave from '@/components/BtnCancelSave';
 import { useSearchParams } from 'next/navigation';
 
-function HomeWrapper() {
+
+export default function Home() {
   const searchParams = useSearchParams();
   const role = searchParams.get('role') === 'host' ? 'participant' : 'host';
-  return <HomeLayout role={role} />;
-}
+  const [refreshTrigger, setRefreshTrigger] = React.useState(0);
 
-function HomeLayout({ role }: { role: 'host' | 'participant' }) {
+  const handleNudgeSent = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
   const { isEditingMode } = useAgendaStore();
 
   return (
@@ -45,13 +48,9 @@ function HomeLayout({ role }: { role: 'host' | 'participant' }) {
 
         <div className="flex-shrink-0 border-t border-gray-200">
           {isEditingMode && <BtnCancelSave />}
-          <RequestsWrapper />
+        <RequestsWrapper refreshTrigger={refreshTrigger} />
         </div>
       </div>
     </aside>
   );
-}
-
-export default function Home() {
-  return <HomeWrapper />;
 }

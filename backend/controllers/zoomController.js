@@ -6,7 +6,13 @@ const oauth = (req, res) => {
     const authUrl = generateZoomAuthUrl();
     res.redirect(authUrl);
 }
- 
+
+const redirectToMeeting = (req, res) => {
+  // return res.redirect(`http://localhost:3000/meeting/${res.locals.zoomUser.id}`);
+  return res.redirect(`${process.env.FRONTEND_REDIRECT_URI}/meeting/${res.locals.zoomUser.id}`);
+}
+  
 module.exports = {
   oauth,
+  redirectToMeeting
 };
