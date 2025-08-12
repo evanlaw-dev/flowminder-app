@@ -1,11 +1,16 @@
 import { useAgendaStore } from '@/stores/useAgendaStore';
 import React, { useState, useEffect } from 'react';
 import Timer from './Timer';
-import NudgeWrapper from './NudgeWrapper';
+import Nudge from './Nudge';
 import { CornerUpLeft, CornerDownRight } from 'lucide-react';  // Import lucide icons
 import BtnAddTimerForCurrentItem from './BtnAddTimerForCurrentItem';
 
-export default function Header({ role = "participant" }: { role?: "host" | "participant" }) {
+type HeaderProps = {
+  role?: "host" | "participant";
+  handleNudge: () => void;
+};
+
+export default function Header({role = "participant", handleNudge}: HeaderProps) {
     const placeholder = `No items to display.`;
     const { getCurrentItem, previousItem, getVisibleItems, nextItem, changeItemTimer, isEditingMode } = useAgendaStore();
     const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -165,7 +170,7 @@ export default function Header({ role = "participant" }: { role?: "host" | "part
                 </div>
             )}
             <div className='mx-auto pt-[1.5em]'>
-                <NudgeWrapper />
+                <Nudge onNudge={handleNudge}/>
                 </div>
         </div>
     );
