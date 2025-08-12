@@ -30,7 +30,8 @@ const io = new Server(server, {
 
 // PostgreSQL connection
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/flowminder'
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/flowminder',
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
 // Test PostgreSQL connection
