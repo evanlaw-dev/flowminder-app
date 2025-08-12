@@ -26,7 +26,7 @@ const processingStack: string[] = loadProcessingStack(meetingId);
 const processingQueue = new Set<string>();
 const processingUndoQueue = new Set<string>();
 let debounceTimerProcess: ReturnType<typeof setTimeout> | null = null;
-let debounceTimerUnprocess: ReturnType<typeof setTimeout> | null = null;
+let debounceTimerUndoProcess: ReturnType<typeof setTimeout> | null = null;
 
 export interface AgendaItemType {
     id: string;
@@ -263,8 +263,21 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
     clearLastAddedItemId: () => set({ lastAddedItemId: null }),
 }));
 
+/**
+ * Starts or resets a debounce timer to batch sync processed/unprocessed agenda items with the server.
+ *
+ * This function manages separate debounce timers and queues for marking items as processed
+ * (e.g., "Next" actions) and unprocessed (e.g., "Previous" actions).
+ * When called repeatedly within 500ms, it delays the server sync to avoid multiple rapid requests,
+ * sending all queued item updates in one batch after the delay.
+ * @param isProcessing - isProcessing: boolean
+            true means we're syncing items marked as processed (Next).
+            false - unprocessed (Previous).
+ * @param get - gets state from the store
+ */
 function startDebounceSync(isProcessing: boolean, get: () => AgendaStore) {
-    const timerRef = isProcessing ? debounceTimerProcess : debounceTimerUnprocess;
+    const timerRef = isProcessing ? debounceTimerProcess : debounceTimerUndoProcess
+;
     if (timerRef) clearTimeout(timerRef);
 
     const queue = isProcessing ? processingQueue : processingUndoQueue;
@@ -292,5 +305,6 @@ function startDebounceSync(isProcessing: boolean, get: () => AgendaStore) {
     }, 500);
 
     if (isProcessing) debounceTimerProcess = newTimer;
-    else debounceTimerUnprocess = newTimer;
+    else debounceTimerUndoProcess
+ = newTimer;
 }
