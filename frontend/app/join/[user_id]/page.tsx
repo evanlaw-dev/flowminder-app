@@ -15,12 +15,13 @@ type MeetingItem = {
 };
 
 export default function JoinPage() {
-  const { user_id: zoomUserId } = useParams();
+  const { user_id: zoomUserId } = useParams(); // Get the Zoom user ID from the URL parameters
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [items, setItems] = useState<MeetingItem[]>([]);
+  const [loading, setLoading] = useState(true);  // Loading state for fetching meetings
+  const [error, setError] = useState<string | null>(null); // Error state for handling fetch errors
+  const [items, setItems] = useState<MeetingItem[]>([]); // State to hold the list of meetings
 
+  // Fetch upcoming meetings for the user
   useEffect(() => {
     const base = process.env.NEXT_PUBLIC_BACKEND_URL as string;
     if (!base) {
@@ -30,7 +31,7 @@ export default function JoinPage() {
     }
     (async () => {
       try {
-        const res = await fetch(`${base}/zoom/meetings/upcoming?userId=${zoomUserId}`);
+        const res = await fetch(`${base}/zoom/meetings/upcoming?userId=${zoomUserId}`);  // Fetch meetings from the backend
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
         setItems(Array.isArray(data?.items) ? data.items : []);

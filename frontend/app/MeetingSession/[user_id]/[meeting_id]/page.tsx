@@ -6,7 +6,7 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { ZoomMtg } from '@zoom/meetingsdk';
 
 export default function MeetingSessionPage() {
-  const { user_id: zoomUserId, meeting_id } = useParams();
+  const { user_id: zoomUserId, meeting_id } = useParams(); // Get the Zoom user ID and meeting ID from the URL parameters
   const search = useSearchParams();
   const router = useRouter();
 
@@ -15,7 +15,7 @@ export default function MeetingSessionPage() {
   const [error, setError] = useState<string | null>(null);
   const [joining, setJoining] = useState(true);
 
-  const base = process.env.NEXT_PUBLIC_BACKEND_URL as string;
+  const base = process.env.NEXT_PUBLIC_BACKEND_URL as string; // your backend URL
   const sdkKey = process.env.NEXT_PUBLIC_ZOOM_SDK_KEY as string; // your Client ID
 
   useEffect(() => {
@@ -40,10 +40,10 @@ export default function MeetingSessionPage() {
         const { signature } = (await sigRes.json()) as { signature: string };
 
         // 2) Host needs ZAK
-        let zak: string | undefined;
+        let zak: string | undefined; // ZAK is only needed for hosts
         if (role === 1) {
           const zakRes = await fetch(`${base}/zoom/zak?userId=${zoomUserId}`);
-          if (!zakRes.ok) throw new Error(await zakRes.text());
+          if (!zakRes.ok) throw new Error(await zakRes.text()); // Fetch ZAK from backend
           const j = (await zakRes.json()) as { zak?: string };
           zak = j.zak;
           if (!zak) throw new Error('Failed to get host ZAK');
@@ -59,7 +59,7 @@ export default function MeetingSessionPage() {
         });
 
         await new Promise<void>((resolve, reject) => {
-          ZoomMtg.join({
+          ZoomMtg.join({ // Join the meeting with the Client View SDK
             sdkKey,
             signature,
             meetingNumber,
