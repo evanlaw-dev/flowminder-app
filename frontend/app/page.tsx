@@ -10,18 +10,23 @@ import { Suspense } from 'react';
 function ClientOnlyAgendaWrapper() {
   const searchParams = useSearchParams();
 
-  // TODO change default role to 'participant'. currently set to 'host' for testing purposes
-  const role = searchParams.get('role') === 'participant' ? 'participant' : 'host';
-  // default is participant on this line
-  // const role = searchParams.get('role') === 'host' ? 'host' : 'participant'; 
+  // Default role is 'participant' unless explicitly set to 'host'
+  const role = searchParams.get('role') === 'host' ? 'host' : 'participant'; 
   return <Agenda role={role} />;
 }
 
 function ClientOnlyNudgeWrapper({ onNudgeSent }: { onNudgeSent: () => void }) {
   const searchParams = useSearchParams();
-  const role = searchParams.get('role') === 'participant' ? 'participant' : 'host';
+  const role = searchParams.get('role') === 'host' ? 'host' : 'participant';
   
   return <Nudge role={role} onNudgeSent={onNudgeSent} />;
+}
+
+function ClientOnlyRequestsWrapper({ refreshTrigger }: { refreshTrigger: number }) {
+  const searchParams = useSearchParams();
+  const role = searchParams.get('role') === 'host' ? 'host' : 'participant';
+  
+  return <RequestsWrapper refreshTrigger={refreshTrigger} role={role} />;
 }
 
 export default function Home() {
@@ -40,7 +45,7 @@ export default function Home() {
         <ClientOnlyAgendaWrapper />
       </Suspense>
 
-      <RequestsWrapper refreshTrigger={refreshTrigger} />
+      <ClientOnlyRequestsWrapper refreshTrigger={refreshTrigger} />
     </main>
   );
 }
