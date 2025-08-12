@@ -5,7 +5,6 @@ import { useAgendaStore } from '@/stores/useAgendaStore';
 import Agenda from '@/components/Agenda';
 import RequestsWrapper from '@/components/RequestsWrapper';
 import Header from '@/components/Header';
-import NudgeWrapper from '@/components/NudgeWrapper';
 import BtnCancelSave from '@/components/BtnCancelSave';
 import { useSearchParams } from 'next/navigation';
 
@@ -24,12 +23,8 @@ function HomeLayout({ role }: { role: 'host' | 'participant' }) {
                  bg-[var(--primary)] transition-width duration-100 ease-in-out space-y-2"
     >
       <div id="main" className="flex flex-col flex-grow justify-center space-y-2 min-h-0">
-
-        <div id="header" className="flex-shrink-0 bg-[var(--secondary)] pb-4 rounded-b-xl shadow-md">
+        <div id="header" className="flex-shrink-0 bg-[var(--secondary)] pb-2 rounded-b-xl shadow-md">
           <Header role={role} />
-          <div id="nudge-wrapper" className="px-4 pt-4  justify-center gap-2">
-            <NudgeWrapper />
-          </div>
         </div>
 
         <div className="flex-1 min-h-0 relative overflow-hidden rounded-md">

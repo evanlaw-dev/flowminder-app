@@ -1,7 +1,8 @@
 import { useAgendaStore } from '@/stores/useAgendaStore';
 import React, { useState, useEffect } from 'react';
 import Timer from './Timer';
-import Image from 'next/image';
+import NudgeWrapper from './NudgeWrapper';
+import { CornerUpLeft, CornerDownRight } from 'lucide-react';  // Import lucide icons
 import BtnAddTimerForCurrentItem from './BtnAddTimerForCurrentItem';
 
 export default function Header({ role = "participant" }: { role?: "host" | "participant" }) {
@@ -14,6 +15,7 @@ export default function Header({ role = "participant" }: { role?: "host" | "part
 
     const currentItem = getCurrentItem();
     const visibleItems = getVisibleItems();
+    const [isHovered, setIsHovered] = useState(false);
 
 
     // Timer countdown effect
@@ -72,7 +74,10 @@ export default function Header({ role = "participant" }: { role?: "host" | "part
     // Timer input/edit logic is now handled by AgendaTimer
 
     return (
-        <div className="relative flex-shrink-0 rounded-lg text-center py-4 px-12 break-words">
+        <div className="relative flex flex-col rounded-lg text-center py-4 break-words"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
             <div className="flex flex-col text-white">
                 {/* render placeholder if there are is no agenda item to render */}
                 {currentItem ? (
@@ -135,42 +140,33 @@ export default function Header({ role = "participant" }: { role?: "host" | "part
                 )}
             </div>
 
-            {visibleItems.length > 0 && role === 'host' && (
+            {visibleItems.length > 0 && role === 'host' && isHovered && (
                 <div className='flex flex-col'>
                     <button
-                        onClick={nextItem}
-                        className="group absolute right-4 top-1/2 transform -translate-y-1/2 w-6 h-6 cursor-pointer"
+                        onClick={previousItem}
+                        className="group absolute left-4 top-1/2 transform -translate-y-1/2 w-6 h-6 cursor-pointer text-white hover:text-amber-400"
+                        aria-label="Previous Item"
                     >
-                        <Image
-                            src="/arrow-right-solid-full.svg"
-                            alt="Next"
-                            width={24}
-                            height={24}
-                            className="w-full h-full"
-                        />
-                        {/* tooltip on hover */}
+                        <CornerUpLeft size={24} />
+                        <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 text-xs text-white bg-red-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            Previous
+                        </span>
+                    </button>
+                    <button
+                        onClick={nextItem}
+                        className="group absolute right-4 top-1/2 transform -translate-y-1/2 w-6 h-6 cursor-pointer text-white hover:text-amber-400"
+                        aria-label="Next Item"
+                    >
+                        <CornerDownRight size={24} />
                         <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 text-xs text-white bg-red-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                             Next Item
                         </span>
                     </button>
-                    <button
-                        onClick={previousItem}
-                        className="group absolute right-10 top-3/4 transform -translate-y-1/2 w-6 h-6 cursor-pointer"
-                    >
-                        <Image
-                            src="/arrow-right-solid-full.svg"
-                            alt="Prev"
-                            width={10}
-                            height={10}
-                            className="w-full h-full"
-                        />
-                        {/* tooltip on hover */}
-                        <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 text-xs text-white bg-red-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                            Previous Item
-                        </span>
-                    </button>
                 </div>
             )}
+            <div className='mx-auto pt-[1.5em]'>
+                <NudgeWrapper />
+                </div>
         </div>
     );
 };
