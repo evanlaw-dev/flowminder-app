@@ -27,7 +27,7 @@ export default function Home() {
     >
       <div id="main" className="flex flex-col flex-grow justify-center space-y-2 min-h-0">
         <div id="header" className="flex-shrink-0 bg-[var(--secondary)] pb-2 rounded-b-xl shadow-md">
-          <Header role={role} />
+          <Header role={role} handleNudge={handleNudgeSent}/>
         </div>
 
         <div className="flex-1 min-h-0 relative overflow-hidden rounded-md">
