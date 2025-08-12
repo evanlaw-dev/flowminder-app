@@ -17,9 +17,10 @@ async function resetNudgeStats(meetingId: string): Promise<boolean> {
 
 interface RequestsWrapperProps {
   refreshTrigger?: number;
+  role?: 'host' | 'participant';
 }
 
-function RequestsWrapper({ refreshTrigger = 0 }: RequestsWrapperProps) {
+function RequestsWrapper({ refreshTrigger = 0, role = 'participant' }: RequestsWrapperProps) {
   const [nudgeStats, setNudgeStats] = useState({
     move_along_count: 0,
     invite_speak_count: 0
@@ -99,13 +100,15 @@ function RequestsWrapper({ refreshTrigger = 0 }: RequestsWrapperProps) {
         <Request text="Move along nudges" count={nudgeStats.move_along_count} /> 
         <Request text="Invite to speak nudges" count={nudgeStats.invite_speak_count} />
       </div>
-      <button 
-        onClick={handleReset}
-        className="mt-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
-        title="Reset all nudge counters to 0"
-      >
-        Reset Counters
-      </button>
+      {role === 'host' && (
+        <button 
+          onClick={handleReset}
+          className="mt-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+          title="Reset all nudge counters to 0"
+        >
+          Reset Counters
+        </button>
+      )}
     </div>
   )
 }
