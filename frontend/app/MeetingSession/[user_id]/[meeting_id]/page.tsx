@@ -11,10 +11,19 @@ export default function VideoSessionPage() {
   const [joining, setJoining] = useState(false);
   const videoRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Treat `meeting_id` as the Video SDK session name
-  const sessionName = String(meeting_id);
+
+  
   const userName = searchParams.get('name') || 'FlowMinder User';
   const role = Number(searchParams.get('role') || '1'); // host by default for dev
+
+  // Treat `meeting_id` as the Video SDK session name
+  // const sessionName = String(meeting_id);
+
+  // create unique session name for host to avoid conflicts
+  // attendees join the existing session name (which is just the meeting ID)
+  const sessionName = role === 1 
+    ? `${meeting_id}-vsdk-${Date.now()}` // host gets fresh session
+    : String(meeting_id);                // attendees join existing session
 
   const authEndpoint = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'}/zoom/video-signature`;
 
