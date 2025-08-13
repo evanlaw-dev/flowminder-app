@@ -218,8 +218,8 @@ const getMeetingDetails = async (req, res) => {
 // Generate Meeting SDK signature using Client ID/Client Secret
 const getMeetingSdkSignature = (req, res) => {
   try {
-    const sdkKey = process.env.ZOOM_CLIENT_ID;        // your Client ID
-    const sdkSecret = process.env.ZOOM_CLIENT_SECRET; // your Client Secret
+    const sdkKey = process.env.ZOOM_SDK_KEY;        // your Client ID
+    const sdkSecret = process.env.ZOOM_SDK_SECRET; // your Client Secret
     const { meetingNumber, role = 0, expirationSeconds = 3600, videoWebRtcMode = 1 } = req.body || {};
 
     if (!sdkKey || !sdkSecret) return res.status(500).json({ error: 'Missing Client ID/Secret on server' });
