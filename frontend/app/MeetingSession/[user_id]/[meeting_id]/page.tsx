@@ -1,15 +1,30 @@
 'use client';
-import '@zoom/meetingsdk/dist/css/bootstrap.css';
-import '@zoom/meetingsdk/dist/css/react-select.css';
+
 import { useParams, useSearchParams } from 'next/navigation';
 import { ZoomMtg } from '@zoom/meetingsdk';
+import { useEffect } from 'react';
 
 ZoomMtg.preLoadWasm();
 ZoomMtg.prepareWebSDK();
 
+const ensureZoomCss = () => {
+  const id = 'zoom-meeting-sdk-css';
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id = id;
+  link.rel = 'stylesheet';
+  // Match your SDK logs (4.0.0):
+  link.href = 'https://source.zoom.us/4.0.0/css/zoom-meeting-4.0.0.min.css';
+  document.head.appendChild(link);
+};
 export default function MeetingSessionPage() {
   const { user_id, meeting_id } = useParams();
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    ensureZoomCss();
+  }, []);
 
   const meetingNumber = String(meeting_id);
   const userName = searchParams.get('name') || 'FlowMinder User';
