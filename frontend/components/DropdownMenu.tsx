@@ -40,11 +40,11 @@ export default function DropdownMenu() {
                     ref={menuRef}
                     className="absolute top-full right-0 mr-2 w-48 bg-white shadow-lg rounded-2xl p-2"
                 >
-                    <div onClick={toggleEditingMode} className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
+                    <div onClick={() => {toggleEditingMode(); setOpen(!open);}} className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
                         <Edit className="w-4 h-4" />
                         <span>Edit</span>
                     </div>
-                    <div onClick={toggleAllTimers} className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
+                    <div onClick={() => {toggleAllTimers(); setOpen(!open);}} className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
                         {showAllTimers ? (
                             <>
                                 <ClockAlert className="w-4 h-4" />
@@ -57,7 +57,7 @@ export default function DropdownMenu() {
                             </>
                         )}              
                     </div>
-                    <div className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer text-red-500">
+                    <div className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer text-red-500 disabled">
                         <Trash2 className="w-4 h-4" />
                         <span>Delete All</span>
                     </div>

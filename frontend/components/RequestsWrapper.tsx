@@ -26,7 +26,6 @@ function RequestsWrapper({ refreshTrigger = 0, role = 'participant' }: RequestsW
     invite_speak_count: 0
   });
   const [isLoading, setIsLoading] = useState(true);
-
   const meetingId = 'a8f52a02-5aa8-45ec-9549-79ad2a194fa4'; // This should come from props or context
 
   useEffect(() => {
@@ -95,7 +94,7 @@ function RequestsWrapper({ refreshTrigger = 0, role = 'participant' }: RequestsW
   }
 
   return (
-    <div className='w-[87%] flex flex-col gap-2 p-4 pt-0'>
+    <div className='flex flex-col gap-2 p-4 pt-0'>
       <div className='flex flex-row gap-2 text-center'>
         <Request text="Move along nudges" count={nudgeStats.move_along_count} /> 
         <Request text="Invite to speak nudges" count={nudgeStats.invite_speak_count} />

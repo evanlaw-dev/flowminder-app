@@ -58,7 +58,7 @@ export default function Home() {
           />
         </div>
 
-        <div className="flex-shrink-0 border-t border-gray-200">
+        <div className="flex-shrink-0 justify-center border-t border-gray-200">
           {isEditingMode && <BtnCancelSave />}
         <RequestsWrapper refreshTrigger={refreshTrigger} />
         </div>
