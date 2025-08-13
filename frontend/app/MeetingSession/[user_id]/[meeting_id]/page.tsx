@@ -3,19 +3,21 @@
 import { useParams, useSearchParams } from 'next/navigation';
 import { ZoomMtg } from '@zoom/meetingsdk';
 
-// Official flow: preload + prepare
+// preload + prepare
 ZoomMtg.preLoadWasm();
 ZoomMtg.prepareWebSDK();
 
+// Meeting session page component
 export default function MeetingSessionPage() {
   const { user_id, meeting_id } = useParams();
   const searchParams = useSearchParams();
 
-  // --- Match official sample variable layout ---
+  // redirect to home if missing user_id or meeting_id
   const authEndpoint =
     (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000') + '/zoom/sdk-signature';
   const sdkKey = process.env.NEXT_PUBLIC_ZOOM_SDK_KEY || '';
 
+  // Required params
   const meetingNumber = String(meeting_id);
   const passWord = searchParams.get('pwd') || '';
   const role = Number(searchParams.get('role') || '0');
@@ -23,11 +25,14 @@ export default function MeetingSessionPage() {
   const userEmail = searchParams.get('email') || '';
   const registrantToken = searchParams.get('tk') || '';
   const zakToken = searchParams.get('zak') || '';
+
+  // Leave URL - redirect back to home page if user leaves the meeting
   const leaveUrl =
     typeof window !== 'undefined'
       ? `${window.location.origin}/meeting/${String(user_id)}`
       : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
+  // Fetch signature from backend and start the meeting
   const getSignature = async (): Promise<void> => {
     try {
       const req = await fetch(authEndpoint, {
@@ -43,9 +48,12 @@ export default function MeetingSessionPage() {
     }
   };
 
+  // Initialize and join the Zoom meeting
   function startMeeting(signature: string) {
     // Ensure the SDK root exists like the sample expects
     let root = document.getElementById('zmmtg-root');
+
+    // Create if missing
     if (!root) {
       root = document.createElement('div');
       root.id = 'zmmtg-root';
@@ -53,6 +61,7 @@ export default function MeetingSessionPage() {
     }
     root.style.display = 'block';
 
+    // Now init and join
     ZoomMtg.init({
       leaveUrl: leaveUrl,
       patchJsMedia: true,
