@@ -1,36 +1,82 @@
 // frontend/app/MeetingSession/[user_id]/[meeting_id]/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import { ZoomMtg } from '@zoom/meetingsdk';
+import React, { useEffect, useRef, useState } from 'react';
+import * as ReactDOM from 'react-dom';
+import { useParams, useSearchParams } from 'next/navigation';
 
+// // Minimal type for the Zoom Embedded client to avoid `any`
+// type ZoomEmbeddedClient = {
+//   init: (opts: { zoomAppRoot: HTMLElement; language?: string; patchJsMedia?: boolean }) => Promise<void>;
+//   join: (opts: {
+//     signature: string;
+//     meetingNumber: string;
+//     password?: string;
+//     userName: string;
+//     userEmail?: string;
+//     zak?: string;
+//   }) => Promise<void>;
+//   leave?: () => Promise<void> | void;
+//   destroy?: () => Promise<void> | void;
+// };
+
+/**
+ * Component View integration for Zoom Meeting SDK (embedded)
+ * - Initializes the SDK in a dedicated container div
+ * - Fetches a Meeting SDK signature (and ZAK for host role) from backend
+ * - Joins as host (role=1) or attendee (role=0)
+ */
 export default function MeetingSessionPage() {
-  const { user_id: zoomUserId, meeting_id } = useParams(); // Get the Zoom user ID and meeting ID from the URL parameters
-  const search = useSearchParams();
-  const router = useRouter();
+  const { user_id, meeting_id } = useParams<{ user_id: string; meeting_id: string }>();
+  const searchParams = useSearchParams();
 
-  const role = Number(search.get('role') || '0'); // 0 attendee, 1 host
+  // /MeetingSession/:user_id/:meeting_id?role=1&name=Alice&pwd=12345
+  const role = Number(searchParams.get('role') || '0'); // 0 attendee, 1 host
+  const userName = searchParams.get('name') || (role === 1 ? 'FlowMinder Host' : 'FlowMinder Participant');
+  const password = searchParams.get('pwd') || ''; // empty string if only waiting room required
+
+  const meetingNumber = String(meeting_id);
+  const zoomUserId = String(user_id);
+
+  // Refs
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const clientRef = useRef<unknown>(null);
 
   const [error, setError] = useState<string | null>(null);
-  const [joining, setJoining] = useState(true);
-
-  const base = process.env.NEXT_PUBLIC_BACKEND_URL as string; // your backend URL
-  const sdkKey = process.env.NEXT_PUBLIC_ZOOM_SDK_KEY as string; // your Client ID
+  const [status, setStatus] = useState<'idle' | 'initializing' | 'joining' | 'joined'>('idle');
 
   useEffect(() => {
+    let mounted = true;
+
+    // Ensure global React + ReactDOM for Zoom SDK internals
+    const w = window as unknown as { React?: typeof React; ReactDOM?: typeof ReactDOM };
+    if (!w.React) (w as { React: typeof React }).React = React;
+    if (!w.ReactDOM) (w as { ReactDOM: typeof ReactDOM }).ReactDOM = ReactDOM;
+
     (async () => {
       try {
+        const base = process.env.NEXT_PUBLIC_BACKEND_URL as string;
         if (!base) throw new Error('Missing NEXT_PUBLIC_BACKEND_URL');
-        if (!sdkKey) throw new Error('Missing NEXT_PUBLIC_ZOOM_SDK_KEY (Client ID)');
 
-        // Prepare the Client View SDK
-        ZoomMtg.preLoadWasm();
-        ZoomMtg.prepareWebSDK();
+        // Lazy import the embedded SDK and create client once
+        const ZoomMtgEmbedded = (await import('@zoom/meetingsdk/embedded')).default;
+        if (!clientRef.current) {
+          clientRef.current = ZoomMtgEmbedded.createClient();
+        }
+        // const client = clientRef.current;
+        const client = ZoomMtgEmbedded.createClient()
 
-        const meetingNumber = String(meeting_id);
+        const meetingSDKElement = containerRef.current;
+        if (!meetingSDKElement) throw new Error('Missing meeting container');
 
-        // 1) Get server-side signature (uses Client ID/Secret)
+        setStatus('initializing');
+        await client.init({
+          zoomAppRoot: meetingSDKElement,
+          language: 'en-US',
+          patchJsMedia: true,
+        });
+
+        // Get signature (and ZAK when hosting)
         const sigRes = await fetch(`${base}/zoom/sdk-signature`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -39,58 +85,68 @@ export default function MeetingSessionPage() {
         if (!sigRes.ok) throw new Error(await sigRes.text());
         const { signature } = (await sigRes.json()) as { signature: string };
 
-        // 2) Host needs ZAK
-        let zak: string | undefined; // ZAK is only needed for hosts
+        let zak: string | undefined;
         if (role === 1) {
-          const zakRes = await fetch(`${base}/zoom/zak?userId=${zoomUserId}`);
-          if (!zakRes.ok) throw new Error(await zakRes.text()); // Fetch ZAK from backend
-          const j = (await zakRes.json()) as { zak?: string };
-          zak = j.zak;
-          if (!zak) throw new Error('Failed to get host ZAK');
+          const zakRes = await fetch(`${base}/zoom/zak?userId=${encodeURIComponent(zoomUserId)}`);
+          if (!zakRes.ok) throw new Error(await zakRes.text());
+          const z = await zakRes.json();
+          zak = z?.zak;
         }
 
-        // 3) Init + join (Client View renders its own full-page UI)
-        await new Promise<void>((resolve, reject) => {
-          ZoomMtg.init({
-            leaveUrl: window.location.origin,
-            success: () => resolve(),
-            error: (err: unknown) => reject(err),
-          });
+        setStatus('joining');
+        await client.join({
+          signature,
+          meetingNumber,
+          password,
+          userName,
+          userEmail: undefined, // add for webinars/registration if needed
+          zak,
         });
 
-        await new Promise<void>((resolve, reject) => {
-          ZoomMtg.join({ // Join the meeting with the Client View SDK
-            sdkKey,
-            signature,
-            meetingNumber,
-            passWord: '',
-            userName: role === 1 ? 'Host (FlowMinder)' : 'Guest (FlowMinder)',
-            zak,
-            success: () => resolve(),
-            error: (err: unknown) => reject(err),
-          });
-        });
-      } catch (e: unknown) {
-        console.error('MeetingSession error:', e);
+        if (!mounted) return;
+        setStatus('joined');
+      } catch (e) {
+        if (!mounted) return;
         const msg = e instanceof Error ? e.message : String(e);
         setError(msg);
-      } finally {
-        setJoining(false);
+        setStatus('idle');
+        console.error('[MeetingSession] Failed to start Meeting SDK:', e);
       }
     })();
-  }, [base, sdkKey, meeting_id, role, zoomUserId]);
+
+    return () => {
+      mounted = false;
+      // Clean up SDK instance on unmount
+      try {
+        const client = clientRef.current;
+        if (!client) throw new Error('Zoom SDK client not created');
+        // if (client) {
+        //   // leave first to stop audio/video, then destroy
+        //   client.leave?.();
+        //   client.destroy?.();
+        // }
+      } catch {}
+    };
+  }, [meetingNumber, role, userName, password, zoomUserId]);
 
   return (
-    <div className="min-h-screen p-4">
-      {/* Client View injects its own DOM (zmmtg-root). Optionally include CSS links for styles. */}
-      <link rel="stylesheet" href="https://source.zoom.us/3.11.2/css/bootstrap.css" />
-      <link rel="stylesheet" href="https://source.zoom.us/3.11.2/css/react-select.css" />
+    <div className="w-screen h-screen">
+      {/* Step 2: HTML Container */}
+      <div
+        id="meetingSDKElement"
+        ref={containerRef}
+        style={{ width: '100%', height: '100%' }}
+      />
 
-      <div className="mb-3">
-        <button onClick={() => router.back()} className="px-4 py-2 rounded bg-gray-600 text-white">Back</button>
-      </div>
-      {error && <div className="mb-3 text-red-600">{error}</div>}
-      {joining && !error && <div className="mb-3">Joining meeting…</div>}
+      {/* Minimal overlay for status/errors */}
+      {(status !== 'joined' || error) && (
+        <div className="pointer-events-none absolute inset-0 flex items-start justify-end p-3">
+          <div className="pointer-events-auto bg-black/60 text-white text-sm rounded px-3 py-2 space-y-1">
+            <div><span className="opacity-75">Status:</span> {status}</div>
+            {error && <div className="text-red-300">{error}</div>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
