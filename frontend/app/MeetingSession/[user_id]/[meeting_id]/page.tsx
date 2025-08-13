@@ -1,5 +1,6 @@
 'use client';
-
+import '@zoom/meetingsdk/dist/css/bootstrap.css';
+import '@zoom/meetingsdk/dist/css/react-select.css';
 import { useParams, useSearchParams } from 'next/navigation';
 import { ZoomMtg } from '@zoom/meetingsdk';
 
