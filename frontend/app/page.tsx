@@ -1,23 +1,28 @@
 "use client";
 
-import { Suspense } from 'react';
-import { useAgendaStore } from '@/stores/useAgendaStore';
-import React from 'react';
-import Agenda from '@/components/Agenda';
-import RequestsWrapper from '@/components/RequestsWrapper';
-import Header from '@/components/Header';
-import BtnCancelSave from '@/components/BtnCancelSave';
-import { useSearchParams } from 'next/navigation';
+import React, { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { useAgendaStore } from "@/stores/useAgendaStore";
+import Agenda from "@/components/Agenda";
+import RequestsWrapper from "@/components/RequestsWrapper";
+import Header from "@/components/Header";
+import BtnCancelSave from "@/components/BtnCancelSave";
 
+// Suspense wrapper component (to deal with next.js typecheck)
 export default function Home() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading…</div>}>
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+function HomeContent() {
   const searchParams = useSearchParams();
-  const role = searchParams.get('role') === 'host' ? 'participant' : 'host';
+  const role = searchParams.get("role") === "host" ? "participant" : "host";
   const [refreshTrigger, setRefreshTrigger] = React.useState(0);
 
-  const handleNudgeSent = () => {
-    setRefreshTrigger(prev => prev + 1);
-  };
-
+  const handleNudgeSent = () => setRefreshTrigger((prev) => prev + 1);
   const { isEditingMode } = useAgendaStore();
 
   return (
@@ -27,9 +32,7 @@ export default function Home() {
     >
       <div id="main" className="flex flex-col flex-grow justify-center space-y-2 min-h-0">
         <div id="header" className="flex-shrink-0 bg-[var(--secondary)] pb-2 rounded-b-xl shadow-md">
-          <Suspense fallback={<div className="px-4 py-3">Loading header…</div>}>
-            <Header role={role} handleNudge={handleNudgeSent} />
-          </Suspense>
+          <Header role={role} handleNudge={handleNudgeSent} />
         </div>
 
         <div className="flex-1 min-h-0 relative overflow-hidden rounded-md">
@@ -40,7 +43,6 @@ export default function Home() {
               </Suspense>
             </div>
           </div>
-
           <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8" />
         </div>
 
