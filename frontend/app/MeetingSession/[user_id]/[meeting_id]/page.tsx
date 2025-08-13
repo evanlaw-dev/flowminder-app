@@ -3,10 +3,7 @@
 import { useParams, useSearchParams } from 'next/navigation';
 import { ZoomMtg } from '@zoom/meetingsdk';
 
-// 1) Point the SDK to the correct asset path for 4.0.0 (before preLoadWasm/prepareWebSDK)
-ZoomMtg.setZoomJSLib('https://source.zoom.us/4.0.0/lib', '/av');
-
-// 2) Then load/prepare
+// Official flow: preload + prepare
 ZoomMtg.preLoadWasm();
 ZoomMtg.prepareWebSDK();
 
@@ -14,10 +11,18 @@ export default function MeetingSessionPage() {
   const { user_id, meeting_id } = useParams();
   const searchParams = useSearchParams();
 
+  // --- Match official sample variable layout ---
+  const authEndpoint =
+    (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000') + '/zoom/sdk-signature';
+  const sdkKey = process.env.NEXT_PUBLIC_ZOOM_SDK_KEY || '';
+
   const meetingNumber = String(meeting_id);
-  const userName = searchParams.get('name') || 'FlowMinder User';
   const passWord = searchParams.get('pwd') || '';
-  const role = Number(searchParams.get('role') || '0'); // 0 attendee, 1 host
+  const role = Number(searchParams.get('role') || '0');
+  const userName = searchParams.get('name') || 'FlowMinder User';
+  const userEmail = searchParams.get('email') || '';
+  const registrantToken = searchParams.get('tk') || '';
+  const zakToken = searchParams.get('zak') || '';
   const leaveUrl =
     typeof window !== 'undefined'
       ? `${window.location.origin}/meeting/${String(user_id)}`
@@ -25,21 +30,21 @@ export default function MeetingSessionPage() {
 
   const getSignature = async (): Promise<void> => {
     try {
-      const base = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-      const response = await fetch(`${base}/zoom/sdk-signature`, {
+      const req = await fetch(authEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ meetingNumber, role }),
       });
-      const { signature } = await response.json();
-      startMeeting(signature as string);
-    } catch (err) {
-      console.error('Signature error:', err);
+      const res = await req.json();
+      const signature = (res as { signature: string }).signature;
+      startMeeting(signature);
+    } catch (e) {
+      console.log(e);
     }
   };
 
-  const startMeeting = (signature: string) => {
-    // Ensure the Zoom root exists
+  function startMeeting(signature: string) {
+    // Ensure the SDK root exists like the sample expects
     let root = document.getElementById('zmmtg-root');
     if (!root) {
       root = document.createElement('div');
@@ -48,50 +53,38 @@ export default function MeetingSessionPage() {
     }
     root.style.display = 'block';
 
-    // 3) 4.0.0 breaking change: load i18n first, then init + join
-    ZoomMtg.i18n
-      .load('en-US')
-      .then(() => {
-        interface ZoomInitOptions {
-          leaveUrl: string;
-          patchJsMedia: boolean;
-          success: () => void;
-          error: (err: unknown) => void;
-        }
-
-        interface ZoomJoinOptions {
-          signature: string;
-          meetingNumber: string;
-          passWord: string;
-          userName: string;
-          success: (res: unknown) => void;
-          error: (err: unknown) => void;
-        }
-
-        ZoomMtg.init({
-          leaveUrl,
-          patchJsMedia: true,
-          success: () => {
-            console.log('ZoomMtg.init success, joining…');
-
-            ZoomMtg.join({
-              signature,
-              meetingNumber,
-              passWord,
-              userName,
-              success: (res: unknown) => console.log('Join success', res),
-              error: (err: unknown) => console.error('Join error', err),
-            } as ZoomJoinOptions);
+    ZoomMtg.init({
+      leaveUrl: leaveUrl,
+      patchJsMedia: true,
+      leaveOnPageUnload: true,
+      success: (success: unknown) => {
+        console.log(success);
+        ZoomMtg.join({
+          signature: signature,
+          sdkKey: sdkKey,
+          meetingNumber: meetingNumber,
+          passWord: passWord,
+          userName: userName,
+          userEmail: userEmail,
+          tk: registrantToken,
+          zak: zakToken,
+          success: (success: unknown) => {
+            console.log(success);
           },
-          error: (err: unknown) => console.error('Init error', err),
-        } as ZoomInitOptions);
-      })
-      .catch((e) => console.error('i18n load error', e));
-  };
+          error: (error: unknown) => {
+            console.log(error);
+          },
+        });
+      },
+      error: (error: unknown) => {
+        console.log(error);
+      },
+    });
+  }
 
   return (
     <div className="p-6">
-      <h1 className="text-xl mb-4">Join Zoom Meeting</h1>
+      <h1 className="text-xl mb-4">Zoom Meeting SDK Sample React (Next.js)</h1>
       <button
         onClick={getSignature}
         className="px-6 py-3 bg-blue-600 text-white rounded-lg"
