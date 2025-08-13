@@ -1,106 +1,115 @@
 'use client';
 
 import { useParams, useSearchParams } from 'next/navigation';
-import { ZoomMtg } from '@zoom/meetingsdk';
+import { useRef, useState } from 'react';
+import ZoomVideo from '@zoom/videosdk';
 
-// preload + prepare
-ZoomMtg.preLoadWasm();
-ZoomMtg.prepareWebSDK();
-
-// Meeting session page component
-export default function MeetingSessionPage() {
-  const { user_id, meeting_id } = useParams();
+export default function VideoSessionPage() {
+  const { meeting_id } = useParams();
   const searchParams = useSearchParams();
+  const [joined, setJoined] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const videoRef = useRef<HTMLCanvasElement | null>(null);
 
-  // redirect to home if missing user_id or meeting_id
-  const authEndpoint =
-    (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000') + '/zoom/sdk-signature';
-  const sdkKey = process.env.NEXT_PUBLIC_ZOOM_SDK_KEY || '';
-
-  // Required params
-  const meetingNumber = String(meeting_id);
-  const passWord = searchParams.get('pwd') || '';
-  const role = Number(searchParams.get('role') || '0');
+  // Treat `meeting_id` as the Video SDK session name
+  const sessionName = String(meeting_id);
   const userName = searchParams.get('name') || 'FlowMinder User';
-  const userEmail = searchParams.get('email') || '';
-  const registrantToken = searchParams.get('tk') || '';
-  const zakToken = searchParams.get('zak') || '';
+  const role = Number(searchParams.get('role') || '1'); // host by default for dev
 
-  // Leave URL - redirect back to home page if user leaves the meeting
-  const leaveUrl =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/meeting/${String(user_id)}`
-      : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const authEndpoint = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000'}/zoom/video-signature`;
 
-  // Fetch signature from backend and start the meeting
-  const getSignature = async (): Promise<void> => {
+  const client = ZoomVideo.createClient();
+
+  const startSession = async () => {
     try {
-      const req = await fetch(authEndpoint, {
+      setJoining(true);
+      // Get Video SDK signature
+      const sigRes = await fetch(authEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ meetingNumber, role }),
+        body: JSON.stringify({ sessionName, role }),
       });
-      const res = await req.json();
-      const signature = (res as { signature: string }).signature;
-      startMeeting(signature);
+      const { signature } = await sigRes.json();
+      if (!signature) throw new Error('No signature from server');
+
+      // init + join
+      await client.init('en-US', 'CDN');
+      await client.join(sessionName, signature, userName);
+
+      // Start local media and render self view
+      const stream = client.getMediaStream();
+      try { await stream.startAudio(); } catch (e) { console.warn('startAudio failed', e); }
+      try { await stream.startVideo(); } catch (e) { console.warn('startVideo failed', e); }
+      
+      const self = client.getCurrentUserInfo();
+      if (videoRef.current) {
+        // width, height, x, y, renderMode (3 = contain)
+        await stream.renderVideo(videoRef.current, self.userId, 640, 360, 0, 0, 3);
+      }
+
+      setJoined(true);
     } catch (e) {
-      console.log(e);
+      console.error('Video SDK join failed:', e);
+      alert('Failed to join Video session');
+    } finally {
+      setJoining(false);
     }
   };
 
-  // Initialize and join the Zoom meeting
-  function startMeeting(signature: string) {
-    // Ensure the SDK root exists like the sample expects
-    let root = document.getElementById('zmmtg-root');
-
-    // Create if missing
-    if (!root) {
-      root = document.createElement('div');
-      root.id = 'zmmtg-root';
-      document.body.appendChild(root);
+  // Leave the session and clear video container
+  const leaveSession = async () => {
+    try {
+      await client.leave();
+      setJoined(false);
+      if (videoRef.current) {
+        videoRef.current.innerHTML = '';
+      }
+    } catch (e) {
+      console.error('Leave failed', e);
     }
-    root.style.display = 'block';
-
-    // Now init and join
-    ZoomMtg.init({
-      leaveUrl: leaveUrl,
-      patchJsMedia: true,
-      leaveOnPageUnload: true,
-      success: (success: unknown) => {
-        console.log(success);
-        ZoomMtg.join({
-          signature: signature,
-          sdkKey: sdkKey,
-          meetingNumber: meetingNumber,
-          passWord: passWord,
-          userName: userName,
-          userEmail: userEmail,
-          tk: registrantToken,
-          zak: zakToken,
-          success: (success: unknown) => {
-            console.log(success);
-          },
-          error: (error: unknown) => {
-            console.log(error);
-          },
-        });
-      },
-      error: (error: unknown) => {
-        console.log(error);
-      },
-    });
-  }
+  };
 
   return (
     <div className="p-6">
-      <h1 className="text-xl mb-4">Zoom Meeting SDK Sample React (Next.js)</h1>
-      <button
-        onClick={getSignature}
-        className="px-6 py-3 bg-blue-600 text-white rounded-lg"
-      >
-        Join Meeting
-      </button>
-      <div id="zmmtg-root"></div>
+      <h1 className="text-xl mb-4">Zoom Video SDK — Next.js Session</h1>
+      <div className="mb-4 flex gap-2">
+        {!joined ? (
+          <button
+            onClick={startSession}
+            disabled={joining}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg"
+          >
+            {joining ? 'Joining…' : 'Join Session'}
+          </button>
+        ) : (
+          <button
+            onClick={leaveSession}
+            className="px-6 py-3 bg-gray-700 text-white rounded-lg"
+          >
+            Leave
+          </button>
+        )}
+      </div>
+
+      {/* <div
+        ref={videoRef}
+        id="video-container"
+        className="w-[640px] h-[360px] bg-black rounded"
+      /> */}
+      {/* Video canvas for rendering zoom video */}
+      <canvas
+        ref={videoRef}
+        id="video-canvas"
+        className="bg-black rounded"
+        width={640}
+        height={360}
+      />
+
+      <div className="mt-4 text-sm text-gray-600">
+        <div><b>Session:</b> {sessionName}</div>
+        <div><b>User:</b> {userName}</div>
+        <div><b>Role:</b> {role === 1 ? 'Host' : 'Attendee'}</div>
+      </div>
     </div>
   );
 }

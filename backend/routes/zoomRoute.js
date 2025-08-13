@@ -48,6 +48,7 @@ router.post('/schedules', attachAccessToken, zoomController.createSchedule);
 
 // AUTH — Meeting SDK signature + ZAK
 router.post('/sdk-signature', zoomController.getMeetingSdkSignature);
+router.post('/video-signature', zoomController.getVideoSdkSignature);
 router.get('/zak', attachAccessToken, zoomController.getZak);
 
 module.exports = router;

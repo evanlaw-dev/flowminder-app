@@ -247,6 +247,37 @@ const getMeetingSdkSignature = (req, res) => {
   }
 };
 
+// Generate Video SDK signature using Video SDK Key/Secret
+const getVideoSdkSignature = (req, res) => {
+  try {
+    const appKey = process.env.ZOOM_SDK_KEY;      // Video SDK Key
+    const appSecret = process.env.ZOOM_SDK_SECRET; // Video SDK Secret
+    const { sessionName, role = 1, expirationSeconds = 3600 } = req.body || {};
+
+    if (!appKey || !appSecret) return res.status(500).json({ error: 'Missing Video SDK Key/Secret on server' });
+    if (!sessionName) return res.status(400).json({ error: 'sessionName required' });
+
+    const iat = Math.floor(Date.now() / 1000) - 30;
+    const exp = iat + 60 * 60; // 1h JWT lifetime
+    const tokenExp = iat + Math.max(1800, Math.min(Number(expirationSeconds), 172800)); // 30m–48h
+
+    const payload = {
+      app_key: appKey,
+      tpc: String(sessionName),
+      role: Number(role), // 0 attendee, 1 host
+      iat,
+      exp,
+      tokenExp,
+      version: 1,
+    };
+
+    const signature = jwt.sign(payload, appSecret, { algorithm: 'HS256' });
+    res.json({ signature });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to generate Video SDK signature' });
+  }
+};
+
 // Host ZAK via saved OAuth access token
 const getZak = async (req, res) => {
   try {
@@ -273,5 +304,6 @@ module.exports = {
   getMeetingDetails,
   appendAgendaToNextMeeting,
   getMeetingSdkSignature,
+  getVideoSdkSignature,
   getZak,
 };
