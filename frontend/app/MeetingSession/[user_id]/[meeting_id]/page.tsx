@@ -34,7 +34,8 @@ export default function VideoSessionPage() {
 
       // init + join
       await client.init('en-US', 'CDN');
-      await client.join(sessionName, signature, userName);
+      // await client.join(sessionName, signature, userName);
+      await client.join(sessionName, signature, userName, '');
 
       // Start local media and render self view
       const stream = client.getMediaStream();

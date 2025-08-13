@@ -239,7 +239,7 @@ const getMeetingSdkSignature = (req, res) => {
       tokenExp,
       videoWebRtcMode: Number(videoWebRtcMode),
     };
-
+    console.log('MeetingSig payload:', payload); // expect { app_key, tpc, role, iat, exp, ... }
     const signature = jwt.sign(payload, sdkSecret, { algorithm: 'HS256' });
     res.json({ signature });
   } catch (e) {
@@ -270,6 +270,7 @@ const getVideoSdkSignature = (req, res) => {
       tokenExp,
       version: 1,
     };
+    console.log('VideoSig payload:', payload); // expect { app_key, tpc, role, iat, exp, ... }
 
     const signature = jwt.sign(payload, appSecret, { algorithm: 'HS256' });
     res.json({ signature });
