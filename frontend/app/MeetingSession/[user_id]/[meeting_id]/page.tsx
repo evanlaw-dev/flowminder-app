@@ -1,6 +1,6 @@
 'use client';
-// import '@zoom/meetingsdk/dist/css/bootstrap.css';
-// import '@zoom/meetingsdk/dist/css/react-select.css';
+import '@zoom/meetingsdk/dist/css/bootstrap.css';
+import '@zoom/meetingsdk/dist/css/react-select.css';
 import { useParams, useSearchParams } from 'next/navigation';
 import { ZoomMtg } from '@zoom/meetingsdk';
 
@@ -8,14 +8,16 @@ ZoomMtg.preLoadWasm();
 ZoomMtg.prepareWebSDK();
 
 export default function MeetingSessionPage() {
-  const { meeting_id } = useParams();
+  const { user_id, meeting_id } = useParams();
   const searchParams = useSearchParams();
 
   const meetingNumber = String(meeting_id);
   const userName = searchParams.get('name') || 'FlowMinder User';
   const passWord = searchParams.get('pwd') || '';
   const role = Number(searchParams.get('role') || '0'); // 0 attendee, 1 host
-  const leaveUrl = process.env.NEXT_PUBLIC_LEAVE_URL || 'http://localhost:3000';
+  const leaveUrl = (typeof window !== 'undefined'
+    ? `${window.location.origin}/meeting/${String(user_id)}`
+    : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000');
 
   const getSignature = async (): Promise<void> => {
     try {
@@ -38,12 +40,19 @@ export default function MeetingSessionPage() {
   };
 
   const startMeeting = (signature: string) => {
-    document.getElementById('zmmtg-root')!.style.display = 'block';
+    let root = document.getElementById('zmmtg-root');
+    if (!root) {
+      root = document.createElement('div');
+      root.id = 'zmmtg-root';
+      document.body.appendChild(root);
+    }
+    root.style.display = 'block';
 
     ZoomMtg.init({
       leaveUrl,
       patchJsMedia: true,
       success: () => {
+        console.log('ZoomMtg.init success, joining…');
         ZoomMtg.join({
           signature,
           sdkKey: process.env.NEXT_PUBLIC_ZOOM_SDK_KEY || '',
