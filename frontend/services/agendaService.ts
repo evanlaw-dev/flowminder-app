@@ -1,6 +1,7 @@
 import { AgendaItemType } from "../stores/useAgendaStore";
 
 export const meetingId = 'a8f52a02-5aa8-45ec-9549-79ad2a194fa4';
+// export const meetingId = 'a8f52a02-5aa8-45ec-9549'; INCORRECT ID FOR TESTING NO ITEMS IN AGENDA
 const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
 
 // Backend returns this shape
@@ -9,6 +10,7 @@ type AgendaItemResponse = {
   meeting_id: string;
   agenda_item: string;
   duration_seconds?: number;
+  status: string;
 };
 
 // Frontend expects this shape
@@ -16,6 +18,7 @@ export interface AgendaItemPayload {
   id: string;
   text: string;
   duration_seconds?: number;
+  isProcessed: boolean;
 }
 
 /**
@@ -35,6 +38,7 @@ export async function fetchAgendaItemsOnMount(
     id: item.id,
     text: item.agenda_item,
     duration_seconds: item.duration_seconds,
+    isProcessed: (item.status == 'processed'),
   }));
 }
 
@@ -45,6 +49,18 @@ export async function saveItemsToBackend(
   items: AgendaItemType[],
   saveSuccess: (items: AgendaItemType[]) => void
 ): Promise<AgendaItemType[]> {
+
+
+  // Clean up empty items
+  items.forEach(it => {
+    console.log('Checking item:', it);
+    if (it.text?.trim() === '') {
+      it.isDeleted = true;
+      console.log('Marking item as deleted:', it);
+    }
+  });
+
+
   // Partition into create / update / delete
   const toCreate = items.filter(it => it.isNew && !it.isDeleted);
   const toUpdate = items.filter(it => !it.isNew && (it.isEdited || it.isEditedTimer) && !it.isDeleted);
@@ -126,7 +142,7 @@ export async function saveItemsToBackend(
     isNew: false,
     isEdited: false,
     isDeleted: false,
-    isProcessed: false,
+    isProcessed: item.status === "processed",
     timerValue: item.duration_seconds ?? 0,
     originalTimerValue: item.duration_seconds ?? 0,
     isEditedTimer: false,
@@ -135,4 +151,21 @@ export async function saveItemsToBackend(
   // Update store
   saveSuccess(freshItems);
   return freshItems;
+}
+
+// Agenda Service that takes care of updates for adding a processing flag
+// The queue of items has the structure: id: UUID, isProcessed: boolean
+export async function syncProcessed(items: { id: string; isProcessed: boolean }[]) {
+  const res = await fetch(`${backendUrl}/agenda_items/batch-process`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      meeting_id: meetingId,
+      items,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to sync processed flags: ${res.status}`);
+  }
 }

@@ -6,7 +6,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const { Pool } = require('pg');
 const { Parser } = require('json2csv');
-const zoomRoutes = require('./routes/zoomRoute.js');
+// const zoomRoutes = require('./routes/zoomRoute.js'); // Temporarily disabled for testing
 
 const app = express();
 app.use(cors());
@@ -17,8 +17,8 @@ app.get('/', (req, res) => {
   res.send('Server is running');
 });
 
-// Zoom routes
-app.use('/zoom', zoomRoutes);
+// Zoom routes - temporarily disabled for testing
+// app.use('/zoom', zoomRoutes);
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -30,7 +30,8 @@ const io = new Server(server, {
 
 // PostgreSQL connection
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/flowminder'
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/flowminder',
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
 // Test PostgreSQL connection
@@ -115,10 +116,10 @@ app.get('/agenda_items', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT id, meeting_id, agenda_item, duration_seconds, order_index, actual_start, actual_end, status, created_at
+      `SELECT id, meeting_id, agenda_item, duration_seconds
        FROM agenda_items
        WHERE meeting_id = $1
-       ORDER BY order_index ASC NULLS LAST, created_at ASC`,
+       ORDER BY id ASC`,
       [meeting_id]
     );
     res.json({ success: true, items: result.rows });
@@ -127,6 +128,59 @@ app.get('/agenda_items', async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to fetch agenda items' });
   }
 });
+
+
+app.post('/agenda_items/batch-process', async (req, res) => {
+  const { meeting_id, items } = req.body;
+
+  if (!meeting_id) {
+    return res.status(400).json({ success: false, error: 'Missing meeting_id' });
+  }
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ success: false, error: 'Invalid payload' });
+  }
+
+const now = new Date().toISOString();
+const statusCase = [];
+const processedAtCase = [];
+const values = [meeting_id]; // $1 = meeting_id
+
+const processedAtValues = [];
+
+items.forEach(({ id, isProcessed }, idx) => {
+  const idPos = idx + 2; // $2, $3, ...
+  const processedAtPos = idPos + items.length; // for processed_at params after all IDs
+
+  statusCase.push(`WHEN id = $${idPos} THEN '${isProcessed ? 'processed' : 'pending'}'`);
+  processedAtCase.push(`WHEN id = $${idPos} THEN $${processedAtPos}::timestamptz`);
+
+  values.push(id);
+  processedAtValues.push(isProcessed ? now : null);
+});
+
+// Append processed_at values at the end of the values array
+values.push(...processedAtValues);
+
+const idPlaceholders = values.slice(1, items.length + 1).map((_, i) => `$${i + 2}`).join(', ');
+
+const query = `
+  UPDATE agenda_items
+  SET
+    status = CASE ${statusCase.join(' ')} END,
+    processed_at = CASE ${processedAtCase.join(' ')} END
+  WHERE meeting_id = $1
+    AND id IN (${idPlaceholders})
+`;
+
+try {
+  await pool.query(query, values);
+  res.json({ success: true, updated: items.length });
+} catch (err) {
+  console.error('Batch update failed:', err);
+  res.status(500).json({ success: false, error: err.message });
+}
+});
+
 
 // PATCH /agenda_items/:id - Update an existing agenda item
 app.patch('/agenda_items/:id', async (req, res) => {
@@ -251,6 +305,143 @@ app.get('/download/:meetingId', async (req, res) => {
     res.send(csv);
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to export actions as CSV' });
+  }
+});
+
+// GET /participants?meeting_id=xxx - Get all participants for a meeting
+app.get('/participants', async (req, res) => {
+  const { meeting_id } = req.query;
+
+  if (!meeting_id) {
+    return res.status(400).json({ success: false, error: 'Missing meeting_id' });
+  }
+
+  try {
+    const result = await pool.query(
+      'SELECT id, name, email, role FROM meeting_participants WHERE meeting_id = $1 ORDER BY name ASC',
+      [participant_id, meeting_id]
+    );
+    
+    res.json({ success: true, participants: result.rows });
+  } catch (error) {
+    console.error('Error fetching participants:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch participants' });
+  }
+});
+
+// POST /participants - Add a participant to a meeting
+app.post('/participants', async (req, res) => {
+  const { meeting_id, name, email, role = 'participant' } = req.body;
+  
+  if (!meeting_id || !name) {
+    return res.status(400).json({ success: false, error: 'Meeting ID and name are required' });
+  }
+
+  try {
+    const result = await pool.query(
+      'INSERT INTO meeting_participants (meeting_id, name, email, role) VALUES ($1, $2, $3, $4) RETURNING *',
+      [meeting_id, name, email, role]
+    );
+    res.json({ success: true, participant: result.rows[0] });
+  } catch (error) {
+    console.error('Error adding participant:', error);
+    res.status(500).json({ success: false, error: 'Failed to add participant' });
+  }
+});
+
+// POST /nudge - Send a nudge to a specific participant
+app.post('/nudge', async (req, res) => {
+  const { meeting_id, participant_id, nudge_type, message } = req.body;
+  
+  if (!meeting_id || !participant_id || !nudge_type) {
+    return res.status(400).json({ success: false, error: 'Meeting ID, participant ID, and nudge type are required' });
+  }
+
+  const timestamp = new Date().toISOString();
+  
+  try {
+    // Save nudge to database
+    await pool.query(
+      'INSERT INTO nudges (meeting_id, participant_id, nudge_type, message, timestamp) VALUES ($1, $2, $3, $4, $5)',
+      [meeting_id, participant_id, nudge_type, message, timestamp]
+    );
+
+    // Emit nudge to all clients in the meeting
+    io.to(meeting_id).emit('nudge', { 
+      meeting_id, 
+      participant_id, 
+      nudge_type, 
+      message, 
+      timestamp 
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error sending nudge:', error);
+    res.status(500).json({ success: false, error: 'Failed to send nudge' });
+  }
+});
+
+// GET /nudge-stats?meeting_id=xxx - Get nudge statistics for a meeting
+app.get('/nudge-stats', async (req, res) => {
+  const { meeting_id } = req.query;
+
+  if (!meeting_id) {
+    return res.status(400).json({ success: false, error: 'Missing meeting_id' });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT 
+        nudge_type,
+        COUNT(*) as count
+       FROM nudges 
+       WHERE meeting_id = $1 
+       GROUP BY nudge_type`,
+      [meeting_id]
+    );
+
+    const stats = {
+      move_along_count: 0,
+      invite_speak_count: 0
+    };
+
+    result.rows.forEach(row => {
+      if (row.nudge_type === 'move_along') {
+        stats.move_along_count = parseInt(row.count);
+      } else if (row.nudge_type === 'invite_speak') {
+        stats.invite_speak_count = parseInt(row.count);
+      }
+    });
+
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error('Error fetching nudge stats:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch nudge stats' });
+  }
+});
+
+// DELETE /nudge-stats?meeting_id=xxx - Reset nudge statistics for a meeting
+app.delete('/nudge-stats', async (req, res) => {
+  const { meeting_id } = req.query;
+
+  if (!meeting_id) {
+    return res.status(400).json({ success: false, error: 'Missing meeting_id' });
+  }
+
+  try {
+    await pool.query(
+      'DELETE FROM nudges WHERE meeting_id = $1',
+      [meeting_id]
+    );
+    
+    res.json({
+      success: true,
+      message: 'Nudge statistics reset successfully'
+    });
+  } catch (error) {
+    console.error('Error resetting nudge stats:', error);
+    res.status(500).json({ success: false, error: 'Failed to reset nudge stats' });
   }
 });
 
