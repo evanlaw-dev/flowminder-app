@@ -1,108 +1,123 @@
 // frontend/app/MeetingSession/[user_id]/[meeting_id]/page.tsx
+// frontend/app/MeetingSession/[user_id]/[meeting_id]/page.tsx
 'use client';
+
 
 import { useParams, useSearchParams } from 'next/navigation';
 import { useRef, useState } from 'react';
 import ZoomVideo from '@zoom/videosdk';
-import ZoomMtgEmbedded from '@zoom/meetingsdk/embedded';
 
-const ZOOM_SDK_VERSION = '4.0.0';
-const ZOOM_ASSET_PATH = `https://source.zoom.us/${ZOOM_SDK_VERSION}/lib`;
+// Zoom Meeting SDK types
+interface ZoomMtgType {
+  setZoomJSLib: (path: string, subdir: string) => void;
+  preLoadWasm?: () => void;
+  prepareJssdk?: () => void;
+  prepareWebSDK?: () => void; // v4 name
+  i18n?: {
+    load?: (lang: string) => void;
+    reload?: (lang: string) => void;
+  };
+  init: (opts: {
+    leaveUrl: string;
+    isSupportAV?: boolean;
+    disableRecord?: boolean;
+    meetingSDKElement?: HTMLElement;
+    success: () => void;
+    error: (err: unknown) => void;
+  }) => void;
+  join: (opts: {
+    signature: string;
+    sdkKey: string;
+    meetingNumber: string;
+    userName: string;
+    passWord?: string;
+    zak?: string;
+    success: () => void;
+    error: (err: unknown) => void;
+  }) => void;
+}
 
-// Minimal types for the Embedded Client
-interface EmbeddedClientInitOpts {
-  zoomAppRoot: HTMLElement;
-  language?: string;
-  assetPath?: string;
-}
-interface EmbeddedClientJoinOpts {
-  sdkKey: string;
-  signature: string;
-  meetingNumber: string;
-  userName: string;
-  passWord?: string;
-  zak?: string;
-}
-// embedded client interface of the Zoom Meeting SDK
-interface EmbeddedClient {
-  init: (opts: EmbeddedClientInitOpts) => Promise<void> | void;
-  join: (opts: EmbeddedClientJoinOpts) => Promise<void> | void;
-  leave: () => Promise<void> | void;
+type MeetingSDKModule = { ZoomMtg: ZoomMtgType };
+
+// global window react for Zoom SDK
+declare global {
+  interface Window {
+    React?: unknown;
+    ReactDOM?: unknown;
+  }
 }
 
-// Zoom Video SDK client interface
+// Helper to inject Zoom Meeting SDK CSS from CDN if not already present
+const ensureZoomCss = (version: string = '4.0.0'): void => {
+  const head = document.head;
+  const urls = [
+    `https://source.zoom.us/${version}/css/bootstrap.css`,
+    `https://source.zoom.us/${version}/css/react-virtualized.css`,
+  ];
+  urls.forEach((href) => {
+    const exists = Array.from(head.querySelectorAll('link[rel="stylesheet"]')).some(l => (l as HTMLLinkElement).href === href);
+    if (!exists) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = href;
+      head.appendChild(link);
+    }
+  });
+};
+
+/**
+ * Embed Zoom Meeting (Meeting SDK) using OAuth + ZAK for host
+ * - Default: Meeting SDK (embedded Zoom UI)
+ * - Alt: add `?use=video` to use Video SDK (for ad‑hoc tests)
+ */
+
+// session page component
 export default function SessionPage() {
   const { meeting_id, user_id } = useParams<{ meeting_id: string; user_id: string }>();
   const searchParams = useSearchParams();
-  // State for managing meeting state used for joining/leaving
+
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
 
-  // User details
+  // Get user name and role from search params
   const userName = searchParams.get('name') || 'FlowMinder User';
   const role = Number(searchParams.get('role') || '1'); // 1 = host, 0 = attendee
   const mode = (searchParams.get('use') || 'meeting').toLowerCase(); // 'meeting' | 'video'
 
+  // Backend URL and Zoom SDK key from env
   const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
   const sdkKey = process.env.NEXT_PUBLIC_ZOOM_SDK_KEY as string;
 
-  // DOM refs
-  const meetingRootRef = useRef<HTMLDivElement | null>(null);
+  // Refs for DOM elements
   const videoCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const meetingRootRef = useRef<HTMLDivElement | null>(null);
 
-  // --- SDK asset helpers ---
-  const ensureVendorReact = async (): Promise<void> => {
-    const win = window as unknown as { React?: unknown; ReactDOM?: unknown };
-    if (win.React && win.ReactDOM) return;
+  // Helper: load vendor React/ReactDOM globals if the SDK expects them
+  const loadVendorIfNeeded = async (): Promise<void> => {
+    if (window.React && window.ReactDOM) return;
+    // Zoom SDK requires React and ReactDOM in global scope
+    const add = (src: string): Promise<void> =>
+      new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.async = false; // preserve order
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(s);
+      });
 
-    const inject = (src: string) => new Promise<void>((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = src;
-      s.async = false;
-      s.onload = () => resolve();
-      s.onerror = () => reject(new Error(`Failed to load ${src}`));
-      document.head.appendChild(s);
-    });
-
-    await inject(`${ZOOM_ASSET_PATH}/vendor/react.min.js`);
-    await inject(`${ZOOM_ASSET_PATH}/vendor/react-dom.min.js`);
+    // Load from the same CDN version as setZoomJSLib
+    await add('https://source.zoom.us/4.0.0/lib/vendor/react.min.js');
+    await add('https://source.zoom.us/4.0.0/lib/vendor/react-dom.min.js');
   };
 
-  const ensureZoomCss = (): void => {
-    const urls = [
-      `https://source.zoom.us/${ZOOM_SDK_VERSION}/css/bootstrap.css`,
-      `https://source.zoom.us/${ZOOM_SDK_VERSION}/css/react-virtualized.css`,
-    ];
-    urls.forEach((href) => {
-      const exists = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-        .some((l) => (l as HTMLLinkElement).href === href);
-      if (!exists) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = href;
-        document.head.appendChild(link);
-      }
-    });
-  };
-
-  // Embedded Meeting SDK client (Component View)
-  const embeddedClientRef = useRef<EmbeddedClient | null>(null);
-
-  // Ensure the embedded client is initialized
-  const ensureClient = (): EmbeddedClient => {
-    if (!embeddedClientRef.current) {
-      embeddedClientRef.current = ZoomMtgEmbedded.createClient() as unknown as EmbeddedClient;
-    }
-    return embeddedClientRef.current;
-  };
-
-  // ---- Meeting SDK (Embedded / Component View) ----
+  // Meeting SDK (default mode)
   const startMeetingSdk = async () => {
     try {
       setJoining(true);
       const meetingNumber = String(meeting_id);
 
-      // 1) Signature
+      // 1) Meeting SDK signature
       const sigRes = await fetch(`${backend}/zoom/sdk-signature`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -120,37 +135,61 @@ export default function SessionPage() {
         if (!zak) throw new Error('Missing ZAK for host; re-auth via OAuth');
       }
 
-      // 3) Init + Join via Component View
-      await ensureVendorReact();
-      ensureZoomCss();
-      const client = ensureClient();
-      const rootEl = meetingRootRef.current;
-      if (!rootEl) throw new Error('Missing meeting root element');
-      // Initialize the embedded client and join the meeting
-      await client.init({ zoomAppRoot: rootEl, language: 'en-US', assetPath: ZOOM_ASSET_PATH });
-      await client.join({
-        sdkKey,
-        signature,
-        meetingNumber,
-        userName,
-        passWord: '',
-        zak,
+      // 3) Load Meeting SDK and embed
+      const mod = (await import('@zoom/meetingsdk')) as MeetingSDKModule;
+      await loadVendorIfNeeded();
+      ensureZoomCss('4.0.0');
+      const ZoomMtg = mod.ZoomMtg;
+
+      ZoomMtg.setZoomJSLib('https://source.zoom.us/4.0.0/lib', '/av');
+      ZoomMtg.preLoadWasm?.();
+      // Prefer the newer prep on v4, fallback for older builds
+      ZoomMtg.prepareWebSDK?.();
+      ZoomMtg.prepareJssdk?.();
+      // Optional i18n (safe no-op if not present)
+      ZoomMtg.i18n?.load?.('en-US');
+      ZoomMtg.i18n?.reload?.('en-US');
+
+      // 4) Init and join
+      await new Promise<void>((resolve, reject) => {
+        ZoomMtg.init({
+          leaveUrl: window.location.origin,
+          isSupportAV: true,
+          disableRecord: true,
+          meetingSDKElement: meetingRootRef.current ?? undefined,
+          success: resolve,
+          error: (err: unknown) => reject(err),
+        });
+      });
+
+      // Join the meeting
+      await new Promise<void>((resolve, reject) => {
+        ZoomMtg.join({
+          signature,
+          sdkKey,
+          meetingNumber,
+          userName,
+          passWord: '',
+          zak,
+          success: resolve,
+          error: (err: unknown) => reject(err),
+        });
       });
 
       setJoined(true);
     } catch (e) {
-      console.error('Meeting SDK (embedded) join failed:', e);
+      console.error('Meeting SDK join failed:', e);
       alert('Failed to embed Zoom meeting');
     } finally {
       setJoining(false);
     }
   };
 
-  // ---- Video SDK (alt/testing) ----
+  // Video SDK (alt/testing)
   const startVideoSdk = async () => {
     const client = ZoomVideo.createClient();
     const sessionName = role === 1 ? `${meeting_id}-vsdk-${Date.now()}` : String(meeting_id);
-
+    // For attendees, we use the meeting_id as the session name (must match a host-created session)
     try {
       setJoining(true);
       const sigRes = await fetch(`${backend}/zoom/video-signature`, {
@@ -181,27 +220,12 @@ export default function SessionPage() {
       setJoining(false);
     }
   };
-  // Leave the current session
-  // This works for both Video SDK and Meeting SDK
-  // For Video SDK, it will leave the session and stop the media stream
-  // For Meeting SDK, it will leave the embedded meeting
-  const leave = async () => {
-    try {
-      if (mode === 'video') {
-        const client = ZoomVideo.createClient();
-        await client.leave();
-      } else if (embeddedClientRef.current) {
-        await embeddedClientRef.current.leave();
-      }
-      setJoined(false);
-    } catch (e) {
-      console.error('Leave failed', e);
-    }
-  };
 
   return (
     <div className="p-6">
-      <h1 className="text-xl mb-2">{mode === 'video' ? 'Zoom Video SDK — Session' : 'Zoom Meeting SDK — Embedded Meeting (Component View)'}</h1>
+      <h1 className="text-xl mb-2">
+        {mode === 'video' ? 'Zoom Video SDK — Session' : 'Zoom Meeting SDK — Embedded Meeting'}
+      </h1>
 
       <div className="mb-3 flex gap-2">
         {!joined ? (
@@ -213,13 +237,15 @@ export default function SessionPage() {
             {joining ? 'Joining…' : 'Join'}
           </button>
         ) : (
-          <button onClick={leave} className="px-6 py-3 bg-gray-700 text-white rounded-lg">Leave</button>
+          <button className="px-6 py-3 bg-gray-700 text-white rounded-lg" onClick={() => location.reload()}>
+            Leave
+          </button>
         )}
       </div>
 
-      {/* Component View mount point */}
+      {/* Meeting SDK target */}
       {mode !== 'video' && (
-        <div ref={meetingRootRef} className="w-[960px] h-[540px] bg-black rounded overflow-hidden" />
+        <div ref={meetingRootRef} id="zmmtg-root" className="w-[960px] h-[540px] bg-black rounded overflow-hidden" />
       )}
 
       {/* Video SDK canvas */}
@@ -228,7 +254,7 @@ export default function SessionPage() {
       )}
 
       <div className="mt-4 text-sm text-gray-600">
-        <div><b>Mode:</b> {mode === 'video' ? 'Video SDK' : 'Meeting SDK (embedded) — Component View'}</div>
+        <div><b>Mode:</b> {mode === 'video' ? 'Video SDK' : 'Meeting SDK (embedded)'}</div>
         <div><b>Meeting ID:</b> {String(meeting_id)}</div>
         <div><b>User:</b> {userName}</div>
         <div><b>Role:</b> {role === 1 ? 'Host' : 'Attendee'}</div>
