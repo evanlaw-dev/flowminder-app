@@ -4,7 +4,7 @@
 
 
 import { useParams, useSearchParams } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import ZoomVideo from '@zoom/videosdk';
 
 // Zoom Meeting SDK types
@@ -91,6 +91,19 @@ export default function SessionPage() {
   // Refs for DOM elements
   const videoCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const meetingRootRef = useRef<HTMLDivElement | null>(null);
+
+  // Initialize Zoom SDK after client-side hydration (mounting)
+  useEffect(() => {
+  const initZoom = async () => {
+    if (mode === 'video') {
+      await startVideoSdk();
+    } else {
+      await startMeetingSdk();
+    }
+  };
+  initZoom();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Helper: load vendor React/ReactDOM globals if the SDK expects them
   const loadVendorIfNeeded = async (): Promise<void> => {
