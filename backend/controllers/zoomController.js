@@ -225,22 +225,24 @@ const getMeetingSdkSignature = (req, res) => {
     if (!sdkKey || !sdkSecret) return res.status(500).json({ error: 'Missing Client ID/Secret on server' });
     if (!meetingNumber) return res.status(400).json({ error: 'meetingNumber required' });
 
-    const iat = Math.floor(Date.now() / 1000) - 30;
+    const iat = Math.floor(Date.now() / 1000) - 30; // allow 30s clock skew
     const exp = iat + 60 * 60; // 1h JWT lifetime
+
+    // zoom expects tokenExp for Meeting SDK to be 30m–48h
     const tokenExp = iat + Math.max(1800, Math.min(Number(expirationSeconds), 172800)); // 30m–48h
 
     const payload = {
       sdkKey,                 // (Client ID)
       mn: String(meetingNumber),
-      role: Number(role),     // 0 attendee, 1 host
-      iat,
-      exp,
-      appKey: sdkKey,
-      tokenExp,
-      videoWebRtcMode: Number(videoWebRtcMode),
+      role: Number(role) === 1 ? 1 : 0, // 1 = host, 0 = attendee
+      iat, // issued at
+      exp, // expiration time
+      appKey: sdkKey, // for Meeting SDK
+      tokenExp,  // token expiration time
+      // videoWebRtcMode: Number(videoWebRtcMode), // 1 = WebRTC, 2 = Native
     };
     console.log('MeetingSig payload:', payload); // expect { app_key, tpc, role, iat, exp, ... }
-    const signature = jwt.sign(payload, sdkSecret, { algorithm: 'HS256' });
+    const signature = jwt.sign(payload, sdkSecret, { algorithm: 'HS256' }); // sign with Client Secret
     res.json({ signature });
   } catch (e) {
     res.status(500).json({ error: 'Failed to generate signature' });
