@@ -79,12 +79,22 @@ app.post('/agenda_items', async (req, res) => {
   } = req.body;
 
   try {
+    // Get the next order_index for this meeting
+    const orderResult = await pool.query(
+      `SELECT COALESCE(MAX(order_index), -1) + 1 as next_order_index
+       FROM agenda_items 
+       WHERE meeting_id = $1`,
+      [meeting_id]
+    );
+    
+    const nextOrderIndex = orderResult.rows[0].next_order_index;
+
     const result = await pool.query(
       `INSERT INTO agenda_items 
-        (meeting_id, agenda_item, duration_seconds) 
-       VALUES ($1, $2, $3) 
+        (meeting_id, agenda_item, duration_seconds, order_index) 
+       VALUES ($1, $2, $3, $4) 
        RETURNING *`,
-      [meeting_id, agenda_item, duration_seconds]
+      [meeting_id, agenda_item, duration_seconds, nextOrderIndex]
     );
 
     res.json({ success: true, item: result.rows[0] });
@@ -124,10 +134,10 @@ app.get('/agenda_items', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT id, meeting_id, agenda_item, duration_seconds
+      `SELECT id, meeting_id, agenda_item, duration_seconds, order_index
        FROM agenda_items
        WHERE meeting_id = $1
-       ORDER BY id ASC`,
+       ORDER BY order_index ASC`,
       [meeting_id]
     );
     res.json({ success: true, items: result.rows });
