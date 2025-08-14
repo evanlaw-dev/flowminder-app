@@ -2,8 +2,6 @@
 // frontend/app/MeetingSession/[user_id]/[meeting_id]/page.tsx
 'use client';
 
-import '@zoom/meetingsdk/dist/css/bootstrap.css';
-import '@zoom/meetingsdk/dist/css/react-virtualized.css';
 
 import { useParams, useSearchParams } from 'next/navigation';
 import { useRef, useState } from 'react';
@@ -48,6 +46,24 @@ declare global {
     ReactDOM?: unknown;
   }
 }
+
+// Helper to inject Zoom Meeting SDK CSS from CDN if not already present
+const ensureZoomCss = (version: string = '4.0.0'): void => {
+  const head = document.head;
+  const urls = [
+    `https://source.zoom.us/${version}/css/bootstrap.css`,
+    `https://source.zoom.us/${version}/css/react-virtualized.css`,
+  ];
+  urls.forEach((href) => {
+    const exists = Array.from(head.querySelectorAll('link[rel="stylesheet"]')).some(l => (l as HTMLLinkElement).href === href);
+    if (!exists) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = href;
+      head.appendChild(link);
+    }
+  });
+};
 
 /**
  * Embed Zoom Meeting (Meeting SDK) using OAuth + ZAK for host
@@ -122,6 +138,7 @@ export default function SessionPage() {
       // 3) Load Meeting SDK and embed
       const mod = (await import('@zoom/meetingsdk')) as MeetingSDKModule;
       await loadVendorIfNeeded();
+      ensureZoomCss('4.0.0');
       const ZoomMtg = mod.ZoomMtg;
 
       ZoomMtg.setZoomJSLib('https://source.zoom.us/4.0.0/lib', '/av');
