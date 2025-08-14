@@ -11,7 +11,7 @@ import ZoomVideo from '@zoom/videosdk';
 interface ZoomMtgType {
   setZoomJSLib: (path: string, subdir: string) => void;
   preLoadWasm?: () => void;
-  prepareJssdk?: () => void;
+  // prepareJssdk?: () => void;
   prepareWebSDK?: () => void; // v4 name
   i18n?: {
     load?: (lang: string) => void;
@@ -60,6 +60,7 @@ const ensureZoomCss = (version: string = '4.0.0'): void => {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = href;
+      link.crossOrigin = 'anonymous'; // Ensure CORS for CDN
       head.appendChild(link);
     }
   });
@@ -93,23 +94,23 @@ export default function SessionPage() {
   const meetingRootRef = useRef<HTMLDivElement | null>(null);
 
   // Helper: load vendor React/ReactDOM globals if the SDK expects them
-  const loadVendorIfNeeded = async (): Promise<void> => {
-    if (window.React && window.ReactDOM) return;
-    // Zoom SDK requires React and ReactDOM in global scope
-    const add = (src: string): Promise<void> =>
-      new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = src;
-        s.async = false; // preserve order
-        s.onload = () => resolve();
-        s.onerror = () => reject(new Error(`Failed to load ${src}`));
-        document.head.appendChild(s);
-      });
+  // const loadVendorIfNeeded = async (): Promise<void> => {
+  //   if (window.React && window.ReactDOM) return;
+  //   // Zoom SDK requires React and ReactDOM in global scope
+  //   const add = (src: string): Promise<void> =>
+  //     new Promise((resolve, reject) => {
+  //       const s = document.createElement('script');
+  //       s.src = src;
+  //       s.async = false; // preserve order
+  //       s.onload = () => resolve();
+  //       s.onerror = () => reject(new Error(`Failed to load ${src}`));
+  //       document.head.appendChild(s);
+  //     });
 
-    // Load from the same CDN version as setZoomJSLib
-    await add('https://source.zoom.us/4.0.0/lib/vendor/react.min.js');
-    await add('https://source.zoom.us/4.0.0/lib/vendor/react-dom.min.js');
-  };
+  //   // Load from the same CDN version as setZoomJSLib
+  //   await add('https://source.zoom.us/4.0.0/lib/vendor/react.min.js');
+  //   await add('https://source.zoom.us/4.0.0/lib/vendor/react-dom.min.js');
+  // };
 
   // Meeting SDK (default mode)
   const startMeetingSdk = async () => {
@@ -137,7 +138,7 @@ export default function SessionPage() {
 
       // 3) Load Meeting SDK and embed
       const mod = (await import('@zoom/meetingsdk')) as MeetingSDKModule;
-      await loadVendorIfNeeded();
+      // await loadVendorIfNeeded();
       ensureZoomCss('4.0.0');
       const ZoomMtg = mod.ZoomMtg;
 
@@ -145,7 +146,7 @@ export default function SessionPage() {
       ZoomMtg.preLoadWasm?.();
       // Prefer the newer prep on v4, fallback for older builds
       ZoomMtg.prepareWebSDK?.();
-      ZoomMtg.prepareJssdk?.();
+      // ZoomMtg.prepareJssdk?.();
       // Optional i18n (safe no-op if not present)
       ZoomMtg.i18n?.load?.('en-US');
       ZoomMtg.i18n?.reload?.('en-US');
@@ -156,7 +157,7 @@ export default function SessionPage() {
           leaveUrl: window.location.origin,
           isSupportAV: true,
           disableRecord: true,
-          meetingSDKElement: meetingRootRef.current ?? undefined,
+          meetingSDKElement: meetingRootRef.current!,
           success: resolve,
           error: (err: unknown) => reject(err),
         });
@@ -227,7 +228,8 @@ export default function SessionPage() {
         {mode === 'video' ? 'Zoom Video SDK — Session' : 'Zoom Meeting SDK — Embedded Meeting'}
       </h1>
 
-      <div className="mb-3 flex gap-2">
+      {/* Buttons to start the session */}
+      {/* <div className="mb-3 flex gap-2">
         {!joined ? (
           <button
             onClick={mode === 'video' ? startVideoSdk : startMeetingSdk}
@@ -241,7 +243,23 @@ export default function SessionPage() {
             Leave
           </button>
         )}
-      </div>
+      </div> */}
+
+      {/* Show join button only if not joined or joining */}
+      {!joined && !joining && (
+        <button
+          onClick={mode === 'video' ? startVideoSdk : startMeetingSdk}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg"
+        >
+          Join meeting
+        </button>
+      )}
+
+      <div
+        ref={meetingRootRef}
+        id="zoom-meeting-root"
+        style={{ width: '100%', height: '75vh' }}
+      />
 
       {/* Meeting SDK target */}
       {mode !== 'video' && (
