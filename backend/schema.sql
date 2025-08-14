@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS agenda_items (
     meeting_id UUID NOT NULL,
     agenda_item TEXT NOT NULL,
     duration_seconds INTEGER DEFAULT 0,
+    order_index INTEGER DEFAULT 0,
     is_processed BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
