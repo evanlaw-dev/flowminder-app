@@ -55,12 +55,12 @@ const ensureZoomCss = (version: string = '4.0.0'): void => {
     `https://source.zoom.us/${version}/css/react-virtualized.css`,
   ];
   urls.forEach((href) => {
-    const exists = Array.from(head.querySelectorAll('link[rel="stylesheet"]')).some(l => (l as HTMLLinkElement).href === href);
+    const exists = Array.from(head.querySelectorAll('link[rel="stylesheet"]'))
+      .some(l => (l as HTMLLinkElement).href === href);
     if (!exists) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = href;
-      link.crossOrigin = 'anonymous'; // Ensure CORS for CDN
       head.appendChild(link);
     }
   });
@@ -94,23 +94,23 @@ export default function SessionPage() {
   const meetingRootRef = useRef<HTMLDivElement | null>(null);
 
   // Helper: load vendor React/ReactDOM globals if the SDK expects them
-  // const loadVendorIfNeeded = async (): Promise<void> => {
-  //   if (window.React && window.ReactDOM) return;
-  //   // Zoom SDK requires React and ReactDOM in global scope
-  //   const add = (src: string): Promise<void> =>
-  //     new Promise((resolve, reject) => {
-  //       const s = document.createElement('script');
-  //       s.src = src;
-  //       s.async = false; // preserve order
-  //       s.onload = () => resolve();
-  //       s.onerror = () => reject(new Error(`Failed to load ${src}`));
-  //       document.head.appendChild(s);
-  //     });
+  const loadVendorIfNeeded = async (): Promise<void> => {
+    if (window.React && window.ReactDOM) return;
+    // Zoom SDK requires React and ReactDOM in global scope
+    const add = (src: string): Promise<void> =>
+      new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.async = false; // preserve order
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(s);
+      });
 
-  //   // Load from the same CDN version as setZoomJSLib
-  //   await add('https://source.zoom.us/4.0.0/lib/vendor/react.min.js');
-  //   await add('https://source.zoom.us/4.0.0/lib/vendor/react-dom.min.js');
-  // };
+    // Load from the same CDN version as setZoomJSLib
+    await add('https://source.zoom.us/4.0.0/lib/vendor/react.min.js');
+    await add('https://source.zoom.us/4.0.0/lib/vendor/react-dom.min.js');
+  };
 
   // Meeting SDK (default mode)
   const startMeetingSdk = async () => {
@@ -137,8 +137,8 @@ export default function SessionPage() {
       }
 
       // 3) Load Meeting SDK and embed
+      await loadVendorIfNeeded();
       const mod = (await import('@zoom/meetingsdk')) as MeetingSDKModule;
-      // await loadVendorIfNeeded();
       ensureZoomCss('4.0.0');
       const ZoomMtg = mod.ZoomMtg;
 
@@ -151,6 +151,8 @@ export default function SessionPage() {
       ZoomMtg.i18n?.load?.('en-US');
       ZoomMtg.i18n?.reload?.('en-US');
 
+      // Ensure CSS is injected immediately before init
+      ensureZoomCss('4.0.0');
       // 4) Init and join
       await new Promise<void>((resolve, reject) => {
         ZoomMtg.init({
