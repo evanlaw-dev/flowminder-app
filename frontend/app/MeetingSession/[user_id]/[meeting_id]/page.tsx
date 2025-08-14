@@ -6,7 +6,7 @@
 import { useParams, useSearchParams } from 'next/navigation';
 import { useRef, useState, useEffect } from 'react';
 import ZoomVideo from '@zoom/videosdk';
-
+//
 // Zoom Meeting SDK types
 interface ZoomMtgType {
   setZoomJSLib: (path: string, subdir: string) => void;
