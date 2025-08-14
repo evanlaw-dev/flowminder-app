@@ -6,10 +6,14 @@ import { useRef, useState } from 'react';
 import ZoomVideo from '@zoom/videosdk';
 import ZoomMtgEmbedded from '@zoom/meetingsdk/embedded';
 
+const ZOOM_SDK_VERSION = '4.0.0';
+const ZOOM_ASSET_PATH = `https://source.zoom.us/${ZOOM_SDK_VERSION}/lib`;
+
 // Minimal types for the Embedded Client
 interface EmbeddedClientInitOpts {
   zoomAppRoot: HTMLElement;
   language?: string;
+  assetPath?: string;
 }
 interface EmbeddedClientJoinOpts {
   sdkKey: string;
@@ -45,6 +49,41 @@ export default function SessionPage() {
   // DOM refs
   const meetingRootRef = useRef<HTMLDivElement | null>(null);
   const videoCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // --- SDK asset helpers ---
+  const ensureVendorReact = async (): Promise<void> => {
+    const win = window as unknown as { React?: unknown; ReactDOM?: unknown };
+    if (win.React && win.ReactDOM) return;
+
+    const inject = (src: string) => new Promise<void>((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.async = false;
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error(`Failed to load ${src}`));
+      document.head.appendChild(s);
+    });
+
+    await inject(`${ZOOM_ASSET_PATH}/vendor/react.min.js`);
+    await inject(`${ZOOM_ASSET_PATH}/vendor/react-dom.min.js`);
+  };
+
+  const ensureZoomCss = (): void => {
+    const urls = [
+      `https://source.zoom.us/${ZOOM_SDK_VERSION}/css/bootstrap.css`,
+      `https://source.zoom.us/${ZOOM_SDK_VERSION}/css/react-virtualized.css`,
+    ];
+    urls.forEach((href) => {
+      const exists = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+        .some((l) => (l as HTMLLinkElement).href === href);
+      if (!exists) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        document.head.appendChild(link);
+      }
+    });
+  };
 
   // Embedded Meeting SDK client (Component View)
   const embeddedClientRef = useRef<EmbeddedClient | null>(null);
@@ -82,12 +121,13 @@ export default function SessionPage() {
       }
 
       // 3) Init + Join via Component View
+      await ensureVendorReact();
+      ensureZoomCss();
       const client = ensureClient();
       const rootEl = meetingRootRef.current;
       if (!rootEl) throw new Error('Missing meeting root element');
-      
       // Initialize the embedded client and join the meeting
-      await client.init({ zoomAppRoot: rootEl, language: 'en-US' });
+      await client.init({ zoomAppRoot: rootEl, language: 'en-US', assetPath: ZOOM_ASSET_PATH });
       await client.join({
         sdkKey,
         signature,
