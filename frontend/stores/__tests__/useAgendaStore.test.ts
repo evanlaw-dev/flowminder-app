@@ -52,6 +52,18 @@ describe('Agenda Store Actions', () => {
         expect(item.timerValue).toBe(0);
     });
 
+    test('changeItem should update the text to empty', () => {
+        const { loadItems, changeItem } = useAgendaStore.getState();
+
+        loadItems([{ id: '1', text: 'Original', timerValue: 0 }]);
+        changeItem('1', '');
+
+        const item = useAgendaStore.getState().items[0];
+        expect(item.text).toBe('');
+        expect(item.isEdited).toBe(true);
+        expect(item.timerValue).toBe(0);
+    });
+
     test('changeItemTimer should update the timer of a specific item and mark it as editedTimer', () => {
         const { loadItems, changeItemTimer } = useAgendaStore.getState();
 
@@ -195,6 +207,31 @@ describe('Agenda Store Actions', () => {
         expect(visibleItems[0].id).toBe('1');
     });
 
+    test('getVisibleItems should not display an empty item in non-editing mode', () => {
+        const { loadItems, toggleEditingMode, getVisibleItems, changeItem } = useAgendaStore.getState();
+
+        loadItems([
+            { id: '1', text: 'First', timerValue: 10 },
+            { id: '2', text: 'Second', timerValue: 10 },
+            { id: '3', text: 'Third', timerValue: 10 }
+        ]);
+
+        // EDITING MODE
+        toggleEditingMode();
+        let visibleItems = getVisibleItems();
+        expect(visibleItems.length).toBe(3);
+        changeItem('2', '  '); // Change second item to empty text
+        visibleItems = getVisibleItems();
+        expect(visibleItems.length).toBe(3); // all three items should still be visible
+
+        // NON-EDITING MODE
+        toggleEditingMode(); // Switch to non-editing mode
+        visibleItems = getVisibleItems();
+        // Expect one item. One item gets popped off (goes to header), 
+        // one is empty and should be filtered out
+        expect(visibleItems.length).toBe(1); 
+    });
+
     test('hasUnsavedChanges ignores new items that are deleted', () => {
         const { addItem, changeItem, removeItem, hasUnsavedChanges } = useAgendaStore.getState();
 
@@ -263,5 +300,4 @@ describe('Agenda Store Actions', () => {
         changeItem(newItem.id, "  ");
         expect(hasUnsavedChanges()).toBe(false);
     });
-
 });

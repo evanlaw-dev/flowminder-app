@@ -40,7 +40,7 @@ function BtnNudge({ text, nudgeType, className = "", onNudgeSent }: BtnNudgeProp
 
   return (
     <button 
-      className={`w-full bg-stone-300/95 text-white text-wrap py-4 rounded-lg shadow-md cursor-pointer hover:bg-stone-400/95 transition-colors ${className}`}
+      className={`${className}`}
       onClick={handleClick}
       title={`Send ${nudgeType} nudge`}
     >
