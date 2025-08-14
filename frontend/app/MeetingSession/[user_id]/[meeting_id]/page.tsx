@@ -88,7 +88,7 @@ export default function SessionPage() {
       const ZoomMtg: ZoomMtgType = (mod as unknown as { ZoomMtg: ZoomMtgType }).ZoomMtg;
 
       // Set Zoom Meeting SDK library path
-      ZoomMtg.setZoomJSLib('https://source.zoom.us/3.4.0/lib', '/av');
+      ZoomMtg.setZoomJSLib('https://source.zoom.us/4.0.0/lib', '/av');
       if (typeof ZoomMtg.preLoadWasm === 'function') ZoomMtg.preLoadWasm();
       if (typeof ZoomMtg.prepareJssdk === 'function') ZoomMtg.prepareJssdk();
 
