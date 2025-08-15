@@ -5,7 +5,7 @@
 
 import { useParams, useSearchParams } from 'next/navigation';
 import { useRef, useState, useEffect } from 'react';
-import ZoomVideo from '@zoom/videosdk';
+// import ZoomVideo from '@zoom/videosdk';
 
 // Zoom Meeting SDK types
 interface ZoomMtgType {
@@ -127,6 +127,9 @@ export default function SessionPage() {
   // Meeting SDK (default mode)
   const startMeetingSdk = async () => {
     try {
+      await loadVendorIfNeeded();
+      const mod = (await import('@zoom/meetingsdk')) as MeetingSDKModule;
+
       setJoining(true);
       const meetingNumber = String(meeting_id);
 
@@ -149,8 +152,8 @@ export default function SessionPage() {
       }
 
       // 3) Load Meeting SDK and embed
-      const mod = (await import('@zoom/meetingsdk')) as MeetingSDKModule;
-      await loadVendorIfNeeded();
+      // const mod = (await import('@zoom/meetingsdk')) as MeetingSDKModule;
+      // await loadVendorIfNeeded();
       ensureZoomCss('4.0.0');
       const ZoomMtg = mod.ZoomMtg;
 
@@ -200,6 +203,9 @@ export default function SessionPage() {
 
   // Video SDK (alt/testing)
   const startVideoSdk = async () => {
+    await loadVendorIfNeeded();
+    const ZoomVideo = (await import('@zoom/videosdk')).default;
+
     const client = ZoomVideo.createClient();
     const sessionName = role === 1 ? `${meeting_id}-vsdk-${Date.now()}` : String(meeting_id);
     // For attendees, we use the meeting_id as the session name (must match a host-created session)
