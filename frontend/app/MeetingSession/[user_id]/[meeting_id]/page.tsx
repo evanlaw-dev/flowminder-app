@@ -2,6 +2,20 @@
 // frontend/app/MeetingSession/[user_id]/[meeting_id]/page.tsx
 'use client';
 
+import React from 'react';
+
+declare module 'react' {
+  // extend React type to include that hidden field
+  interface ReactInternals {
+    ReactCurrentBatchConfig?: { transition: number };
+  }
+  // add it onto React
+  let __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED: ReactInternals;
+}
+
+if (!React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentBatchConfig) {
+  React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentBatchConfig = { transition: 0 };
+}
 
 import { useParams, useSearchParams } from 'next/navigation';
 import { useRef, useState } from 'react';
