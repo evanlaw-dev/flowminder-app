@@ -2,21 +2,17 @@
 'use client';
 
 import { useAgendaStore } from '@/stores/useAgendaStore';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Agenda from '@/components/Agenda';
-// import { setMeetingId } from '@/services/agendaService';
 
 export default function SchedulePage() {
   const { user_id: zoomUserId } = useParams();
-
+  const router = useRouter();
   const { items } = useAgendaStore();
-  // const { items, resetItems } = useAgendaStore();
 
   const [topic, setTopic] = useState('');
-  const [startTime, setStartTime] = useState(
-    new Date().toISOString().slice(0,16) // YYYY-MM-DDThh:mm
-  );
+  const [startTime, setStartTime] = useState('');
   const [loading, setLoading] = useState(false);
   const [scheduled, setScheduled] = useState(false);
   const [meetingInfo, setMeetingInfo] = useState<null | {
@@ -29,16 +25,6 @@ export default function SchedulePage() {
   }>(null);
 
 
-// Reset agenda items when the scheduling page loads
-  // useEffect(() => {
-  //   resetItems(); // wipe any leftover items in memory
-  //   try {
-  //     setMeetingId(crypto.randomUUID()); // temp container so /agenda_items?meeting_id=... returns []
-  //   } catch {
-  //     setMeetingId(String(Date.now()));  // fallback
-  //   }
-  // }, [resetItems]);
-  
 
   // Pre-fill the datetime-local with "now" (uses local time format YYYY-MM-DDTHH:MM)
   useEffect(() => {
@@ -79,10 +65,6 @@ export default function SchedulePage() {
       }
 
       const data = await res.json(); // { success, meetingId, ... }
-
-      // Set meetingId in agenda service for future requests
-      // if (data.meeting_uuid) setMeetingId(String(data.meeting_uuid));
-
       setMeetingInfo(data);
       setScheduled(true);
     } catch (e) {
@@ -92,68 +74,97 @@ export default function SchedulePage() {
       setLoading(false);
     }
   };
-
-  const handleSyncAgenda = async () => {
+  const copyJoinLink = async () => {
+    if (!meetingInfo?.join_url) return;
     try {
-      const base = process.env.NEXT_PUBLIC_BACKEND_URL as string;
-      const payload = { items: items.map(it => ({ agenda_item: it.text, duration_seconds: it.timerValue })) };
-      const resp = await fetch(`${base}/zoom/meetings/append-agenda?userId=${zoomUserId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!resp.ok) {
-        const err = await resp.text();
-        console.error(err);
-        alert('Failed to sync agenda to Zoom');
-        return;
-      }
-      alert('Agenda synced to your next Zoom meeting.');
-    } catch (e) {
-      console.error(e);
-      alert('Could not sync agenda');
+      await navigator.clipboard.writeText(meetingInfo.join_url);
+      alert('Join link copied to clipboard');
+    } catch {
+      alert('Could not copy link');
     }
   };
+
 
   return (
     <div className="flex flex-col items-center justify-center h-screen box-border p-6">
       <div className="bg-white dark:bg-black p-6 rounded-lg w-full max-w-3xl">
-        <div className="flex h-[70vh] justify-end gap-8">
-          {/* LEFT FORM */}
-          <div className="w-1/3 p-4 space-y-4">
-            <h2 className="text-xl font-semibold text-black dark:text-black">Schedule a Zoom Meeting</h2>
-            <label className="block">
-              <span className="text-sm">Topic</span>
-              <input
-                type="text"
-                value={topic}
-                onChange={e => setTopic(e.target.value)}
-                className="mt-1 w-full border rounded px-2 py-1"
-              />
-            </label>
-            <label className="block">
-              <span className="text-sm">Start Time</span>
-              <input
-                type="datetime-local"
-                value={startTime}
-                onChange={e => setStartTime(e.target.value)}
-                className="mt-1 w-full border rounded px-2 py-1"
-              />
-            </label>
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className={`mt-4 w-full py-2 rounded text-white ${loading ? 'bg-gray-400' : 'bg-green-600'}`}
-            >
-              {loading ? 'Scheduling…' : 'Schedule Meeting'}
-            </button>
+        {scheduled && meetingInfo ? (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">FlowMinder Meeting scheduled</h2>
+            <div className="text-sm text-gray-800 dark:text-gray-200">
+              <div><span className="font-medium">Topic:</span> {meetingInfo.topic || topic || 'FlowMinder Meeting'}</div>
+              <div>
+                <span className="font-medium">When:</span>{' '}
+                {meetingInfo.start_time
+                  ? new Date(meetingInfo.start_time).toLocaleString(undefined, {
+                      dateStyle: 'full', timeStyle: 'short'
+                    })
+                  : new Date(startTime).toLocaleString()}
+                {meetingInfo.timezone ? ` (${meetingInfo.timezone})` : ''}
+              </div>
+              <div><span className="font-medium">Meeting ID:</span> {String(meetingInfo.meetingId)}</div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => meetingInfo.start_url && (window.location.href = meetingInfo.start_url)}
+                className="px-4 py-2 rounded bg-green-600 text-white"
+              >Open host link</button>
+              <button
+                onClick={copyJoinLink}
+                className="px-4 py-2 rounded bg-stone-700 text-white"
+              >Copy join link</button>
+            </div>
+            <div className="mt-6">
+              <button
+                onClick={() => router.push(`/meeting/${zoomUserId as string}`)}
+                className="px-4 py-2 rounded bg-gray-600 text-white"
+              >Back</button>
+            </div>
           </div>
+        ) : (
+          <div className="flex h-[70vh] justify-end gap-8">
+            {/* LEFT FORM */}
+            <div className="w-1/3 p-4 space-y-4">
+              <h2 className="text-xl font-semibold text-black dark:text-black">Schedule a Zoom Meeting</h2>
+              <label className="block">
+                <span className="text-sm">Topic</span>
+                <input
+                  type="text"
+                  value={topic}
+                  onChange={e => setTopic(e.target.value)}
+                  className="mt-1 w-full border rounded px-2 py-1"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm">Start Time</span>
+                <input
+                  type="datetime-local"
+                  value={startTime}
+                  onChange={e => setStartTime(e.target.value)}
+                  className="mt-1 w-full border rounded px-2 py-1"
+                />
+              </label>
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className={`mt-4 w-full py-2 rounded text-white ${loading ? 'bg-gray-400' : 'bg-green-600'}`}
+              >
+                {loading ? 'Scheduling…' : 'Schedule Meeting'}
+              </button>
+              <div className="mt-6">
+                <button
+                  onClick={() => router.push(`/meeting/${zoomUserId as string}`)}
+                  className="px-4 py-2 rounded bg-gray-600 text-white"
+                  >Back</button>
+              </div>
+            </div>
 
-          {/* RIGHT AGENDA */}
-          <div className="w-1/2 overflow-auto">
-            <Agenda role="host" />
+            {/* RIGHT AGENDA */}
+            <div className="w-1/2 overflow-auto">
+              <Agenda role="host" />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

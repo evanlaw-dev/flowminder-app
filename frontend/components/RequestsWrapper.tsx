@@ -21,6 +21,7 @@ interface RequestsWrapperProps {
 }
 
 function RequestsWrapper({ refreshTrigger = 0, role = 'participant' }: RequestsWrapperProps) {
+  
   const [nudgeStats, setNudgeStats] = useState({
     move_along_count: 0,
     invite_speak_count: 0
