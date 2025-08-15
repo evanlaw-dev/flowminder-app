@@ -4,17 +4,14 @@
 
 import React from 'react';
 
-declare module 'react' {
-  // extend React type to include that hidden field
-  interface ReactInternals {
-    ReactCurrentBatchConfig?: { transition: number };
-  }
-  // add it onto React
-  let __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED: ReactInternals;
-}
+// quick TS escape hatch
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const reactAny = React as any;
 
-if (!React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentBatchConfig) {
-  React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentBatchConfig = { transition: 0 };
+if (!reactAny.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?.ReactCurrentBatchConfig) {
+  reactAny.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = {
+    ReactCurrentBatchConfig: { transition: 0 }
+  };
 }
 
 import { useParams, useSearchParams } from 'next/navigation';
