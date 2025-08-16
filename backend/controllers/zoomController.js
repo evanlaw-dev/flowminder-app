@@ -68,8 +68,6 @@ function authHeaders(token) {
   };
 }
 
-const { generateZoomAuthUrl } = require("../utils/oauth.js");
-
 const oauth = (req, res) => {
   const authUrl = generateZoomAuthUrl();
   res.redirect(authUrl);
