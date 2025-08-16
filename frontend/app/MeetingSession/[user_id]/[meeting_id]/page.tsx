@@ -1,125 +1,83 @@
 // frontend/app/MeetingSession/[user_id]/[meeting_id]/page.tsx
 'use client';
 
-import { useParams, useSearchParams } from 'next/navigation';
-import { useCallback, useState } from 'react';
-import { ZoomMtg } from '@zoom/meetingsdk';
+// frontend/app/MeetingSession/[user_id]/[meeting_id]/page.tsx
+'use client';
 
-// --- Minimal Meeting SDK setup (v4) ---
-// Point SDK to CDN and prepare assets once at module load
-ZoomMtg.setZoomJSLib('https://source.zoom.us/4.0.0/lib', '/av');
-ZoomMtg.preLoadWasm();
-ZoomMtg.prepareWebSDK();
+import { useEffect, useRef } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
+import ZoomMtgEmbedded from '@zoom/meetingsdk/embedded';
 
 export default function MeetingSessionPage() {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const { user_id, meeting_id } = useParams<{ user_id: string; meeting_id: string }>();
-  const searchParams = useSearchParams();
+  const search = useSearchParams();
 
-  const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-  const sdkKey = process.env.NEXT_PUBLIC_ZOOM_SDK_KEY || '';
+  useEffect(() => {
+    const run = async () => {
+      const client = ZoomMtgEmbedded.createClient();
+      const zoomRoot = containerRef.current || undefined; // HTMLElement | undefined
+      const backend = process.env.NEXT_PUBLIC_BACKEND_URL as string;
 
-  const meetingNumber = String(meeting_id);
-  const role = Number(searchParams.get('role') || '0'); // 0 attendee, 1 host
-  const userName = searchParams.get('name') || 'FlowMinder User';
-  const passWord = searchParams.get('pwd') || '';
+      // 1) Get meeting details (passcode, etc.) via backend proxy to Zoom
+      //    This route already exists and uses attachAccessToken; we provide userId in query
+      const meetRes = await fetch(`${backend}/zoom/meetings/${meeting_id}?userId=${user_id}`, {
+        cache: 'no-store',
+      });
+      if (!meetRes.ok) throw new Error(`Failed to fetch meeting details: ${meetRes.status}`);
+      const meeting = await meetRes.json();
 
-  // const containerRef = useRef<HTMLDivElement | null>(null);
-  const [joining, setJoining] = useState(false);
-  const [joined, setJoined] = useState(false);
+      // Zoom returns numeric id and passcode (password)
+      const meetingNumber: string = String(meeting?.id || meeting_id);
+      const password: string = meeting?.password || meeting?.passcode || '';
 
-  const leaveUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/meeting/${String(user_id)}`
-    : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      // Determine role (host=1, participant=0). Allow override via ?role=host
+      const role: 0 | 1 = search.get('role') === 'host' ? 1 : 0;
 
-  const getSignature = useCallback(async (): Promise<string> => {
-    const res = await fetch(`${backend}/zoom/sdk-signature`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ meetingNumber, role }),
-    });
-    const body = await res.json();
-    if (!res.ok || !body?.signature) throw new Error('Could not get Meeting SDK signature');
-    return body.signature as string;
-  }, [backend, meetingNumber, role]);
+      // 2) Generate Meeting SDK signature from backend
+      const sigRes = await fetch(`${backend}/zoom/sdk-signature`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ meetingNumber, role }),
+      });
+      if (!sigRes.ok) throw new Error(`Failed to get SDK signature: ${sigRes.status}`);
+      const { signature } = await sigRes.json();
 
-  const getZakIfHost = useCallback(async (): Promise<string | undefined> => {
-    if (role !== 1) return undefined;
-    const res = await fetch(`${backend}/zoom/zak?userId=${encodeURIComponent(String(user_id))}`);
-    const body = await res.json();
-    if (!res.ok || !body?.zak) throw new Error('Host ZAK not available. Please re-auth via Zoom OAuth.');
-    return body.zak as string;
-  }, [backend, role, user_id]);
-
-  const startMeeting = useCallback(async () => {
-    try {
-      setJoining(true);
-
-      // Ensure the root exists/shown
-      let root = document.getElementById('zmmtg-root');
-      if (!root) {
-        root = document.createElement('div');
-        root.id = 'zmmtg-root';
-        document.body.appendChild(root);
+      // 3) If host, fetch ZAK (user-level access token) from backend
+      let zak: string | undefined = undefined;
+      if (role === 1) {
+        const zakRes = await fetch(`${backend}/zoom/zak?userId=${user_id}`, { cache: 'no-store' });
+        if (!zakRes.ok) throw new Error(`Failed to get ZAK: ${zakRes.status}`);
+        const data = await zakRes.json();
+        zak = data?.zak || data?.token || undefined;
       }
-      root.style.display = 'block';
 
-      const [signature, zak] = await Promise.all([
-        getSignature(),
-        getZakIfHost(),
-      ]);
+      // 4) Compute name/email (prefer backend/Zoom values, fall back to placeholders)
+      const userName: string = meeting?.host_email || 'FlowMinder User';
+      const userEmail: string = meeting?.host_email || '';
 
-      // v4 breaking change: load i18n before init/join
-      await ZoomMtg.i18n.load('en-US');
-
-      await new Promise<void>((resolve, reject) => {
-        ZoomMtg.init({
-          leaveUrl,
-          patchJsMedia: true,
-          leaveOnPageUnload: true,
-          success: () => resolve(),
-          error: (err: unknown) => reject(err),
-        });
+      await client.init({
+        zoomAppRoot: zoomRoot,
+        language: 'en-US',
+        patchJsMedia: true,
       });
 
-      await new Promise<void>((resolve, reject) => {
-        ZoomMtg.join({
-          signature,
-          sdkKey, // optional in some 4.x builds but safe to include
-          meetingNumber,
-          userName,
-          passWord,
-          zak, // only needed for host
-          success: () => {
-            setJoined(true);
-            resolve();
-          },
-          error: (err: unknown) => reject(err),
-        });
+      await client.join({
+        signature,
+        meetingNumber,
+        password,
+        userName,
+        userEmail,
+        zak,
       });
-    } catch (e) {
-      console.error('Join failed:', e);
-      alert('Failed to start meeting. Check OAuth/ZAK and signature.');
-    } finally {
-      setJoining(false);
-    }
-  }, [getSignature, getZakIfHost, leaveUrl, meetingNumber, passWord, sdkKey, userName]);
+    };
 
-  // Optional: auto-join if you want
-  // useEffect(() => { startMeeting(); }, [startMeeting]);
+    run().catch((err) => {
+      console.error('Meeting SDK flow failed:', err);
+    });
+  }, [meeting_id, user_id, search]);
 
   return (
-    <div className="p-6">
-      <h1 className="text-xl mb-4">Zoom Meeting SDK (Embedded)</h1>
-      <div className="mb-4 flex gap-2">
-        <button
-          onClick={startMeeting}
-          disabled={joining || joined}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg disabled:opacity-50"
-        >
-          {joining ? 'Joining…' : joined ? 'Joined' : (role === 1 ? 'Start as Host' : 'Join as Participant')}
-        </button>
-      </div>
-
-    </div>
+    <div id="meetingSDKElement" ref={containerRef} style={{ width: '100%', height: '100vh' }} />
   );
 }
