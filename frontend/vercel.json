@@ -49,7 +49,7 @@
           },
           {
             "key": "Content-Security-Policy",
-            "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://source.zoom.us https://zoom.us https://*.zoom.us https://vercel.live; style-src 'self' 'unsafe-inline' https://source.zoom.us https://zoom.us https://*.zoom.us; img-src 'self' data: blob: https://zoom.us https://*.zoom.us; connect-src 'self' https://zoom.us https://*.zoom.us https://flowminder-app.onrender.com; frame-src 'self' https://zoom.us https://*.zoom.us"
+            "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://source.zoom.us https://zoom.us https://*.zoom.us https://vercel.live; style-src 'self' 'unsafe-inline' https://source.zoom.us https://zoom.us https://*.zoom.us; img-src 'self' data: blob: https://zoom.us https://*.zoom.us; connect-src 'self' https://zoom.us https://*.zoom.us https://flowminder-app.onrender.com; frame-src 'self' https://zoom.us https://*.zoom.us https://vercel.live"
           },
           {
             "key": "Referrer-Policy",
