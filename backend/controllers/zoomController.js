@@ -1,4 +1,7 @@
 // backend/controllers/zoomController.js
+
+//
+const { generateZoomAuthUrl } = require("../utils/oauth.js");
 const axios = require('axios');
 const ZOOM_BASE = 'https://api.zoom.us/v2';
 const jwt = require('jsonwebtoken');  // for generating JWT for Meeting SDK

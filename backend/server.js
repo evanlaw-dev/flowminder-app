@@ -10,6 +10,7 @@ const { Parser } = require('json2csv');
 // middleware to parse zoomroute
 const zoomRoutes = require('./routes/zoomRoute.js');
 
+
 // Import and use meeting routes
 const meetingRoutes = require('./routes/meetingRoutes');
 
@@ -26,10 +27,6 @@ app.get('/', (req, res) => {
 // Zoom routes
 app.use('/zoom', zoomRoutes);
 app.use('/api/meetings', meetingRoutes);
-
-// Use meeting routes
-app.use('/api/meetings', meetingRoutes);
-
 
 const server = http.createServer(app);
 const io = new Server(server, {
