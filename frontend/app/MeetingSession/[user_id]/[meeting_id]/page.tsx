@@ -56,12 +56,15 @@ export default function MeetingSessionPage() {
       const userName: string = meeting?.host_email || 'FlowMinder User';
       const userEmail: string = meeting?.host_email || '';
 
+      // 5) Init and join
       await client.init({
         zoomAppRoot: zoomRoot,
         language: 'en-US',
         patchJsMedia: true,
       });
 
+
+      // 6) Join the meeting
       await client.join({
         signature,
         meetingNumber,
