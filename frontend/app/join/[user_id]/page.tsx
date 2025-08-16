@@ -81,7 +81,8 @@ export default function JoinPage() {
                 >Copy join link</button>
                 <button
                   className="px-3 py-2 rounded bg-blue-600 text-white"
-                  onClick={() => router.push(`/MeetingSession2/${zoomUserId as string}/${m.id}?role=1`)}
+                  // onClick={() => router.push(`/MeetingSession2/${zoomUserId as string}/${m.id}?role=1`)}
+                  onClick={() => router.push(`/MeetingSession2/test`)}
                 >Open in app</button>
               </div>
             </li>
