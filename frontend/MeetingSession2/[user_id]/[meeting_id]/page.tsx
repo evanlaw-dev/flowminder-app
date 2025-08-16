@@ -1,4 +1,4 @@
-// frontend/app/MeetingSession/[user_id]/[meeting_id]/page.tsx
+// frontend/app/MeetingSession2/[user_id]/[meeting_id]/page.tsx
 'use client';
 
 import { useState, useRef } from 'react';
