@@ -76,6 +76,30 @@ const ensureZoomCss = (version: string = '4.0.0'): void => {
   });
 };
 
+// Helper: wait for React ref to be non-null
+// Checks the ref at a specified interval until it exists or a timeout is reached.
+const waitForRef = <T extends HTMLElement>(
+  ref: React.RefObject<T | null>,
+  interval = 50,
+  timeout = 5000
+): Promise<T> => {
+  return new Promise<T>((resolve, reject) => {
+    const start = Date.now();
+    const check = () => {
+      if (ref.current) {
+        resolve(ref.current);
+        return;
+      }
+      if (Date.now() - start > timeout) {
+        reject(new Error('Timeout waiting for ref'));
+        return;
+      }
+      setTimeout(check, interval);
+    };
+    check();
+  });
+};
+
 /**
  * Embed Zoom Meeting (Meeting SDK) using OAuth + ZAK for host
  * - Default: Meeting SDK (embedded Zoom UI)
@@ -177,14 +201,15 @@ export default function SessionPage() {
       ZoomMtg.i18n?.reload?.('en-US');
 
       // 4) Init and join
+      const mountNode = await waitForRef(meetingRootRef);
       await new Promise<void>((resolve, reject) => {
         ZoomMtg.init({
           leaveUrl: window.location.origin,
           isSupportAV: true,
           disableRecord: true,
-          meetingSDKElement: meetingRootRef.current ?? undefined,
+          meetingSDKElement: mountNode,
           success: resolve,
-          error: (err: unknown) => reject(err),
+          error: (err) => reject(err),
         });
       });
 
@@ -237,10 +262,10 @@ export default function SessionPage() {
       try { await stream.startVideo(); } catch (err) { console.warn('startVideo failed', err); }
 
       const self = client.getCurrentUserInfo();
-      if (videoCanvasRef.current) {
-        await stream.renderVideo(videoCanvasRef.current, self.userId, 640, 360, 0, 0, 3);
-      }
+      const canvas = await waitForRef(videoCanvasRef);
 
+      await stream.renderVideo(canvas, self.userId, 640, 360, 0, 0, 3);
+      
       setJoined(true);
     } catch (e) {
       console.error('Video SDK join failed:', e);
