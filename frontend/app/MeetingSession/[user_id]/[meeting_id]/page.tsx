@@ -127,18 +127,6 @@ export default function SessionPage() {
   const videoCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const meetingRootRef = useRef<HTMLDivElement | null>(null);
 
-  // Initialize Zoom SDK after client-side hydration (mounting)
-  // useEffect(() => {
-  // const initZoom = async () => {
-  //   if (mode === 'video') {
-  //     await startVideoSdk();
-  //   } else {
-  //     await startMeetingSdk();
-  //   }
-  // };
-  // initZoom(); eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, []);
-
   // Helper: load vendor React/ReactDOM globals if the SDK expects them
   const loadVendorIfNeeded = async (): Promise<void> => {
     if (window.React && window.ReactDOM) return;
