@@ -67,16 +67,20 @@ function authHeaders(token) {
 
 const { generateZoomAuthUrl } = require("../utils/oauth.js");
 
-// ------- existing stuff you had -------
 const oauth = (req, res) => {
   const authUrl = generateZoomAuthUrl();
   res.redirect(authUrl);
 };
 
+// const redirectToMeeting = (req, res) => {
+//   return res.redirect(
+//     `${process.env.FRONTEND_REDIRECT_URI}/meeting/${res.locals.zoomUser.id}`
+//   );
+// };
+
+// redirect after OAuth flow
 const redirectToMeeting = (req, res) => {
-  return res.redirect(
-    `${process.env.FRONTEND_REDIRECT_URI}/meeting/${res.locals.zoomUser.id}`
-  );
+  return res.redirect('https://flowminder-app.vercel.app/');
 };
 
 // ---------- Zoom Scheduler controllers ----------
