@@ -6,7 +6,14 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const { Pool } = require('pg');
 const { Parser } = require('json2csv');
-// const zoomRoutes = require('./routes/zoomRoute.js'); // Temporarily disabled for testing
+
+// middleware to parse zoomroute
+const zoomRoutes = require('./routes/zoomRoute.js');
+
+
+// Import and use meeting routes
+const meetingRoutes = require('./routes/meetingRoutes');
+
 
 const app = express();
 app.use(cors());
@@ -17,8 +24,9 @@ app.get('/', (req, res) => {
   res.send('Server is running');
 });
 
-// Zoom routes - temporarily disabled for testing
-// app.use('/zoom', zoomRoutes);
+// Zoom routes
+app.use('/zoom', zoomRoutes);
+app.use('/api/meetings', meetingRoutes);
 
 const server = http.createServer(app);
 const io = new Server(server, {

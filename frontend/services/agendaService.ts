@@ -1,7 +1,7 @@
 import { AgendaItemType } from "../stores/useAgendaStore";
 
-export const meetingId = 'a8f52a02-5aa8-45ec-9549-79ad2a194fa4';
-// export const meetingId = 'a8f52a02-5aa8-45ec-9549'; INCORRECT ID FOR TESTING NO ITEMS IN AGENDA
+export const meetingId = 'a8f52a02-5aa8-45ec-9549-79ad2a194fa4'; // hardcoded for testing
+
 const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
 
 // Backend returns this shape
