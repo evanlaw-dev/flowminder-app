@@ -7,37 +7,37 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { useRef, useState } from 'react';
 import ZoomVideo from '@zoom/videosdk';
 
-// Zoom Meeting SDK types
-interface ZoomMtgType {
-  setZoomJSLib: (path: string, subdir: string) => void;
-  preLoadWasm?: () => void;
-  // prepareJssdk?: () => void;
-  prepareWebSDK?: () => void; // v4 name
-  i18n?: {
-    load?: (lang: string) => void;
-    reload?: (lang: string) => void;
-  };
-  init: (opts: {
-    leaveUrl: string;
-    isSupportAV?: boolean;
-    disableRecord?: boolean;
-    meetingSDKElement?: HTMLElement;
-    success: () => void;
-    error: (err: unknown) => void;
-  }) => void;
-  join: (opts: {
-    signature: string;
-    sdkKey: string;
-    meetingNumber: string;
-    userName: string;
-    passWord?: string;
-    zak?: string;
-    success: () => void;
-    error: (err: unknown) => void;
-  }) => void;
-}
+// // Zoom Meeting SDK types
+// interface ZoomMtgType {
+//   setZoomJSLib: (path: string, subdir: string) => void;
+//   preLoadWasm?: () => void;
+//   // prepareJssdk?: () => void;
+//   prepareWebSDK?: () => void; // v4 name
+//   i18n?: {
+//     load?: (lang: string) => void;
+//     reload?: (lang: string) => void;
+//   };
+//   init: (opts: {
+//     leaveUrl: string;
+//     isSupportAV?: boolean;
+//     disableRecord?: boolean;
+//     meetingSDKElement?: HTMLElement;
+//     success: () => void;
+//     error: (err: unknown) => void;
+//   }) => void;
+//   join: (opts: {
+//     signature: string;
+//     sdkKey: string;
+//     meetingNumber: string;
+//     userName: string;
+//     passWord?: string;
+//     zak?: string;
+//     success: () => void;
+//     error: (err: unknown) => void;
+//   }) => void;
+// }
 
-type MeetingSDKModule = { ZoomMtg: ZoomMtgType };
+// type MeetingSDKModule = { ZoomMtg: ZoomMtgType };
 
 // global window react for Zoom SDK
 declare global {
@@ -87,7 +87,7 @@ export default function SessionPage() {
 
   // Backend URL and Zoom SDK key from env
   const backend = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-  const sdkKey = process.env.NEXT_PUBLIC_ZOOM_SDK_KEY as string;
+  // const sdkKey = process.env.NEXT_PUBLIC_ZOOM_SDK_KEY as string;
 
   // Refs for DOM elements
   const videoCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -138,46 +138,46 @@ export default function SessionPage() {
 
       // 3) Load Meeting SDK and embed
       await loadVendorIfNeeded();
-      const mod = (await import('@zoom/meetingsdk')) as MeetingSDKModule;
+      // const mod = (await import('@zoom/meetingsdk')) as MeetingSDKModule;
       ensureZoomCss('4.0.0');
-      const ZoomMtg = mod.ZoomMtg;
+      // const ZoomMtg = mod.ZoomMtg;
 
-      ZoomMtg.setZoomJSLib('https://source.zoom.us/4.0.0/lib', '/av');
-      ZoomMtg.preLoadWasm?.();
-      // Prefer the newer prep on v4, fallback for older builds
-      ZoomMtg.prepareWebSDK?.();
-      // ZoomMtg.prepareJssdk?.();
-      // Optional i18n (safe no-op if not present)
-      ZoomMtg.i18n?.load?.('en-US');
-      ZoomMtg.i18n?.reload?.('en-US');
+      // ZoomMtg.setZoomJSLib('https://source.zoom.us/4.0.0/lib', '/av');
+      // ZoomMtg.preLoadWasm?.();
+      // // Prefer the newer prep on v4, fallback for older builds
+      // ZoomMtg.prepareWebSDK?.();
+      // // ZoomMtg.prepareJssdk?.();
+      // // Optional i18n (safe no-op if not present)
+      // ZoomMtg.i18n?.load?.('en-US');
+      // ZoomMtg.i18n?.reload?.('en-US');
 
       // Ensure CSS is injected immediately before init
       ensureZoomCss('4.0.0');
       // 4) Init and join
-      await new Promise<void>((resolve, reject) => {
-        ZoomMtg.init({
-          leaveUrl: window.location.origin,
-          isSupportAV: true,
-          disableRecord: true,
-          meetingSDKElement: meetingRootRef.current!,
-          success: resolve,
-          error: (err: unknown) => reject(err),
-        });
-      });
+      // await new Promise<void>((resolve, reject) => {
+      //   ZoomMtg.init({
+      //     leaveUrl: window.location.origin,
+      //     isSupportAV: true,
+      //     disableRecord: true,
+      //     meetingSDKElement: meetingRootRef.current!,
+      //     success: resolve,
+      //     error: (err: unknown) => reject(err),
+      //   });
+      // });
 
-      // Join the meeting
-      await new Promise<void>((resolve, reject) => {
-        ZoomMtg.join({
-          signature,
-          sdkKey,
-          meetingNumber,
-          userName,
-          passWord: '',
-          zak,
-          success: resolve,
-          error: (err: unknown) => reject(err),
-        });
-      });
+      // // Join the meeting
+      // await new Promise<void>((resolve, reject) => {
+      //   ZoomMtg.join({
+      //     signature,
+      //     sdkKey,
+      //     meetingNumber,
+      //     userName,
+      //     passWord: '',
+      //     zak,
+      //     success: resolve,
+      //     error: (err: unknown) => reject(err),
+      //   });
+      // });
 
       setJoined(true);
     } catch (e) {
