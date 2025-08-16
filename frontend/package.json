@@ -43,5 +43,10 @@
     "tailwindcss": "^4.1.11",
     "ts-jest": "^29.4.0",
     "typescript": "^5"
+  },
+  "overwrites": {
+    "ink": {
+      "react": "^18.2.0"
+    }
   }
 }
