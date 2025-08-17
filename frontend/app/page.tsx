@@ -42,16 +42,20 @@ function HomeContent() {
       try {
         // Configure SDK with only the capabilities we need
         await zoomSdk.config({
-          capabilities: ["getMeetingContext"],
+          capabilities: ["getMeetingContext", "getUserContext"],
         });
 
         const meetingCtx = await zoomSdk.getMeetingContext();
+        const userCtx = await zoomSdk.getUserContext();
 
         if (!mounted) return;
 
         // Log to console for now the meeting id
         console.log(
           `[Zoom Apps] meetingID=${meetingCtx?.meetingID} | meetingTopic=${meetingCtx?.meetingTopic}`
+        );
+        console.log(
+          `[Zoom Apps] userID=${userCtx?.screenName} | userName=${userCtx?.role}`
         );
 
       } catch (e) {
