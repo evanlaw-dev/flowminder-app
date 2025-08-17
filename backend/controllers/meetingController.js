@@ -1,5 +1,7 @@
 // backend/controllers/meetingController.js
 const axios = require('axios');
+const supabase = require('../utils/supabaseClient');
+const { pool } = require('../db/pool');
 
 exports.scheduleMeeting = async (req, res) => {
   try {
