@@ -8,12 +8,21 @@ const { pool } = require('./db/pool');
 const { attachAllSockets } = require('./sockets');
 const { agendaBroadcastFromDb } = require('./sockets/agenda');
 const { MEETING_ID } = require('./config/constants');
+// middleware to parse zoomroute
+const zoomRoutes = require('./routes/zoomRoute.js');
+// Import and use meeting routes
+const meetingRoutes = require('./routes/meetingRoutes');
+
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 app.get('/', (_, res) => res.send('Server is running'));
+
+// Zoom routes
+app.use('/zoom', zoomRoutes);
+app.use('/api/meetings', meetingRoutes);
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -22,6 +31,25 @@ const io = new Server(server, {
 });
 
 attachAllSockets(io, pool);
+
+// Test PostgreSQL connection
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('Railway Database connection failed:', err);
+  } else {
+    const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/flowminder';
+    const parsedUrl = new URL(connectionString);
+
+    const host = parsedUrl.hostname;
+    const port = parsedUrl.port;
+    const database = parsedUrl.pathname.replace('/', '');
+    const user = parsedUrl.username;
+
+    console.log(`\x1b[35mConnected to PostgreSQL at ${host}:${port}\x1b[0m`);
+    console.log(`\x1b[35mHost: ${host} | Database: ${database} | User: ${user} | Time: ${res.rows[0].now}\x1b[0m`);
+  }
+});
+
 
 /* ---------------- REST: agenda items ---------------- */
 
