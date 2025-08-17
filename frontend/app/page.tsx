@@ -16,6 +16,7 @@ import Settings from "@/components/Settings";
 import Header from "@/components/Header";
 import BtnCancelSave from "@/components/BtnCancelSave";
 import NudgeStatsPanel from "@/components/NudgeStatsPanel";
+import { CURRENT_USER_ID } from "@/config/constants";
 
 export default function Home() {
   return (
@@ -73,8 +74,6 @@ function HomeContent() {
         console.log('Meeting Id:' + meetingId + ',current user id:', currentUserId);
         setMeetingId(meetingId);
         setCurrentUserId(currentUserId);
-
-        console.log('MEETING ID:' + MEETING_ID);
       } catch (e) {
         // Not running inside Zoom or SDK not available; keep silent in production
         console.debug("[Zoom Apps] SDK not available or init failed:", e);
@@ -90,6 +89,8 @@ function HomeContent() {
   // emit initial socket events
   useEffect(() => {
     console.log('Emitting socket event');
+    console.log('MEETING ID:' + MEETING_ID);
+    console.log('CURRENT USER ID:' + CURRENT_USER_ID);
     initAgendaSockets();
     initSettingsSockets();
     socket.emit("joinMeeting", MEETING_ID);
