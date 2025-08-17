@@ -2,13 +2,13 @@
 "use client";
 
 import React, { Suspense, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+// import { useSearchParams } from "next/navigation";
 import { useAgendaStore } from "@/stores/useAgendaStore";
 import { loadMeetingTimerSettings } from "@/services/agendaService";
 import { initAgendaSockets } from "@/sockets/agenda";
 import { initSettingsSockets } from "@/sockets/settings";
 import { socket } from "../sockets/socket";
-import { MEETING_ID } from "@/config/constants";
+// import { MEETING_ID } from "@/config/constants";
 import zoomSdk from "@zoom/appssdk";
 
 import Agenda from "@/components/Agenda";
@@ -26,12 +26,13 @@ export default function Home() {
 }
 // adding a comment for deployment
 function HomeContent() {
-  const searchParams = useSearchParams();
-  const role = searchParams.get("role") === "host" ? "participant" : "host";
+  // const searchParams = useSearchParams();
+  // const role = searchParams.get("role") === "host" ? "participant" : "host";
+  const [role, setRole] = React.useState<"host" | "participant">("participant");
 
   const [mounted, setMounted] = React.useState(false); // 👈 gate hydration
   //
-  const { isEditingMode, showSettings } = useAgendaStore();
+  const { isEditingMode, showSettings, MEETING_ID, setMeetingId, setCurrentUserId } = useAgendaStore();
   
   /* Initialize Zoom Apps SDK and log meeting & user IDs when running inside Zoom
   *
@@ -61,6 +62,22 @@ function HomeContent() {
           `[Zoom Apps] user screenName=${userCtx?.screenName} | participantId=${userCtx?.participantUUID} | role=${userCtx?.role} | status=${userCtx?.status}`
         );
 
+        // Set role based on the returned value of getUserContext response
+        setRole(userCtx?.role === "host" ? "host" : "participant");
+
+        const meetingId = meetingCtx.meetingID;
+        const currentUserId = userCtx.participantUUID;
+        if (!meetingId) {
+          setMeetingId("Default_Meeting_ID");
+        } else {
+          setMeetingId(meetingId);
+        }
+        if (!currentUserId) {
+          setCurrentUserId("Default_User_ID");
+        } else {
+          setCurrentUserId(currentUserId);
+        }
+
       } catch (e) {
         // Not running inside Zoom or SDK not available; keep silent in production
         console.debug("[Zoom Apps] SDK not available or init failed:", e);
@@ -69,6 +86,7 @@ function HomeContent() {
     return () => {
       mounted = false;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   
@@ -79,6 +97,7 @@ function HomeContent() {
     socket.emit("joinMeeting", MEETING_ID);
     socket.emit("agenda:get");
     socket.emit("timer:get", MEETING_ID);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

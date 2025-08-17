@@ -80,10 +80,17 @@ type AgendaStore = {
     setAgendaItems: (items: AgendaItemType[]) => void;
     clearAgendaItems: () => void;
 
+
     /*header*/
     nextItem: () => void;
     previousItem: () => void;
     processCurrentItem: () => void;
+
+    /* user id */
+    MEETING_ID: string | null;
+    CURRENT_USER_ID: string | null;
+    setMeetingId: (id: string) => void;
+    setCurrentUserId: (id: string) => void;
 };
 
 export const useAgendaStore = create<AgendaStore>((set, get) => ({
@@ -100,6 +107,8 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
     addTimersBtn: false,
     refreshToken: 0,
     bumpRefresh: () => set(s => ({ refreshToken: s.refreshToken + 1 })),
+    MEETING_ID: null,
+    CURRENT_USER_ID: null,
 
     /* setters */
     setVisibility: (visibility) => set({ visibility }),
@@ -111,6 +120,8 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
     setAgendaItems: (items: AgendaItemType[]): void => {
         set({ items: items });
     },
+    setMeetingId: (id: string) => set({ MEETING_ID: id }),
+    setCurrentUserId: (id: string) => set({ CURRENT_USER_ID: id }),
 
     /* toggle buttons */
     toggleEditingMode: () => set((state) => ({ isEditingMode: !state.isEditingMode })),
