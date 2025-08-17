@@ -42,11 +42,11 @@ function HomeContent() {
       try {
         // Configure SDK with only the capabilities we need
         await zoomSdk.config({
-          capabilities: ["getMeetingContext", "getUserContext"],
+          capabilities: ["getMeetingContext"],
         });
 
         const meetingCtx = await zoomSdk.getMeetingContext();
-        const userCtx = await zoomSdk.getUserContext();
+        // const userCtx = await zoomSdk.getUserContext();
 
         if (!mounted) return;
 
@@ -54,8 +54,9 @@ function HomeContent() {
         console.log(
           `[Zoom Apps] meetingID=${meetingCtx?.meetingID} | meetingTopic=${meetingCtx?.meetingTopic}`
         );
-        console.log(
-          `[Zoom Apps] user screenName=${userCtx?.screenName} | participantId=${userCtx?.participantUUID} | role=${userCtx?.role} | status=${userCtx?.status}`        );
+        // console.log(
+        //   `[Zoom Apps] user screenName=${userCtx?.screenName} | participantId=${userCtx?.participantUUID} | role=${userCtx?.role} | status=${userCtx?.status}`
+        // );
 
       } catch (e) {
         // Not running inside Zoom or SDK not available; keep silent in production
