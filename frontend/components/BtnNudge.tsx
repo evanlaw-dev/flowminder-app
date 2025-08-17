@@ -1,5 +1,5 @@
 import React from 'react'
-import { sendNudge } from '@/services/participantService'
+import { sendNudge } from '../services/participantService'
 
 interface BtnNudgeProps {
   text: string;

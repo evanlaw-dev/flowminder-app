@@ -1,19 +1,15 @@
-import { AgendaItemType } from "../stores/useAgendaStore";
+import { AgendaItemType, useAgendaStore, MeetingTimerSettings, Visibility } from "../stores/useAgendaStore";
+import { BACKEND_URL, MEETING_ID } from "../config/constants";
 
-export const meetingId = 'a8f52a02-5aa8-45ec-9549-79ad2a194fa4'; // hardcoded for testing
-
-const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-
-// Backend returns this shape
+/** Backend DTO */
 type AgendaItemResponse = {
   id: string;
   meeting_id: string;
   agenda_item: string;
   duration_seconds?: number;
-  status: string;
+  status: "pending" | "processed";
 };
 
-// Frontend expects this shape
 export interface AgendaItemPayload {
   id: string;
   text: string;
@@ -21,101 +17,79 @@ export interface AgendaItemPayload {
   isProcessed: boolean;
 }
 
-/**
- * Fetch raw DTOs and map them into { id, text, duration_seconds }
- */
-export async function fetchAgendaItemsOnMount(
-  meetingId: string
-): Promise<AgendaItemPayload[]> {
-  const res = await fetch(`${backendUrl}/agenda_items?meeting_id=${meetingId}`);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch agenda items: ${res.status}`);
-  }
-
+export async function fetchAgendaItemsOnMount(): Promise<AgendaItemPayload[]> {
+  const res = await fetch(`${BACKEND_URL}/agenda_items?meeting_id=${MEETING_ID}`);
+  if (!res.ok) throw new Error(`Failed to fetch agenda items: ${res.status}`);
   const body = (await res.json()) as { items: AgendaItemResponse[] };
-
-  return body.items.map(item => ({
+  return body.items.map((item) => ({
     id: item.id,
     text: item.agenda_item,
     duration_seconds: item.duration_seconds,
-    isProcessed: (item.status == 'processed'),
+    isProcessed: item.status === "processed",
   }));
 }
 
 /**
- * Save local items (create, update, delete) and refresh
+ * Save local edits via REST, then refresh host state.
+ * Server will also broadcast to all participants on save completion.
  */
 export async function saveItemsToBackend(
   items: AgendaItemType[],
   saveSuccess: (items: AgendaItemType[]) => void
 ): Promise<AgendaItemType[]> {
+  // mark empty items for delete
+  items.forEach((it) => { if ((it.text || "").trim() === "") it.isDeleted = true; });
 
-
-  // Clean up empty items
-  items.forEach(it => {
-    console.log('Checking item:', it);
-    if (it.text?.trim() === '') {
-      it.isDeleted = true;
-      console.log('Marking item as deleted:', it);
-    }
-  });
-
-
-  // Partition into create / update / delete
-  const toCreate = items.filter(it => it.isNew && !it.isDeleted);
-  const toUpdate = items.filter(it => !it.isNew && (it.isEdited || it.isEditedTimer) && !it.isDeleted);
-  const toDelete = items.filter(it => it.isDeleted && it.id != null);
+  const toCreate = items.filter((it) => it.isNew && !it.isDeleted);
+  const toUpdate = items.filter((it) => !it.isNew && (it.isEdited || it.isEditedTimer) && !it.isDeleted);
+  const toDelete = items.filter((it) => it.isDeleted && it.id != null);
 
   // CREATE
   await Promise.all(
-    toCreate.map(item =>
-      fetch(`${backendUrl}/agenda_items`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+    toCreate.map((item) =>
+      fetch(`${BACKEND_URL}/agenda_items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          meeting_id: meetingId,
+          meeting_id: MEETING_ID,
           agenda_item: item.text,
           duration_seconds: item.timerValue || 0,
         }),
+      }).then(async (res) => {
+        if (!res.ok) throw new Error(`POST failed: ${res.status}`);
+        const { item: saved } = await res.json();
+        item.id = saved.id;
+        item.isNew = false;
       })
-        .then(async res => {
-          if (!res.ok) throw new Error(`POST failed: ${res.status}`);
-          const { item: saved } = await res.json();
-          item.id = saved.id;
-          item.isNew = false;
-        })
     )
   );
 
   // UPDATE
   await Promise.all(
-    toUpdate.map(async item => {
-      const res = await fetch(`${backendUrl}/agenda_items/${item.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+    toUpdate.map(async (item) => {
+      const res = await fetch(`${BACKEND_URL}/agenda_items/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           agenda_item: item.text,
           duration_seconds: item.timerValue || 0,
         }),
       });
-
       if (res.status === 404) {
         console.warn(`PATCH 404 – item ${item.id} not found (skipping).`);
       } else if (!res.ok) {
         throw new Error(`PATCH failed: ${res.status}`);
       } else {
         item.isEdited = false;
+        item.isEditedTimer = false;
       }
     })
   );
 
   // DELETE
   await Promise.all(
-    toDelete.map(async item => {
-      const res = await fetch(`${backendUrl}/agenda_items/${item.id}`, {
-        method: 'DELETE',
-      });
-
+    toDelete.map(async (item) => {
+      const res = await fetch(`${BACKEND_URL}/agenda_items/${item.id}`, { method: "DELETE" });
       if (res.status === 404) {
         console.warn(`DELETE 404 – item ${item.id} not found (skipping).`);
       } else if (!res.ok) {
@@ -124,18 +98,13 @@ export async function saveItemsToBackend(
     })
   );
 
-  // REFRESH
-  const listRes = await fetch(
-    `${backendUrl}/agenda_items?meeting_id=${meetingId}`
-  );
-  if (!listRes.ok) {
-    throw new Error(`Failed to fetch updated agenda: ${listRes.status}`);
-  }
+  // Refresh host view (participants already got socket broadcast from server)
+  const listRes = await fetch(`${BACKEND_URL}/agenda_items?meeting_id=${MEETING_ID}`);
+  if (!listRes.ok) throw new Error(`Failed to fetch updated agenda: ${listRes.status}`);
 
   const body2 = (await listRes.json()) as { items: AgendaItemResponse[] };
 
-  // Map to full AgendaItemType for saveSuccess
-  const freshItems: AgendaItemType[] = body2.items.map(item => ({
+  const freshItems: AgendaItemType[] = body2.items.map((item) => ({
     id: item.id,
     text: item.agenda_item,
     originalText: item.agenda_item,
@@ -148,24 +117,60 @@ export async function saveItemsToBackend(
     isEditedTimer: false,
   }));
 
-  // Update store
   saveSuccess(freshItems);
   return freshItems;
 }
 
-// Agenda Service that takes care of updates for adding a processing flag
-// The queue of items has the structure: id: UUID, isProcessed: boolean
-export async function syncProcessed(items: { id: string; isProcessed: boolean }[]) {
-  const res = await fetch(`${backendUrl}/agenda_items/batch-process`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      meeting_id: meetingId,
-      items,
-    }),
-  });
-
+export async function clearAllAgendaItemsFromDB() {
+  const url = `${BACKEND_URL}/agenda_items?meeting_id=${MEETING_ID}`;
+  const res = await fetch(url, { method: "DELETE" });
   if (!res.ok) {
-    throw new Error(`Failed to sync processed flags: ${res.status}`);
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.error || `Failed to delete agenda items (HTTP ${res.status}).`);
   }
+}
+
+/* -------- Timer settings (REST) -------- */
+
+async function fetchMeetingTimerSettings(): Promise<MeetingTimerSettings> {
+  const res = await fetch(`${BACKEND_URL}/meetings/${MEETING_ID}/timer-settings`);
+  if (!res.ok) throw new Error(`Failed to fetch timer settings: ${res.status}`);
+  const body = (await res.json()) as { timer_settings: MeetingTimerSettings };
+  return body.timer_settings;
+}
+
+async function saveMeetingTimerSettings(settings: {
+  hasTimers: boolean;
+  defaultVisibility: Visibility;
+  automation: { autoAdvance: boolean; autoStartNextTimer: boolean };
+}): Promise<MeetingTimerSettings> {
+  const res = await fetch(`${BACKEND_URL}/meetings/${MEETING_ID}/timer-settings`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(settings),
+  });
+  if (!res.ok) throw new Error(`Failed to save timer settings: ${res.status}`);
+  const body = (await res.json()) as { timer_settings: MeetingTimerSettings };
+  return body.timer_settings;
+}
+
+export async function persistMeetingTimerSettings(
+  hasTimers: boolean,
+  defaultVisibility: Visibility,
+  autoAdvance: boolean,
+  autoStartNextTimer: boolean
+) {
+  const saved = await saveMeetingTimerSettings({
+    hasTimers,
+    defaultVisibility,
+    automation: { autoAdvance, autoStartNextTimer },
+  });
+  useAgendaStore.getState().applyTimerSettingsFromDb(saved);
+  return saved;
+}
+
+export async function loadMeetingTimerSettings() {
+  const settings = await fetchMeetingTimerSettings();
+  useAgendaStore.getState().applyTimerSettingsFromDb(settings);
+  return settings;
 }
