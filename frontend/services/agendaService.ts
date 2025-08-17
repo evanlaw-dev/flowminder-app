@@ -1,7 +1,6 @@
 import { AgendaItemType, useAgendaStore, MeetingTimerSettings, Visibility } from "../stores/useAgendaStore";
 import { BACKEND_URL, MEETING_ID } from "../config/constants";
 
-/** Backend DTO */
 type AgendaItemResponse = {
   id: string;
   meeting_id: string;

@@ -13,9 +13,9 @@ import zoomSdk from "@zoom/appssdk";
 
 import Agenda from "@/components/Agenda";
 import Settings from "@/components/Settings";
-import RequestsWrapper from "@/components/RequestsWrapper";
 import Header from "@/components/Header";
 import BtnCancelSave from "@/components/BtnCancelSave";
+import NudgeStatsPanel from "@/components/NudgeStatsPanel";
 
 export default function Home() {
   return (
@@ -29,9 +29,7 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const role = searchParams.get("role") === "host" ? "participant" : "host";
 
-  const [refreshTrigger, setRefreshTrigger] = React.useState(0);
   const [mounted, setMounted] = React.useState(false); // 👈 gate hydration
-  const handleNudgeSent = () => setRefreshTrigger((p) => p + 1);
   //
   const { isEditingMode, showSettings } = useAgendaStore();
   
@@ -98,11 +96,10 @@ function HomeContent() {
   }, []);
 
   return (
-    <aside className="fixed left-0 top-0 h-[100svh] max-h-[1000px] flex flex-col w-[clamp(250px,40vw,400px)]
-                      bg-[var(--primary)] transition-width duration-100 ease-in-out space-y-2">
+    <aside className="fixed left-0 top-0 h-[100svh] max-h-[1000px] flex flex-col w-full max-w-[400px]                      bg-[var(--primary)] transition-width duration-100 ease-in-out space-y-2">
       <div id="main" className="flex flex-col flex-grow justify-center space-y-2 min-h-0">
         <div id="header" className="flex-shrink-0 bg-[var(--secondary)] pb-2 rounded-b-xl shadow-md">
-          <Header role={role} handleNudge={handleNudgeSent} />
+          <Header role={role} />
         </div>
 
         <div className="flex-1 min-h-0 relative overflow-hidden rounded-md">
@@ -128,7 +125,7 @@ function HomeContent() {
         <div className="flex-shrink-0 justify-center border-t border-gray-200">
           {isEditingMode && !showSettings && <BtnCancelSave />}
           <Suspense fallback={<div className="px-4 py-3">Loading requests…</div>}>
-            <RequestsWrapper refreshTrigger={refreshTrigger} />
+            <NudgeStatsPanel />
           </Suspense>
         </div>
       </div>

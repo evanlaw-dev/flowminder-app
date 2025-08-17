@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect } from 'react';
 import { Timer as TimerIcon, ChevronUp, ChevronDown } from 'lucide-react';
 

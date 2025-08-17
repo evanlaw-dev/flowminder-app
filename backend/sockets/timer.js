@@ -1,4 +1,4 @@
-// Server-based timer for Socket.IO (multi-meeting room-ready)
+// Server-based timer for Socket.IO 
 function attachTimer(io) {
   const timers = {}; // meetingId -> { status, endAt, remainingMs? }
   const now = () => Date.now();

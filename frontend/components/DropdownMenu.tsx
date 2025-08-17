@@ -1,3 +1,4 @@
+"use client";
 import { useState, useRef, useEffect } from 'react';
 import { Edit, Clock8, ClockAlert, Trash2 } from 'lucide-react';
 import Image from "next/image";
