@@ -65,6 +65,8 @@ function HomeContent() {
         // Set role based on the returned value of getUserContext response
         setRole(userCtx?.role === "host" ? "host" : "participant");
 
+        console.log('MEETING ID:' + MEETING_ID);
+
         const meetingId = meetingCtx.meetingID;
         const currentUserId = userCtx.participantUUID;
         if (!meetingId) {
@@ -77,6 +79,8 @@ function HomeContent() {
         } else {
           setCurrentUserId(currentUserId);
         }
+
+        console.log('MEETING ID:' + MEETING_ID);
 
       } catch (e) {
         // Not running inside Zoom or SDK not available; keep silent in production
