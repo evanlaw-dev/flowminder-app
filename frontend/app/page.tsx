@@ -67,26 +67,14 @@ function HomeContent() {
 
         console.log('MEETING ID:' + MEETING_ID);
 
-        const meetingId = meetingCtx?.meetingID;
-        const currentUserId = userCtx?.participantUUID;
+        const meetingId = meetingCtx?.meetingID || "Default_Meeting_ID";
+        const currentUserId = userCtx?.participantUUID || "Default_User_ID";
 
         console.log('Meeting Id:' + meetingId + ',current user id:', currentUserId);
-
-        if (!meetingId) {
-          setMeetingId("Default_Meeting_ID");
-        } else {
-          console.log('setting meeting id.');
-          setMeetingId(meetingId);
-        }
-        if (!currentUserId) {
-          setCurrentUserId("Default_User_ID");
-        } else {
-          console.log('setting user id.');
-          setCurrentUserId(currentUserId);
-        }
+        setMeetingId(meetingId);
+        setCurrentUserId(currentUserId);
 
         console.log('MEETING ID:' + MEETING_ID);
-
       } catch (e) {
         // Not running inside Zoom or SDK not available; keep silent in production
         console.debug("[Zoom Apps] SDK not available or init failed:", e);
@@ -101,13 +89,13 @@ function HomeContent() {
   
   // emit initial socket events
   useEffect(() => {
+    console.log('Emitting socket event');
     initAgendaSockets();
     initSettingsSockets();
     socket.emit("joinMeeting", MEETING_ID);
     socket.emit("agenda:get");
     socket.emit("timer:get", MEETING_ID);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [MEETING_ID]);
 
   useEffect(() => {
     (async () => {
