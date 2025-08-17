@@ -2,10 +2,9 @@
 import React, { useEffect } from "react";
 import AgendaItem from "./AgendaItem";
 import BtnAddAgendaItem from "./BtnAddAgendaItem";
-import { useAgendaStore } from '@/stores/useAgendaStore';
-import { fetchAgendaItemsOnMount } from '@/services/agendaService';
+import { useAgendaStore } from '../stores/useAgendaStore';
+import { fetchAgendaItemsOnMount } from '../services/agendaService';
 import DropdownMenu from "./DropdownMenu";
-import { meetingId } from "../services/agendaService";
 import '../app/globals.css';
 
 export default function Agenda({ role = "participant" }: { role?: "host" | "participant" }) {
@@ -15,10 +14,12 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
     changeItem,
     removeItem,
     changeItemTimer,
-    showAllTimers,
+    areTimersAdded,
+    hasTimers,
     isEditingMode,
     getCurrentItem,
     getVisibleItems,
+    refreshToken,
     lastAddedItemId,
   } = useAgendaStore();
 
@@ -28,13 +29,13 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
 
   // Fetch agenda items on mount
   useEffect(() => {
-    fetchAgendaItemsOnMount(meetingId)
+    fetchAgendaItemsOnMount()
       .then(loadItems)
       .catch((err) => {
         console.error(err);
         alert("Could not load agenda items");
       });
-  }, [loadItems]);
+  }, [loadItems, refreshToken]);
 
   return (
     <>
@@ -56,7 +57,7 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
             onChangeTimer={changeItemTimer}
             onRemove={removeItem}
             canEdit={isEditingMode || currentItem?.id === item.id}
-            showTimers={showAllTimers}
+            showTimers={areTimersAdded || hasTimers}
             isCurrentItem={currentItem?.id === item.id}
             autoFocus={item.id === lastAddedItemId}
           />

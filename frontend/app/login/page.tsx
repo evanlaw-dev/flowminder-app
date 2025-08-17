@@ -1,7 +1,7 @@
 'use client'
 
 import React from "react";
-import AuthLoginButton from "@/components/AuthLoginButton";
+import AuthLoginButton from "../../components/AuthLoginButton";
 
 export default function LoginPage() {
   return (

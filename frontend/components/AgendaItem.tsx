@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
-import { AgendaItemType } from '@/stores/useAgendaStore';
+import { AgendaItemType } from '../stores/useAgendaStore';
 import Timer from "./Timer";
 import scrollIntoView from 'scroll-into-view-if-needed';
 
@@ -44,24 +44,41 @@ function AgendaItem({
     }
   }, [item.text]);
 
-  useEffect(() => {
-    if (autoFocus && liRef.current) {
-      requestAnimationFrame(() => {
-        scrollIntoView(liRef.current!, {
-          scrollMode: 'if-needed',
-          block: 'center',
-          inline: 'nearest',
-          behavior: 'smooth',
-          boundary: (parent) => parent.classList.contains('overflow-y-auto'),
-        });
+useEffect(() => {
+  if (!autoFocus) return;
 
-        if (canEdit && divRef.current) {
-          divRef.current.focus();
-          setIsEditing(true);
-        }
+  const el = liRef.current;
+  if (!el) return;                 // not mounted yet
+
+  const container = el.closest(".overflow-y-auto") as HTMLElement | null;
+
+  requestAnimationFrame(() => {
+    if (!el.isConnected) return;
+
+    try {
+      scrollIntoView(el, {
+        scrollMode: "if-needed",
+        block: "center",
+        inline: "nearest",
+        behavior: "smooth",
+
+        boundary: (parent: Element) => {
+          if (container && parent === container) return true;
+          if (parent === document.documentElement || parent === document.body) return true;
+          return false;
+        },
       });
+    } catch (e) {
+      console.warn("scrollIntoView failed", e);
     }
-  }, [autoFocus, canEdit]);
+
+    if (canEdit && divRef.current) {
+      divRef.current.focus();
+      setIsEditing(true);
+    }
+  });
+}, [autoFocus, canEdit]);
+
 
   const handleClick = () => {
     setTruncated(prev => !prev);
@@ -106,7 +123,7 @@ function AgendaItem({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className={`grid items-start gap-x-3 ${showTimers ? 'grid-cols-[1fr_auto_auto]' : 'grid-cols-1'}`}>
+      <div className={`grid items-start gap-x-3 ${showTimers ? 'grid-cols-[1fr_auto_auto]' : 'grid-cols-[1fr_auto]'}`}>
         <div className="relative min-w-0">
           {isEmpty && !isEditing && (
             <span className="absolute left-3 top-2 text-gray-400 italic pointer-events-none select-none">
