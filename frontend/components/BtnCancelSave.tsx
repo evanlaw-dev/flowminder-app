@@ -1,3 +1,4 @@
+"use client";
 // BtnCancelSave.tsx
 import React from 'react';
 import { useAgendaStore } from '../stores/useAgendaStore';

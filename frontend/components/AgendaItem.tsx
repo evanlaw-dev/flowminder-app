@@ -1,3 +1,4 @@
+"use client";
 import React, { useRef, useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
 import { AgendaItemType } from '../stores/useAgendaStore';

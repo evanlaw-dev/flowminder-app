@@ -8,6 +8,8 @@ const { pool } = require('./db/pool');
 const { attachAllSockets } = require('./sockets');
 const { agendaBroadcastFromDb } = require('./sockets/agenda');
 const { MEETING_ID } = require('./config/constants');
+const { markParticipantJoined } = require("./sockets/nudge.js"); // TO-DELETE AFTER TEST
+
 // middleware to parse zoomroute
 const zoomRoutes = require('./routes/zoomRoute.js');
 // Import and use meeting routes
@@ -29,6 +31,32 @@ const io = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST', 'DELETE', 'PATCH', 'PUT'] },
   path: '/socket.io',
 });
+
+// TEST - DELETE WHEN DONE
+if (process.env.NODE_ENV !== "production") {
+  app.post("/dev/roster/join", async (req, res) => {
+    const { meetingId, userId, name } = req.body;
+    try {
+      // 1) Ensure zoom_users row exists
+      await pool.query(
+        `INSERT INTO zoom_users (user_id, display_name)
+         VALUES ($1, $2)
+         ON CONFLICT (user_id) DO NOTHING`,
+        [userId, name || userId]
+      );
+
+      // 2) Create/flip nudges row to in_meeting=true and broadcast delta
+      await markParticipantJoined(io, pool, { meetingId, userId });
+
+      res.json({ ok: true });
+    } catch (e) {
+      console.error("dev/roster/join", e);
+      res.status(500).json({ ok: false, error: e.detail || e.message });
+    }
+  });
+}
+
+
 
 attachAllSockets(io, pool);
 

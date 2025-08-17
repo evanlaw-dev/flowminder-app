@@ -1,3 +1,5 @@
+"use client";
+
 // Header.tsx
 import { useAgendaStore } from '../stores/useAgendaStore';
 import React, { useState } from 'react';
@@ -8,10 +10,9 @@ import { useServerTimer } from '../hooks/useServerTimer';
 
 type HeaderProps = {
   role?: 'host' | 'participant';
-  handleNudge: () => void;
 };
 
-export default function Header({ role = 'participant', handleNudge }: HeaderProps) {
+export default function Header({ role = 'participant' }: HeaderProps) {
   const placeholder = `No items to display.`;
   const {
     getCurrentItem,
@@ -187,7 +188,7 @@ export default function Header({ role = 'participant', handleNudge }: HeaderProp
 
         {/* Nudge */}
         <div className="mx-auto pt-[1.5em]">
-          <Nudge onNudge={handleNudge} />
+          <Nudge />
         </div>
       </div>
     </div>
