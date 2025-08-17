@@ -67,16 +67,21 @@ function HomeContent() {
 
         console.log('MEETING ID:' + MEETING_ID);
 
-        const meetingId = meetingCtx.meetingID;
-        const currentUserId = userCtx.participantUUID;
+        const meetingId = meetingCtx?.meetingID;
+        const currentUserId = userCtx?.participantUUID;
+
+        console.log('Meeting Id:' + meetingId + ',current user id:', currentUserId);
+
         if (!meetingId) {
           setMeetingId("Default_Meeting_ID");
         } else {
+          console.log('setting meeting id.');
           setMeetingId(meetingId);
         }
         if (!currentUserId) {
           setCurrentUserId("Default_User_ID");
         } else {
+          console.log('setting user id.');
           setCurrentUserId(currentUserId);
         }
 
