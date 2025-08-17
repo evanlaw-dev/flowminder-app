@@ -1,3 +1,4 @@
+// frontend/app/page.tsx
 "use client";
 
 import React, { Suspense, useEffect } from "react";
@@ -8,6 +9,7 @@ import { initAgendaSockets } from "@/sockets/agenda";
 import { initSettingsSockets } from "@/sockets/settings";
 import { socket } from "../sockets/socket";
 import { MEETING_ID } from "@/config/constants";
+import zoomSdk from "@zoom/appssdk";
 
 import Agenda from "@/components/Agenda";
 import Settings from "@/components/Settings";
@@ -30,9 +32,48 @@ function HomeContent() {
   const [refreshTrigger, setRefreshTrigger] = React.useState(0);
   const [mounted, setMounted] = React.useState(false); // 👈 gate hydration
   const handleNudgeSent = () => setRefreshTrigger((p) => p + 1);
-
+  //
   const { isEditingMode, showSettings } = useAgendaStore();
+  
+  /* Initialize Zoom Apps SDK and log meeting & user IDs when running inside Zoom
+  
+  *  Zoom Meeting ID = meetingCtx?.meetingID
+  *  Zoom Role = userCtx?.role
+  */ 
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        // Configure SDK with only the capabilities we need
+        await zoomSdk.config({
+          capabilities: ["getMeetingContext"],
+        });
 
+        const meetingCtx = await zoomSdk.getMeetingContext();
+        const userCtx = await zoomSdk.getUserContext();
+
+        if (!mounted) return;
+
+        // Log to console for now the meeting id
+        console.log(
+          `[Zoom Apps] meetingID=${meetingCtx?.meetingID} | meetingTopic=${meetingCtx?.meetingTopic}`
+        );
+        console.log(
+          `[Zoom Apps] user screenName=${userCtx?.screenName} | participantId=${userCtx?.participantUUID} | role=${userCtx?.role} | status=${userCtx?.status}`
+        );
+
+      } catch (e) {
+        // Not running inside Zoom or SDK not available; keep silent in production
+        console.debug("[Zoom Apps] SDK not available or init failed:", e);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  
+  // emit initial socket events
   useEffect(() => {
     initAgendaSockets();
     initSettingsSockets();
