@@ -36,9 +36,9 @@ function HomeContent() {
   const { isEditingMode, showSettings } = useAgendaStore();
   
   /* Initialize Zoom Apps SDK and log meeting & user IDs when running inside Zoom
-  
-  *  Zoom Meeting ID = meetingCtx?.meetingID
-  *  Zoom Role = userCtx?.role
+  *
+  *  meetingCtx?.meetingID = meeting ID
+  *  userCtx?.role = role (host/attendee)
   */ 
   useEffect(() => {
     let mounted = true;
