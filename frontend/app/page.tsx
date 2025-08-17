@@ -55,8 +55,7 @@ function HomeContent() {
           `[Zoom Apps] meetingID=${meetingCtx?.meetingID} | meetingTopic=${meetingCtx?.meetingTopic}`
         );
         console.log(
-          `[Zoom Apps] userID=${userCtx?.screenName} | userName=${userCtx?.role}`
-        );
+          `[Zoom Apps] user screenName=${userCtx?.screenName} | participantId=${userCtx?.participantUUID} | role=${userCtx?.role} | status=${userCtx?.status}`        );
 
       } catch (e) {
         // Not running inside Zoom or SDK not available; keep silent in production
