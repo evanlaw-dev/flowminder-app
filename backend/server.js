@@ -29,6 +29,7 @@ app.use('/api/meetings', meetingRoutes);
 // Update meeting and user id
 app.post("/update-meeting", async (req, res) => {
   const { meetingId } = req.body || {};
+  console.log(meetingId);
   if (!meetingId) return res.status(400).json({ error: "meetingId required" });
 
   try {
