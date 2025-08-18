@@ -42,16 +42,15 @@ function HomeContent() {
           capabilities: ["getMeetingContext", "getUserContext", "getMeetingUUID"],
         });
 
-        const [meetingCtx, userCtx, meetingUUID] = await Promise.all([
+        const [meetingCtx, userCtx] = await Promise.all([
           zoomSdk.getMeetingContext(),
           zoomSdk.getUserContext(),
-          zoomSdk.getMeetingUUID(),
         ]);
 
         if (!isAlive) return;
 
         console.log(
-          `[Zoom Apps] meetingID=${meetingCtx?.meetingID} | meetingUUID=${meetingUUID?.meetingUUID} | meetingTopic=${meetingCtx?.meetingTopic}`
+          `[Zoom Apps] meetingID=${meetingCtx?.meetingID}| meetingTopic=${meetingCtx?.meetingTopic}`
         );
         console.log(
           `[Zoom Apps] user screenName=${userCtx?.screenName} | participantId=${userCtx?.participantUUID} | role=${userCtx?.role} | status=${userCtx?.status}`
@@ -59,7 +58,7 @@ function HomeContent() {
 
         setRole(userCtx?.role === "host" ? "host" : "participant");
 
-        const mId = meetingUUID?.meetingUUID;
+        const mId = meetingCtx?.meetingID;
         const uId = userCtx?.participantUUID;
 
         // Update local state first (source of truth for this component)
@@ -71,7 +70,7 @@ function HomeContent() {
         setCurrentUserId(uId);
 
         // Upsert the meeting row in DB
-        await syncMeetingToBackend(mId, uId);
+        await syncMeetingToBackend(mId);
       } catch (e) {
         console.debug("[Zoom Apps] SDK not available or init failed:", e);
       }
