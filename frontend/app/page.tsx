@@ -31,7 +31,7 @@ function HomeContent() {
   const [meetingId, setMeetingIdState] = React.useState<string | null>(null);
   const [userId, setUserIdState] = React.useState<string | null>(null);
 
-  const { isEditingMode, showSettings } = useAgendaStore();
+  const { isEditingMode, showSettings, addParticipant, removeParticipant, setParticipants } = useAgendaStore();
 
   // Initialize Zoom SDK and capture IDs
   useEffect(() => {
@@ -114,6 +114,61 @@ function HomeContent() {
   useEffect(() => {
     setClientMounted(true);
   }, []);
+
+  useEffect(() => {
+    let mounted = clientMounted;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleParticipantChange = (payload: any) => {
+      console.log("Participant change event:", payload);
+
+      if (payload.action === "join") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        payload.participants.forEach((p: any) => {
+          addParticipant({
+            screenName: p.screenName,
+            participantUUID: p.participantUUID,
+          });
+        });
+      }
+
+      if (payload.action === "leave") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        payload.participants.forEach((p: any) => {
+          removeParticipant(p.participantUUID);
+        });
+      }
+    };
+
+    (async () => {
+      try {
+        await zoomSdk.config({
+          capabilities: ["onParticipantChange", "getMeetingParticipants"],
+        });
+        
+        // Populate initial participant list
+        const { participants } = await zoomSdk.getMeetingParticipants();
+        if (mounted && participants) {
+          setParticipants(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            participants.map((p: any) => ({
+              screenName: p.screenName,
+              participantUUID: p.participantUUID,
+            }))
+          );
+        }
+
+        zoomSdk.on("onParticipantChange", handleParticipantChange);
+      } catch (e) {
+        console.debug("Zoom participant listener failed:", e);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      zoomSdk.off("onParticipantChange", handleParticipantChange);
+    };
+  }, [addParticipant, clientMounted, removeParticipant, setParticipants]);
 
   return (
     <aside className="fixed left-0 top-0 h-[100svh] max-h-[1000px] flex flex-col w-full max-w-[400px] bg-[var(--primary)] transition-width duration-100 ease-in-out space-y-2">

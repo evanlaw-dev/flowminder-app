@@ -38,6 +38,11 @@ export interface AgendaItemType {
     processedAt?: string | null;
 }
 
+interface Participant {
+    screenName: string,
+    participantUUID: string,
+}
+
 type AgendaStore = {
 
     /*timer*/
@@ -86,11 +91,11 @@ type AgendaStore = {
     previousItem: () => void;
     processCurrentItem: () => void;
 
-    /* user id */
-    MEETING_ID: string | null;
-    CURRENT_USER_ID: string | null;
-    setMeetingId: (id: string) => void;
-    setCurrentUserId: (id: string) => void;
+    /* participant list */
+    participants: Participant[];
+    addParticipant: (p: Participant) => void;
+    removeParticipant: (participantUUID: string) => void;
+    setParticipants: (list: Participant[]) => void;
 };
 
 export const useAgendaStore = create<AgendaStore>((set, get) => ({
@@ -107,8 +112,7 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
     addTimersBtn: false,
     refreshToken: 0,
     bumpRefresh: () => set(s => ({ refreshToken: s.refreshToken + 1 })),
-    MEETING_ID: null,
-    CURRENT_USER_ID: null,
+    participants: [],
 
     /* setters */
     setVisibility: (visibility) => set({ visibility }),
@@ -120,8 +124,25 @@ export const useAgendaStore = create<AgendaStore>((set, get) => ({
     setAgendaItems: (items: AgendaItemType[]): void => {
         set({ items: items });
     },
-    setMeetingId: (id: string) => set({ MEETING_ID: id }),
-    setCurrentUserId: (id: string) => set({ CURRENT_USER_ID: id }),
+
+    /* paticipants */
+    addParticipant: (p) =>
+    set((state) => {
+      // avoid duplicates
+      if (state.participants.find((x) => x.participantUUID === p.participantUUID)) {
+        return state;
+      }
+      return { participants: [...state.participants, p] };
+    }),
+
+    removeParticipant: (participantUUID) =>
+        set((state) => ({
+        participants: state.participants.filter(
+            (p) => p.participantUUID !== participantUUID
+        ),
+        })),
+
+  setParticipants: (list) => set({ participants: list }),
 
     /* toggle buttons */
     toggleEditingMode: () => set((state) => ({ isEditingMode: !state.isEditingMode })),
