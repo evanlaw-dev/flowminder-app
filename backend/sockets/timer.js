@@ -1,73 +1,75 @@
+const { MEETING_ID } = require('../config/meetingConfig');
+
 // Server-based timer for Socket.IO 
 function attachTimer(io) {
-  const timers = {}; // meetingId -> { status, endAt, remainingMs? }
+  const timers = {}; 
   const now = () => Date.now();
-  const getState = (meetingId) => timers[meetingId] || { status: 'pending', endAt: 0 };
+  const getState = () => timers[MEETING_ID] || { status: 'pending', endAt: 0 };
 
-  const emitStateToAll = (meetingId) => {
-    const s = getState(meetingId);
-    io.to(meetingId).emit('timer:state', { ...s, serverTime: now() });
+  const emitStateToAll = () => {
+    const s = getState();
+    io.to(MEETING_ID).emit('timer:state', { ...s, serverTime: now() });
   };
-  const emitStateToSocket = (socket, meetingId) => {
-    const s = getState(meetingId);
+
+  const emitStateToSocket = (socket) => {
+    const s = getState();
     socket.emit('timer:state', { ...s, serverTime: now() });
   };
 
   io.on('connection', (socket) => {
-    socket.on('joinMeeting', (meetingId) => {
-      socket.join(meetingId);
-      emitStateToSocket(socket, meetingId);
+    socket.on('joinMeeting', () => {
+      socket.join(MEETING_ID);
+      emitStateToSocket(socket);
     });
 
-    socket.on('timer:get', (meetingId) => {
-      emitStateToSocket(socket, meetingId);
+    socket.on('timer:get', () => {
+      emitStateToSocket(socket);
     });
 
-    socket.on('timer:start', ({ meetingId, durationMs }) => {
+    socket.on('timer:start', ({ durationMs }) => {
       const ms = Math.max(0, Number(durationMs || 0));
       if (ms === 0) return;
       const endAt = now() + ms;
-      timers[meetingId] = { status: 'running', endAt };
-      emitStateToAll(meetingId);
+      timers[MEETING_ID] = { status: 'running', endAt };
+      emitStateToAll();
     });
 
-    socket.on('timer:pause', ({ meetingId }) => {
-      if (!meetingId) return;
-      const prev = getState(meetingId);
+    socket.on('timer:pause', () => {
+      const prev = getState();
       if (prev.status !== 'running') return;
       const remaining = Math.max(0, prev.endAt - now());
-      timers[meetingId] = { status: 'paused', endAt: prev.endAt, remainingMs: remaining };
-      emitStateToAll(meetingId);
+      timers[MEETING_ID] = { status: 'paused', endAt: prev.endAt, remainingMs: remaining };
+      emitStateToAll();
     });
 
-    socket.on('timer:resume', ({ meetingId }) => {
-      if (!meetingId) return;
-      const prev = getState(meetingId);
+    socket.on('timer:resume', () => {
+      const prev = getState();
       if (prev.status !== 'paused') return;
-      const endAt = now() + prev.remainingMs;
-      timers[meetingId] = { status: 'running', endAt };
-      emitStateToAll(meetingId);
+      const remaining = typeof prev.remainingMs === 'number'
+        ? prev.remainingMs
+        : Math.max(0, prev.endAt - now());
+      const endAt = now() + remaining;
+      timers[MEETING_ID] = { status: 'running', endAt };
+      emitStateToAll();
     });
 
-    socket.on('timer:cancel', ({ meetingId }) => {
-      if (!meetingId) return;
-      timers[meetingId] = { status: 'pending', endAt: 0 };
-      emitStateToAll(meetingId);
+    socket.on('timer:cancel', () => {
+      timers[MEETING_ID] = { status: 'pending', endAt: 0 };
+      emitStateToAll();
     });
 
-    socket.on('timer:edit:save', ({ meetingId, proposedEndAt }) => {
-      if (!meetingId) return;
+    socket.on('timer:edit:save', ({ proposedEndAt }) => {
       const endAt = Math.max(now(), Math.floor(Number(proposedEndAt) || 0));
-      const prev = getState(meetingId);
+      const prev = getState();
       const status = prev.status === 'pending' ? 'running' : prev.status;
 
       if (status === 'paused') {
         const remaining = Math.max(0, endAt - now());
-        timers[meetingId] = { status: 'paused', endAt, remainingMs: remaining };
+        timers[MEETING_ID] = { status: 'paused', endAt, remainingMs: remaining };
       } else {
-        timers[meetingId] = { status, endAt };
+        timers[MEETING_ID] = { status, endAt };
       }
-      emitStateToAll(meetingId);
+      emitStateToAll();
     });
   });
 }

@@ -5,10 +5,11 @@ const cors = require('cors');
 const { Server } = require('socket.io');
 const { Parser } = require('json2csv');
 const { pool } = require('./db/pool');
+const { getOrCreateMeetingId } = require('./db/getOrCreateMeetingId');
 const { attachAllSockets } = require('./sockets');
 const { agendaBroadcastFromDb } = require('./sockets/agenda');
-const { markParticipantJoined } = require("./sockets/nudge.js"); // TO-DELETE AFTER TEST
-const { setMeetingId, setCurrentUserId, getMeetingId, getCurrentUserId } = require('./config/constants.js');
+// const { markParticipantJoined } = require("./sockets/nudge.js"); // TO-DELETE AFTER TEST
+const { getMeeting, setMeeting } = require('./config/meetingConfig.js');
 
 // middleware to parse zoomroute
 const zoomRoutes = require('./routes/zoomRoute.js');
@@ -26,16 +27,6 @@ app.get('/', (_, res) => res.send('Server is running'));
 app.use('/zoom', zoomRoutes);
 app.use('/api/meetings', meetingRoutes);
 
-// Update meeting and user id
-app.post('/update-meeting', (req, res) => {
-  const { meetingId, userId } = req.body;
-
-  if (meetingId) setMeetingId(meetingId);
-  if (userId) setCurrentUserId(userId);
-
-  res.json({ success: true, MEETING_ID: meetingId, CURRENT_USER_ID: userId });
-});
-
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST', 'DELETE', 'PATCH', 'PUT'] },
@@ -43,32 +34,28 @@ const io = new Server(server, {
 });
 
 // TEST - DELETE WHEN DONE
-if (process.env.NODE_ENV !== "production") {
-  app.post("/dev/roster/join", async (req, res) => {
-    const { meetingId, userId, name } = req.body;
-    try {
-      // 1) Ensure zoom_users row exists
-      await pool.query(
-        `INSERT INTO zoom_users (user_id, display_name)
-         VALUES ($1, $2)
-         ON CONFLICT (user_id) DO NOTHING`,
-        [userId, name || userId]
-      );
+// if (process.env.NODE_ENV !== "production") {
+//   app.post("/dev/roster/join", async (req, res) => {
+//     const { meetingId, userId, name } = req.body;
+//     try {
+//       // 1) Ensure zoom_users row exists
+//       await pool.query(
+//         `INSERT INTO zoom_users (user_id, display_name)
+//          VALUES ($1, $2)
+//          ON CONFLICT (user_id) DO NOTHING`,
+//         [userId, name || userId]
+//       );
 
-      // 2) Create/flip nudges row to in_meeting=true and broadcast delta
-      await markParticipantJoined(io, pool, { meetingId, userId });
+//       // 2) Create/flip nudges row to in_meeting=true and broadcast delta
+//       await markParticipantJoined(io, pool, { meetingId, userId });
 
-      res.json({ ok: true });
-    } catch (e) {
-      console.error("dev/roster/join", e);
-      res.status(500).json({ ok: false, error: e.detail || e.message });
-    }
-  });
-}
-
-
-
-attachAllSockets(io, pool);
+//       res.json({ ok: true });
+//     } catch (e) {
+//       console.error("dev/roster/join", e);
+//       res.status(500).json({ ok: false, error: e.detail || e.message });
+//     }
+//   });
+// }
 
 // Test PostgreSQL connection
 pool.query('SELECT NOW()', (err, res) => {
@@ -87,6 +74,8 @@ pool.query('SELECT NOW()', (err, res) => {
     console.log(`\x1b[35mHost: ${host} | Database: ${database} | User: ${user} | Time: ${res.rows[0].now}\x1b[0m`);
   }
 });
+
+attachAllSockets(io, pool);
 
 
 /* ---------------- REST: agenda items ---------------- */
@@ -228,6 +217,56 @@ app.delete('/agenda_items/:id', async (req, res) => {
   }
 });
 
+
+/* ---------------- REST: meetings ---------------- */
+
+// Frontend posts once after init
+app.post('/meeting', (req, res) => {
+  setMeeting(req.body);
+  res.sendStatus(204);
+});
+
+// Other handlers (or the frontend) can read
+app.get('/meeting', (_req, res) => {
+  res.json(getMeeting());
+});
+
+// Update meeting and user id
+// app.post('/update-meeting', (req, res) => {
+//   const { meetingId, userId } = req.body;
+
+//   if (meetingId) setMeetingId(meetingId);
+//   if (userId) setCurrentUserId(userId);
+
+//   res.json({ success: true, MEETING_ID: meetingId, CURRENT_USER_ID: userId });
+// });
+
+app.post('/meetings/get_or_create', async (req, res) => {
+  const {
+    zoom_meeting_id,       
+    host_email = null,
+    meeting_title = null,
+    scheduled_start = null
+  } = req.body;
+
+  if (!zoom_meeting_id) {
+    return res.status(400).json({ success: false, error: 'zoom_meeting_id is required' });
+  }
+
+  try {
+    const { meeting_id, created } = await getOrCreateMeetingId(pool, {
+      zoom_meeting_id,
+      host_email,
+      meeting_title,
+      scheduled_start
+    });
+    return res.json({ success: true, meeting_id, created });
+  } catch (err) {
+    console.error('Error get_or_create meeting:', err);
+    return res.status(500).json({ success: false, error: 'Failed to get or create meeting' });
+  }
+});
+
 // GET /download/:meetingId - Export meeting history as CSV
 app.get('/download/:meetingId', async (req, res) => {
   const { meetingId } = req.params;
@@ -246,67 +285,6 @@ app.get('/download/:meetingId', async (req, res) => {
     res.send(csv);
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to export actions as CSV' });
-  }
-});
-
-// GET /participants?meeting_id=xxx - Get all participants for a meeting
-app.get('/participants', async (req, res) => {
-  const { meeting_id } = req.query;
-
-  if (!meeting_id) {
-    return res.status(400).json({ success: false, error: 'Missing meeting_id' });
-  }
-
-  try {
-    const result = await pool.query(
-      'SELECT id, name, email, role FROM meeting_participants WHERE meeting_id = $1 ORDER BY name ASC',
-      [meeting_id]
-    );
-
-    res.json({ success: true, participants: result.rows });
-  } catch (error) {
-    console.error('Error fetching participants:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch participants' });
-  }
-});
-
-// POST /participants - Add a participant to a meeting
-app.post('/participants', async (req, res) => {
-  const { meeting_id, name, email, role = 'participant' } = req.body;
-
-  if (!meeting_id || !name) {
-    return res.status(400).json({ success: false, error: 'Meeting ID and name are required' });
-  }
-
-  try {
-    const result = await pool.query(
-      'INSERT INTO meeting_participants (meeting_id, name, email, role) VALUES ($1, $2, $3, $4) RETURNING *',
-      [meeting_id, name, email, role]
-    );
-    res.json({ success: true, participant: result.rows[0] });
-  } catch (error) {
-    console.error('Error adding participant:', error);
-    res.status(500).json({ success: false, error: 'Failed to add participant' });
-  }
-});
-
-// POST /nudge - Send a nudge to a specific participant
-app.post('/nudge', async (req, res) => {
-  const { meeting_id, participant_id, nudge_type, message } = req.body;
-  if (!meeting_id || !participant_id || !nudge_type) {
-    return res.status(400).json({ success: false, error: 'Meeting ID, participant ID, and nudge type are required' });
-  }
-  const timestamp = new Date().toISOString();
-  try {
-    await pool.query(
-      'INSERT INTO nudges (meeting_id, participant_id, nudge_type, message, timestamp) VALUES ($1, $2, $3, $4, $5)',
-      [meeting_id, participant_id, nudge_type, message, timestamp]
-    );
-    io.to(meeting_id).emit('nudge', { meeting_id, participant_id, nudge_type, message, timestamp });
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error sending nudge:', error);
-    res.status(500).json({ success: false, error: 'Failed to send nudge' });
   }
 });
 
@@ -345,6 +323,68 @@ app.put('/meetings/:id/timer-settings', async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to update timer settings' });
   }
 });
+
+// // GET /participants?meeting_id=xxx - Get all participants for a meeting
+// app.get('/participants', async (req, res) => {
+//   const { meeting_id } = req.query;
+
+//   if (!meeting_id) {
+//     return res.status(400).json({ success: false, error: 'Missing meeting_id' });
+//   }
+
+//   try {
+//     const result = await pool.query(
+//       'SELECT id, name, email, role FROM meeting_participants WHERE meeting_id = $1 ORDER BY name ASC',
+//       [meeting_id]
+//     );
+
+//     res.json({ success: true, participants: result.rows });
+//   } catch (error) {
+//     console.error('Error fetching participants:', error);
+//     res.status(500).json({ success: false, error: 'Failed to fetch participants' });
+//   }
+// });
+
+// // POST /participants - Add a participant to a meeting
+// app.post('/participants', async (req, res) => {
+//   const { meeting_id, name, email, role = 'participant' } = req.body;
+
+//   if (!meeting_id || !name) {
+//     return res.status(400).json({ success: false, error: 'Meeting ID and name are required' });
+//   }
+
+//   try {
+//     const result = await pool.query(
+//       'INSERT INTO meeting_participants (meeting_id, name, email, role) VALUES ($1, $2, $3, $4) RETURNING *',
+//       [meeting_id, name, email, role]
+//     );
+//     res.json({ success: true, participant: result.rows[0] });
+//   } catch (error) {
+//     console.error('Error adding participant:', error);
+//     res.status(500).json({ success: false, error: 'Failed to add participant' });
+//   }
+// });
+
+// POST /nudge - Send a nudge to a specific participant
+app.post('/nudge', async (req, res) => {
+  const { meeting_id, participant_id, nudge_type, message } = req.body;
+  if (!meeting_id || !participant_id || !nudge_type) {
+    return res.status(400).json({ success: false, error: 'Meeting ID, participant ID, and nudge type are required' });
+  }
+  const timestamp = new Date().toISOString();
+  try {
+    await pool.query(
+      'INSERT INTO nudges (meeting_id, participant_id, nudge_type, message, timestamp) VALUES ($1, $2, $3, $4, $5)',
+      [meeting_id, participant_id, nudge_type, message, timestamp]
+    );
+    io.to(meeting_id).emit('nudge', { meeting_id, participant_id, nudge_type, message, timestamp });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error sending nudge:', error);
+    res.status(500).json({ success: false, error: 'Failed to send nudge' });
+  }
+});
+
 
 app.get('/health', (_, res) => res.json({ status: 'ok' }));
 

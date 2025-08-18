@@ -1,9 +1,6 @@
 // frontend/app/MeetingSession/[user_id]/[meeting_id]/page.tsx
 'use client';
 
-// frontend/app/MeetingSession/[user_id]/[meeting_id]/page.tsx
-'use client';
-
 import { useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import ZoomMtgEmbedded from '@zoom/meetingsdk/embedded';

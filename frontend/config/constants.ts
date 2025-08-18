@@ -6,8 +6,10 @@ export const BACKEND_URL =
 
 export function setMeetingId(id: string) {
   MEETING_ID = id;
+  console.log("frotnend meeting id from console" + MEETING_ID);
 }
 
 export function setCurrentUserId(id: string) {
   CURRENT_USER_ID = id;
+  console.log("frotnend meeting id from console" + CURRENT_USER_ID);
 }
