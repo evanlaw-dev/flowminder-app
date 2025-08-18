@@ -2,14 +2,13 @@
 "use client";
 
 import React, { Suspense, useEffect } from "react";
-// import { useSearchParams } from "next/navigation";
 import { useAgendaStore } from "@/stores/useAgendaStore";
 import { loadMeetingTimerSettings } from "@/services/agendaService";
 import { initAgendaSockets } from "@/sockets/agenda";
 import { initSettingsSockets } from "@/sockets/settings";
 import { socket } from "../sockets/socket";
 import zoomSdk from "@zoom/appssdk";
-import { MEETING_ID, setMeetingId, setCurrentUserId, BACKEND_URL } from '../config/constants';
+import { setMeetingId, setCurrentUserId, BACKEND_URL } from "../config/constants";
 
 import Agenda from "@/components/Agenda";
 import Settings from "@/components/Settings";
@@ -24,86 +23,83 @@ export default function Home() {
     </Suspense>
   );
 }
-// adding a comment for deployment
-function HomeContent() {
-  // const searchParams = useSearchParams();
-  // const role = searchParams.get("role") === "host" ? "participant" : "host";
-  const [role, setRole] = React.useState<"host" | "participant">("participant");
 
-  const [mounted, setMounted] = React.useState(false); // 👈 gate hydration
-  //
-  const { isEditingMode, showSettings, CURRENT_USER_ID } = useAgendaStore();
-  
-  /* Initialize Zoom Apps SDK and log meeting & user IDs when running inside Zoom
-  *
-  *  meetingCtx?.meetingID = meeting ID
-  *  userCtx?.role = role (host/attendee)
-  */ 
+function HomeContent() {
+  const [role, setRole] = React.useState<"host" | "participant">("participant");
+  const [clientMounted, setClientMounted] = React.useState(false);
+
+  const [meetingId, setMeetingIdState] = React.useState<string | null>(null);
+  const [userId, setUserIdState] = React.useState<string | null>(null);
+
+  const { isEditingMode, showSettings } = useAgendaStore();
+
+  // Initialize Zoom SDK and capture IDs
   useEffect(() => {
-    let mounted = true;
+    let isAlive = true;
+
     (async () => {
       try {
-        // Configure SDK with only the capabilities we need
         await zoomSdk.config({
           capabilities: ["getMeetingContext", "getUserContext", "getMeetingUUID"],
         });
 
-        const meetingCtx = await zoomSdk.getMeetingContext();
-        const userCtx = await zoomSdk.getUserContext();
-        const meetingUUID = await zoomSdk.getMeetingUUID();
+        const [meetingCtx, userCtx, meetingUUID] = await Promise.all([
+          zoomSdk.getMeetingContext(),
+          zoomSdk.getUserContext(),
+          zoomSdk.getMeetingUUID(),
+        ]);
 
-        if (!mounted) return;
+        if (!isAlive) return;
 
-        // Log to console for now the meeting id
         console.log(
-          `[Zoom Apps] meetingID=${meetingCtx?.meetingID} | eetingUUID=${meetingUUID?.meetingUUID} | meetingTopic=${meetingCtx?.meetingTopic}`
+          `[Zoom Apps] meetingID=${meetingCtx?.meetingID} | meetingUUID=${meetingUUID?.meetingUUID} | meetingTopic=${meetingCtx?.meetingTopic}`
         );
         console.log(
           `[Zoom Apps] user screenName=${userCtx?.screenName} | participantId=${userCtx?.participantUUID} | role=${userCtx?.role} | status=${userCtx?.status}`
         );
 
-        // Set role based on the returned value of getUserContext response
         setRole(userCtx?.role === "host" ? "host" : "participant");
 
-        console.log('MEETING ID:' + MEETING_ID);
+        const mId = meetingCtx?.meetingID || "Default_Meeting_ID";
+        const uId = userCtx?.participantUUID || "Default_User_ID";
 
-        const meetingId = meetingCtx?.meetingID || "Default_Meeting_ID";
-        const currentUserId = userCtx?.participantUUID || "Default_User_ID";
+        // Update local state first (source of truth for this component)
+        setMeetingIdState(mId);
+        setUserIdState(uId);
 
-        console.log('Meeting Id:' + meetingId + ',current user id:', currentUserId);
-        setMeetingId(meetingId);
-        setCurrentUserId(currentUserId);
-      
-        fetch(`${BACKEND_URL}/update-meeting`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ meetingId: MEETING_ID, userId: CURRENT_USER_ID }),
+        // If you still need globals elsewhere, update them too
+        setMeetingId(mId);
+        setCurrentUserId(uId);
+
+        // This POST should use the freshly resolved IDs, not stale imports
+        await fetch(`${BACKEND_URL}/update-meeting`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ meetingId: mId, userId: uId }),
         });
-
       } catch (e) {
-        // Not running inside Zoom or SDK not available; keep silent in production
         console.debug("[Zoom Apps] SDK not available or init failed:", e);
       }
     })();
+
     return () => {
-      mounted = false;
+      isAlive = false;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  
-  // emit initial socket events
+  // Initialize sockets *after* we have a real meetingId/userId
   useEffect(() => {
-    console.log('Emitting socket event');
-    console.log('MEETING ID:' + MEETING_ID);
-    console.log('CURRENT USER ID:' + CURRENT_USER_ID);
+    if (!meetingId || !userId) return;
+
+    console.log("Emitting socket event with IDs:", { meetingId, userId });
+
     initAgendaSockets();
     initSettingsSockets();
-    socket.emit("joinMeeting", MEETING_ID);
+
+    socket.emit("joinMeeting", meetingId);
     socket.emit("agenda:get");
-    socket.emit("timer:get", MEETING_ID);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    socket.emit("timer:get", meetingId);
+  }, [meetingId, userId]);
 
   useEffect(() => {
     (async () => {
@@ -116,12 +112,11 @@ function HomeContent() {
   }, []);
 
   useEffect(() => {
-    // wait until client mounted to render the list
-    setMounted(true);
+    setClientMounted(true);
   }, []);
 
   return (
-    <aside className="fixed left-0 top-0 h-[100svh] max-h-[1000px] flex flex-col w-full max-w-[400px]                      bg-[var(--primary)] transition-width duration-100 ease-in-out space-y-2">
+    <aside className="fixed left-0 top-0 h-[100svh] max-h-[1000px] flex flex-col w-full max-w-[400px] bg-[var(--primary)] transition-width duration-100 ease-in-out space-y-2">
       <div id="main" className="flex flex-col flex-grow justify-center space-y-2 min-h-0">
         <div id="header" className="flex-shrink-0 bg-[var(--secondary)] pb-2 rounded-b-xl shadow-md">
           <Header role={role} />
@@ -131,17 +126,12 @@ function HomeContent() {
           <div className="overflow-y-auto h-full rounded-lg px-4">
             {showSettings ? (
               <Settings />
+            ) : clientMounted ? (
+              <Suspense fallback={<div className="py-4">Loading agenda…</div>}>
+                <Agenda role={role} />
+              </Suspense>
             ) : (
-              <div>
-                {/* 👇 Only render Agenda after mount to avoid SSR/CSR mismatch */}
-                {mounted ? (
-                  <Suspense fallback={<div className="py-4">Loading agenda…</div>}>
-                    <Agenda role={role} />
-                  </Suspense>
-                ) : (
-                  <div className="py-4">Loading agenda…</div>
-                )}
-              </div>
+              <div className="py-4">Loading agenda…</div>
             )}
           </div>
           <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8" />
