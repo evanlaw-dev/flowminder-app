@@ -8,15 +8,14 @@ import { loadMeetingTimerSettings } from "@/services/agendaService";
 import { initAgendaSockets } from "@/sockets/agenda";
 import { initSettingsSockets } from "@/sockets/settings";
 import { socket } from "../sockets/socket";
-// import { MEETING_ID } from "@/config/constants";
 import zoomSdk from "@zoom/appssdk";
+import { MEETING_ID, setMeetingId, setCurrentUserId, BACKEND_URL } from '../config/constants';
 
 import Agenda from "@/components/Agenda";
 import Settings from "@/components/Settings";
 import Header from "@/components/Header";
 import BtnCancelSave from "@/components/BtnCancelSave";
 import NudgeStatsPanel from "@/components/NudgeStatsPanel";
-import { CURRENT_USER_ID } from "@/config/constants";
 
 export default function Home() {
   return (
@@ -33,7 +32,7 @@ function HomeContent() {
 
   const [mounted, setMounted] = React.useState(false); // 👈 gate hydration
   //
-  const { isEditingMode, showSettings, MEETING_ID, setMeetingId, setCurrentUserId } = useAgendaStore();
+  const { isEditingMode, showSettings, CURRENT_USER_ID } = useAgendaStore();
   
   /* Initialize Zoom Apps SDK and log meeting & user IDs when running inside Zoom
   *
@@ -74,6 +73,13 @@ function HomeContent() {
         console.log('Meeting Id:' + meetingId + ',current user id:', currentUserId);
         setMeetingId(meetingId);
         setCurrentUserId(currentUserId);
+      
+        fetch(`${BACKEND_URL}/update-meeting`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ meetingId: MEETING_ID, userId: CURRENT_USER_ID }),
+        });
+
       } catch (e) {
         // Not running inside Zoom or SDK not available; keep silent in production
         console.debug("[Zoom Apps] SDK not available or init failed:", e);
@@ -96,7 +102,8 @@ function HomeContent() {
     socket.emit("joinMeeting", MEETING_ID);
     socket.emit("agenda:get");
     socket.emit("timer:get", MEETING_ID);
-  }, [MEETING_ID]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     (async () => {

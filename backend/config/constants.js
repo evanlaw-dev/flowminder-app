@@ -1,3 +1,18 @@
+// backend/state.js
+export let MEETING_ID = "";
+export let CURRENT_USER_ID = "";
+
+function setMeetingId(id) {
+  MEETING_ID = id;
+}
+
+function setCurrentUserId(id) {
+  CURRENT_USER_ID = id;
+}
+
 module.exports = {
-  MEETING_ID: process.env.MEETING_ID || 'a8f52a02-5aa8-45ec-9549-79ad2a194fa4',
+  getMeetingId,
+  setMeetingId,
+  getCurrentUserId,
+  setCurrentUserId,
 };

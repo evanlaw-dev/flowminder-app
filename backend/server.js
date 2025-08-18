@@ -7,8 +7,8 @@ const { Parser } = require('json2csv');
 const { pool } = require('./db/pool');
 const { attachAllSockets } = require('./sockets');
 const { agendaBroadcastFromDb } = require('./sockets/agenda');
-const { MEETING_ID } = require('./config/constants');
 const { markParticipantJoined } = require("./sockets/nudge.js"); // TO-DELETE AFTER TEST
+const { setMeetingId, setCurrentUserId, getMeetingId, getCurrentUserId } = require('./config/constants.js');
 
 // middleware to parse zoomroute
 const zoomRoutes = require('./routes/zoomRoute.js');
