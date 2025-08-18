@@ -2,8 +2,13 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { socket } from "@/sockets/socket";
-import { MEETING_ID, CURRENT_USER_ID } from "@/config/constants";
-import { useNudgeStore } from "@/stores/useNudgeStore";
+import { getMeetingId, getCurrentUserId } from "@/config/constants";
+import { useNudgeStore } from "../stores/useNudgeStore";
+
+const MEETING_ID = getMeetingId()
+const CURRENT_USER_ID = getCurrentUserId();
+
+
 
 type UiKind = "move_along" | "invite_speak";
 

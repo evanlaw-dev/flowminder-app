@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { socket } from "../sockets/socket";
-import { MEETING_ID } from "../config/constants";
+import { getMeetingId } from "../config/constants";
+
+const MEETING_ID = getMeetingId();
 
 export type Status = "pending" | "running" | "paused";
 export interface TimerStateMsg {

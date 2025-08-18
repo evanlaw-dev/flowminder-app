@@ -1,5 +1,7 @@
 import { AgendaItemType, useAgendaStore, MeetingTimerSettings, Visibility } from "../stores/useAgendaStore";
-import { BACKEND_URL, MEETING_ID } from "../config/constants";
+import { BACKEND_URL, getMeetingId } from "../config/constants";
+
+const MEETING_ID = getMeetingId();
 
 type AgendaItemResponse = {
   id: string;
