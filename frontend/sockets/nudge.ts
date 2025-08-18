@@ -1,9 +1,11 @@
 // src/sockets/nudge.ts
 import { socket } from "./socket";
-import { MEETING_ID, CURRENT_USER_ID } from "@/config/constants";
 import { useNudgeStore } from "../stores/useNudgeStore";
+import { getMeetingId } from "@/stores/useMeetingStore"; // tiny accessor
 
 let wired = false;
+const MEETING_ID = getMeetingId();
+const CURRENT_USER_ID = getMeetingId(); // DELETE LATER
 
 type ParticipantRow = {
   user_id: string;

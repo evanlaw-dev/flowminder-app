@@ -50,7 +50,7 @@ export default function Nudge() {
     const kind = uiKind === "invite_speak" ? "more" : "less";
     socket.emit("nudge:cast", {
       meetingId: MEETING_ID,
-      voterId: null, // CHANGE LATER
+      // voterId: null, // CHANGE LATER
       targetId,
       kind, // "more" | "less"
     });
