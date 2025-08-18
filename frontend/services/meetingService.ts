@@ -1,8 +1,7 @@
 // src/services/meetings.ts
 import zoomSdk from "@zoom/appssdk";
 import { useMeetingStore } from "../stores/useMeetingStore";
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE ?? "";
+import { BACKEND_URL } from "../config/constants";
 
 /** One-time Zoom config */
 let zoomConfigured = false;
@@ -85,7 +84,7 @@ async function getOrCreateMeeting(
     scheduled_start: toIsoOrNull(payload.scheduled_start),
   };
 
-  const res = await fetch(`${BASE_URL}/meetings/get_or_create`, {
+  const res = await fetch(`${BACKEND_URL}/meetings/get_or_create`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",

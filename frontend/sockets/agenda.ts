@@ -1,8 +1,10 @@
 import { socket } from "./socket";
 import { useAgendaStore, type AgendaItemType } from "../stores/useAgendaStore";
-import { MEETING_ID } from "../config/constants";
+import { getMeetingId } from "@/stores/useMeetingStore"; // tiny accessor
 
 let wired = false;
+const MEETING_ID = getMeetingId();
+
 
 // Shapes coming from the server
 type itemFromServer = {

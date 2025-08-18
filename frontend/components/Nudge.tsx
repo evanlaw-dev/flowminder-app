@@ -2,10 +2,12 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { socket } from "@/sockets/socket";
-import { MEETING_ID, CURRENT_USER_ID } from "@/config/constants";
 import { useNudgeStore } from "@/stores/useNudgeStore";
+import { getMeetingId } from "@/stores/useMeetingStore"; // tiny accessor
+
 
 type UiKind = "move_along" | "invite_speak";
+const MEETING_ID = getMeetingId();
 
 export default function Nudge() {
   const [open, setOpen] = useState(false);
@@ -21,7 +23,7 @@ export default function Nudge() {
   const targets = useMemo(() => {
     const list = order.map((id) => byId[id]).filter(Boolean);
     const filtered = list
-      .filter((p) => p.in_meeting && p.user_id !== CURRENT_USER_ID)
+      // .filter((p) => p.in_meeting && p.user_id !== CURRENT_USER_ID) //CHANGE LATER
       .filter((p) => {
         if (!q.trim()) return true;
         const needle = q.toLowerCase();
@@ -48,7 +50,7 @@ export default function Nudge() {
     const kind = uiKind === "invite_speak" ? "more" : "less";
     socket.emit("nudge:cast", {
       meetingId: MEETING_ID,
-      voterId: CURRENT_USER_ID,
+      voterId: null, // CHANGE LATER
       targetId,
       kind, // "more" | "less"
     });

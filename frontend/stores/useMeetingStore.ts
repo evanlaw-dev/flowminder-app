@@ -29,3 +29,6 @@ export const useMeetingStore = create<State>((set) => ({
 export const meetingState = {
   get: () => useMeetingStore.getState(),
 };
+
+export const getMeetingId = () => useMeetingStore.getState().meetingId;
+

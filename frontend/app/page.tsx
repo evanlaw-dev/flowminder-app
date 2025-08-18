@@ -40,7 +40,6 @@ function HomeContent() {
 
     (async () => {
       try {
-        // ✅ Await to avoid unhandled promise rejection and ensure config runs first
         await initMeetingInfo();
       } catch (e) {
         console.debug("[Zoom Apps] SDK not available or init failed:", e);
