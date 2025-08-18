@@ -36,6 +36,7 @@ export async function saveItemsToBackend(
   items: AgendaItemType[],
   saveSuccess: (items: AgendaItemType[]) => void
 ): Promise<AgendaItemType[]> {
+
   // mark empty items for delete
   items.forEach((it) => { if ((it.text || "").trim() === "") it.isDeleted = true; });
 
