@@ -1,8 +1,9 @@
 // src/sockets/settings.ts
 import { socket } from "./socket";
 import { useAgendaStore, MeetingTimerSettings } from "@/stores/useAgendaStore";
-import { MEETING_ID } from "@/config/constants";
+import { getMeetingId } from "../config/constants";
 
+const MEETING_ID = getMeetingId();
 let wired = false;
 
 type SettingsUpdatePayload = {
