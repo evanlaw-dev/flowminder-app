@@ -8,7 +8,7 @@ import { initAgendaSockets } from "@/sockets/agenda";
 import { initSettingsSockets } from "@/sockets/settings";
 import { socket } from "../sockets/socket";
 import zoomSdk from "@zoom/appssdk";
-import { setMeetingId, setCurrentUserId, BACKEND_URL } from "../config/constants";
+import { setMeetingId, setCurrentUserId, syncMeetingToBackend } from "../config/constants";
 
 import Agenda from "@/components/Agenda";
 import Settings from "@/components/Settings";
@@ -70,12 +70,8 @@ function HomeContent() {
         setMeetingId(mId);
         setCurrentUserId(uId);
 
-        // This POST should use the freshly resolved IDs, not stale imports
-        await fetch(`${BACKEND_URL}/update-meeting`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ meetingId: mId, userId: uId }),
-        });
+        // Upsert the meeting row in DB
+        await syncMeetingToBackend(mId, uId);
       } catch (e) {
         console.debug("[Zoom Apps] SDK not available or init failed:", e);
       }
