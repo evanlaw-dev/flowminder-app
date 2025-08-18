@@ -9,6 +9,7 @@ import { initMeetingInfo } from "@/services/meetingService";
 import { initAgendaSockets } from "@/sockets/agenda";
 import { initSettingsSockets } from "@/sockets/settings";
 import { socket } from "../sockets/socket";
+
 import Agenda from "@/components/Agenda";
 import Settings from "@/components/Settings";
 import Header from "@/components/Header";
@@ -26,26 +27,27 @@ export default function Home() {
 function HomeContent() {
   const [clientMounted, setClientMounted] = React.useState(false);
   const { isEditingMode, showSettings } = useAgendaStore();
+
   const meetingId = useMeetingStore((s) => s.meetingId);
-  const [role, setRole] = React.useState<"host" | "participant">("participant");
+  const isHost = useMeetingStore((s) => s.isHost);
+  const role = isHost ? "host" : "participant";
+
   const didInitRef = useRef(false);
 
-  // Initialize Zoom SDK and capture meeting info once
   useEffect(() => {
     if (didInitRef.current) return;
     didInitRef.current = true;
 
     (async () => {
       try {
-        initMeetingInfo();
-        setRole( "host"); // delete later!!!
+        // ✅ Await to avoid unhandled promise rejection and ensure config runs first
+        await initMeetingInfo();
       } catch (e) {
         console.debug("[Zoom Apps] SDK not available or init failed:", e);
       }
     })();
   }, []);
 
-  // Initialize sockets after we have a real meetingId
   useEffect(() => {
     if (!meetingId) return;
 
@@ -59,7 +61,6 @@ function HomeContent() {
     socket.emit("timer:get", meetingId);
   }, [meetingId]);
 
-  // Load timer settings once
   useEffect(() => {
     (async () => {
       try {
@@ -81,7 +82,7 @@ function HomeContent() {
           <Header role={role} />
         </div>
 
-      <div className="flex-1 min-h-0 relative overflow-hidden rounded-md">
+        <div className="flex-1 min-h-0 relative overflow-hidden rounded-md">
           <div className="overflow-y-auto h-full rounded-lg px-4">
             {showSettings ? (
               <Settings />
