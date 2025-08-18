@@ -38,9 +38,10 @@ export async function initMeetingInfo() {
         console.warn("[Zoom Apps] No meeting context; skipping get_or_create");
         return;
     }
+        console.log(`[Zoom Apps] meetingID=${meetingCtx?.meetingID}`);
 
     const { meeting_id, created } = await getOrCreateMeeting({
-        zoom_meeting_id: meetingCtx?.meetingID ?? "",
+        zoom_meeting_id: meetingCtx?.meetingID,
         host_email: null,
         meeting_title: meetingCtx?.meetingTopic ?? null,
         scheduled_start: new Date(),
