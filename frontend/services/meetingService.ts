@@ -87,7 +87,7 @@ async function getOrCreateMeeting(
   const res = await fetch(`${BACKEND_URL}/meetings/get_or_create`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    credentials: "include",
+    credentials: 'omit',
     body: JSON.stringify(body),
     signal: opts.signal,
   });
