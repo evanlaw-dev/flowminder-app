@@ -27,7 +27,6 @@ export default function Home() {
 function HomeContent() {
   const [role, setRole] = React.useState<"host" | "participant">("participant");
   const [clientMounted, setClientMounted] = React.useState(false);
-
   const [meetingId, setMeetingIdState] = React.useState<string | null>(null);
   const [userId, setUserIdState] = React.useState<string | null>(null);
 
@@ -60,8 +59,8 @@ function HomeContent() {
 
         setRole(userCtx?.role === "host" ? "host" : "participant");
 
-        const mId = meetingCtx?.meetingID || "Default_Meeting_ID";
-        const uId = userCtx?.participantUUID || "Default_User_ID";
+        const mId = meetingUUID?.meetingUUID;
+        const uId = userCtx?.participantUUID;
 
         // Update local state first (source of truth for this component)
         setMeetingIdState(mId);

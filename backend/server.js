@@ -27,13 +27,27 @@ app.use('/zoom', zoomRoutes);
 app.use('/api/meetings', meetingRoutes);
 
 // Update meeting and user id
-app.post('/update-meeting', (req, res) => {
-  const { meetingId, userId } = req.body;
+app.post("/update-meeting", async (req, res) => {
+  const { meetingId } = req.body || {};
+  if (!meetingId) return res.status(400).json({ error: "meetingId required" });
 
-  if (meetingId) setMeetingId(meetingId);
-  if (userId) setCurrentUserId(userId);
+  try {
+    const { rows } = await pool.query(
+      `
+      INSERT INTO public.meetings (zoom_meeting_id)
+      VALUES ($1)
+      ON CONFLICT (zoom_meeting_id)
+      DO UPDATE SET zoom_meeting_id = EXCLUDED.zoom_meeting_id
+      RETURNING id
+      `,
+      [meetingId]
+    );
 
-  res.json({ success: true, MEETING_ID: meetingId, CURRENT_USER_ID: userId });
+    res.json({ meetingRowId: rows[0].id });
+  } catch (err) {
+    console.error("update-meeting failed:", err);
+    res.status(500).json({ error: "failed to upsert meeting" });
+  }
 });
 
 const server = http.createServer(app);
