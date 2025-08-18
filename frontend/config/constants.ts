@@ -23,21 +23,18 @@ export function setCurrentUserId(id: string | null) {
   }
 }
 
-// Helper to upsert the meeting row in DB via your backend route.
-export async function syncMeetingToBackend(
-  meetingId: string | null,
-  userId: string | null
-) {
+// Helper to upsert a meeting by Zoom ID via your backend route.
+export async function syncMeetingToBackend(meetingId: string | null) {
   if (!meetingId) return null;
-  const res = await fetch(`${BACKEND_URL}/update-meeting`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ meetingId, userId }),
-  });
+  const res = await fetch(
+    `${BACKEND_URL}/meetings/zoom/${encodeURIComponent(meetingId)}`,
+    { method: "PUT", headers: { "Content-Type": "application/json" } }
+  );
   if (!res.ok) {
     const t = await res.text().catch(() => "");
-    console.error("[constants] update-meeting failed:", res.status, t);
+    console.error("[constants] upsert meeting failed:", res.status, t);
     return null;
   }
-  return (await res.json().catch(() => ({}))) as { meetingRowId?: string };
+  const m = await res.json().catch(() => null);
+  return m ? ({ meetingRowId: m.id as string }) : null;
 }
