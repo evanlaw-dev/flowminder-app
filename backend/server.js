@@ -26,6 +26,16 @@ app.get('/', (_, res) => res.send('Server is running'));
 app.use('/zoom', zoomRoutes);
 app.use('/api/meetings', meetingRoutes);
 
+// Update meeting and user id
+app.post('/update-meeting', (req, res) => {
+  const { meetingId, userId } = req.body;
+
+  if (meetingId) setMeetingId(meetingId);
+  if (userId) setCurrentUserId(userId);
+
+  res.json({ success: true, MEETING_ID: meetingId, CURRENT_USER_ID: userId });
+});
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST', 'DELETE', 'PATCH', 'PUT'] },
