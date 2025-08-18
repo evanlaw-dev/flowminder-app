@@ -61,6 +61,7 @@ function HomeContent() {
   }, [meetingId]);
 
   useEffect(() => {
+    if (!meetingId) return;
     (async () => {
       try {
         await loadMeetingTimerSettings();
@@ -68,7 +69,7 @@ function HomeContent() {
         console.error(e);
       }
     })();
-  }, []);
+  }, [meetingId]);
 
   useEffect(() => {
     setClientMounted(true);
