@@ -10,6 +10,9 @@ import { initSettingsSockets } from "@/sockets/settings";
 import { socket } from "../sockets/socket";
 import { MEETING_ID } from "@/config/constants";
 import zoomSdk from "@zoom/appssdk";
+// import { fetchAgendaItemsOnMount } from "../services/agendaService";
+import { fetchAgendaItemsByZoomMeetingId } from "../services/agendaService";
+
 
 import Agenda from "@/components/Agenda";
 import Settings from "@/components/Settings";
@@ -27,12 +30,12 @@ export default function Home() {
 // adding a comment for deployment
 function HomeContent() {
   const searchParams = useSearchParams();
-  const role = searchParams.get("role") === "host" ? "participant" : "host";
+  const [role, setRole] = React.useState<"host" | "participant">("participant");
 
   const [mounted, setMounted] = React.useState(false); // 👈 gate hydration
   //
-  const { isEditingMode, showSettings } = useAgendaStore();
-  
+  const { isEditingMode, showSettings, setAgendaItems } = useAgendaStore();
+    
   /* Initialize Zoom Apps SDK and log meeting & user IDs when running inside Zoom
   *
   *  meetingCtx?.meetingID = meeting ID
@@ -55,11 +58,22 @@ function HomeContent() {
 
         // Log to console for now the meeting id
         console.log(
-          `[Zoom Apps] meetingID=${meetingCtx?.meetingID} | eetingUUID=${meetingUUID?.meetingUUID} | meetingTopic=${meetingCtx?.meetingTopic}`
+          `[Zoom Apps] meetingID=${meetingCtx?.meetingID} | meetingUUID=${meetingUUID?.meetingUUID} | meetingTopic=${meetingCtx?.meetingTopic}`
         );
         console.log(
-          `[Zoom Apps] user screenName=${userCtx?.screenName} | participantId=${userCtx?.participantUUID} | role=${userCtx?.role} | status=${userCtx?.status}`
+          `[Zoom Apps] user screenName=${userCtx?.screenName} | participantUUId=${userCtx?.participantUUID} | role=${userCtx?.role} | status=${userCtx?.status}`
         );
+        // Default view: participant unless Zoom says host
+        setRole(userCtx?.role === "host" ? "host" : "participant");
+        if (meetingCtx?.meetingID) {
+          try {
+            const items = await fetchAgendaItemsByZoomMeetingId(String(meetingCtx.meetingID));
+            // const items = await fetchAgendaItemsOnMount(meetingCtx.meetingID);
+            setAgendaItems(items);
+          } catch (err) {
+            console.error("Error fetching agenda items:", err);
+          }
+        }
 
       } catch (e) {
         // Not running inside Zoom or SDK not available; keep silent in production
@@ -69,7 +83,15 @@ function HomeContent() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [setAgendaItems]);
+
+  // Optional override via URL ?role=host|participant (use verbatim, no inversion)
+  useEffect(() => {
+    const qp = searchParams.get("role");
+    if (qp === "host" || qp === "participant") {
+      setRole(qp);
+    }
+  }, [searchParams]);
 
   
   // emit initial socket events

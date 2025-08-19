@@ -5,11 +5,16 @@ import { useAgendaStore } from '@/stores/useAgendaStore';
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Agenda from '@/components/Agenda';
+import Header from '@/components/Header';
+import BtnCancelSave from '@/components/BtnCancelSave';
+import Settings from '@/components/Settings';
+import NudgeStatsPanel from '@/components/NudgeStatsPanel';
+import { loadMeetingTimerSettings } from '@/services/agendaService';
 
 export default function SchedulePage() {
   const { user_id: zoomUserId } = useParams();
   const router = useRouter();
-  const { items } = useAgendaStore();
+  const { items, showSettings } = useAgendaStore();
 
   const [topic, setTopic] = useState('');
   const [startTime, setStartTime] = useState('');
@@ -24,6 +29,16 @@ export default function SchedulePage() {
     join_url?: string;
   }>(null);
 
+  // Load meeting timer settings on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        await loadMeetingTimerSettings();
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+  }, []);
 
 
   // Pre-fill the datetime-local with "now" (uses local time format YYYY-MM-DDTHH:MM)
@@ -159,10 +174,28 @@ export default function SchedulePage() {
               </div>
             </div>
 
-            {/* RIGHT AGENDA */}
-            <div className="w-1/2 overflow-auto">
-              <Agenda role="host" />
-            </div>
+            {/* RIGHT AGENDA (full sidebar chrome) */}
+            <aside className="w-1/2 overflow-auto bg-[var(--primary)] rounded-lg border border-gray-200">
+              <div className="flex flex-col h-full">
+                {/* Header (same as main app) */}
+                <Header role="host" />
+
+                {/* Agenda list */}
+                <div className="flex-1 min-h-0 overflow-y-auto">
+                  <Agenda role="host" />
+                </div>
+
+                {/* Save / Cancel footer */}
+                <div className="px-3 py-2 border-t border-gray-200">
+                  <BtnCancelSave />
+                </div>
+                {/* Settings modal/panel (same behavior as home page) */}
+                {showSettings && <Settings />}
+
+                {/* Optional Nudge/Stats panel */}
+                <NudgeStatsPanel />
+              </div>
+            </aside>
           </div>
         )}
       </div>

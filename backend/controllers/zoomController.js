@@ -81,7 +81,9 @@ const oauth = (req, res) => {
 
 // redirect after OAuth flow
 const redirectToMeeting = (req, res) => {
-  return res.redirect('https://flowminder-app.vercel.app/');
+  // return res.redirect('https://flowminder-app.vercel.app/');
+  return res.redirect('https://flowminder-app.vercel.app/meeting/' + res.locals.zoomUser.id);
+
 };
 
 // ---------- Zoom Scheduler controllers ----------
