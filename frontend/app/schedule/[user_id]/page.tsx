@@ -5,6 +5,8 @@ import { useAgendaStore } from '@/stores/useAgendaStore';
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Agenda from '@/components/Agenda';
+import Header from '@/components/Header';
+import BtnCancelSave from '@/components/BtnCancelSave';
 
 export default function SchedulePage() {
   const { user_id: zoomUserId } = useParams();
@@ -159,10 +161,23 @@ export default function SchedulePage() {
               </div>
             </div>
 
-            {/* RIGHT AGENDA */}
-            <div className="w-1/2 overflow-auto">
-              <Agenda role="host" />
-            </div>
+            {/* RIGHT AGENDA (full sidebar chrome) */}
+            <aside className="w-1/2 overflow-auto bg-[var(--primary)] rounded-lg border border-gray-200">
+              <div className="flex flex-col h-full">
+                {/* Header (same as main app) */}
+                <Header role="host" />
+
+                {/* Agenda list */}
+                <div className="flex-1 min-h-0 overflow-y-auto">
+                  <Agenda role="host" />
+                </div>
+
+                {/* Save / Cancel footer */}
+                <div className="px-3 py-2 border-t border-gray-200">
+                  <BtnCancelSave />
+                </div>
+              </div>
+            </aside>
           </div>
         )}
       </div>
