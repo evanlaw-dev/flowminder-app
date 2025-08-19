@@ -6,7 +6,7 @@ import { socket } from "@/sockets/socket";
 import { initNudgeSockets, sendNudge } from "@/sockets/nudge";
 import { MEETING_ID, CURRENT_USER_ID } from "@/config/constants";
 import { useNudgeStore } from "@/stores/useNudgeStore";
-// evan was here
+// evan wwas not here
 type UiKind = "move_along" | "invite_speak";
 
 export default function Nudge() {
