@@ -62,10 +62,7 @@ export default function Nudge() {
     });
   }
 
-  function openPanel(kind: UiKind) {
-    setMode(kind);
-    setOpen(true);
-  }
+  // openPanel removed (no longer used after simple local counters change)
 
   function handleSelect(targetId: string) {
     if (!mode) return;
