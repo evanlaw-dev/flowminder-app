@@ -3,12 +3,12 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const { Server } = require('socket.io');
-const { Parser } = require('json2csv');
 const { pool } = require('./db/pool');
 const { attachAllSockets } = require('./sockets');
 const { agendaBroadcastFromDb } = require('./sockets/agenda');
-const { markParticipantJoined } = require("./sockets/nudge.js"); // TO-DELETE AFTER TEST
-const { setMeetingId, setCurrentUserId, getMeetingId, getCurrentUserId } = require('./config/constants.js');
+// const { markParticipantJoined } = require("./sockets/nudge.js"); // TO-DELETE AFTER TEST
+const stateRoutes = require("./routes/state");
+
 
 // middleware to parse zoomroute
 const zoomRoutes = require('./routes/zoomRoute.js');
@@ -19,6 +19,7 @@ const meetingRoutes = require('./routes/meetingRoutes');
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use("/state", stateRoutes);
 
 app.get('/', (_, res) => res.send('Server is running'));
 
@@ -215,27 +216,6 @@ app.delete('/agenda_items/:id', async (req, res) => {
   } catch (err) {
     console.error('Error deleting agenda item:', err);
     res.status(500).json({ success: false, error: 'Could not delete agenda item' });
-  }
-});
-
-// GET /download/:meetingId - Export meeting history as CSV
-app.get('/download/:meetingId', async (req, res) => {
-  const { meetingId } = req.params;
-  try {
-    const result = await pool.query(
-      'SELECT action_type, timestamp FROM actions WHERE meeting_id = $1 ORDER BY timestamp DESC',
-      [meetingId]
-    );
-    if (!result.rows.length) {
-      return res.status(404).json({ success: false, error: 'No actions found' });
-    }
-    const parser = new Parser({ fields: ['action_type', 'timestamp'] });
-    const csv = parser.parse(result.rows);
-    res.header('Content-Type', 'text/csv');
-    res.attachment(`meeting_${meetingId}_history.csv`);
-    res.send(csv);
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to export actions as CSV' });
   }
 });
 
