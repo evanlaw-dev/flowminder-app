@@ -1,5 +1,5 @@
 // Single-meeting agenda over Socket.IO
-const { getMeetingId } = require('../config/constants');
+const { getMeetingId } = require('../config/state');
 const MEETING_ID = getMeetingId();
 
 let state = null; // { version, agenda, currentIndex }
