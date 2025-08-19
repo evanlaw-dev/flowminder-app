@@ -5,7 +5,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { socket } from "@/sockets/socket";
 import { MEETING_ID, CURRENT_USER_ID } from "@/config/constants";
 import { useNudgeStore } from "@/stores/useNudgeStore";
-// evan was here
+// 
 type UiKind = "move_along" | "invite_speak";
 
 export default function Nudge() {
