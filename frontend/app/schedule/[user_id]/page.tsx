@@ -14,7 +14,7 @@ import { loadMeetingTimerSettings } from '@/services/agendaService';
 export default function SchedulePage() {
   const { user_id: zoomUserId } = useParams();
   const router = useRouter();
-  const { items } = useAgendaStore();
+  const { items, showSettings } = useAgendaStore();
 
   const [topic, setTopic] = useState('');
   const [startTime, setStartTime] = useState('');
@@ -190,7 +190,7 @@ export default function SchedulePage() {
                   <BtnCancelSave />
                 </div>
                 {/* Settings modal/panel (same behavior as home page) */}
-                <Settings />
+                {showSettings && <Settings />}
 
                 {/* Optional Nudge/Stats panel */}
                 <NudgeStatsPanel />
