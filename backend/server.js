@@ -7,7 +7,6 @@ const { pool } = require('./db/pool');
 const { attachAllSockets } = require('./sockets');
 const { agendaBroadcastFromDb } = require('./sockets/agenda');
 // const { markParticipantJoined } = require("./sockets/nudge.js"); // TO-DELETE AFTER TEST
-const stateRoutes = require("./routes/state");
 
 
 // middleware to parse zoomroute
