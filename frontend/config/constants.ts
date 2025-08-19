@@ -26,10 +26,12 @@ export function setCurrentUserId(id: string | null) {
 // Helper to upsert a meeting by Zoom ID via your backend route.
 export async function syncMeetingToBackend(meetingId: string | null) {
   if (!meetingId) return null;
+  console.log(meetingId + " from synced");
   const res = await fetch(
     `${BACKEND_URL}/meetings/zoom/${encodeURIComponent(meetingId)}`,
     { method: "PUT", headers: { "Content-Type": "application/json" } }
   );
+  console.log(res);
   if (!res.ok) {
     const t = await res.text().catch(() => "");
     console.error("[constants] upsert meeting failed:", res.status, t);

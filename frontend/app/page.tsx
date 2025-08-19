@@ -3,7 +3,7 @@
 
 import React, { Suspense, useEffect } from "react";
 import { useAgendaStore } from "@/stores/useAgendaStore";
-import { loadMeetingTimerSettings } from "@/services/agendaService";
+// import { loadMeetingTimerSettings } from "@/services/agendaService";
 import { initAgendaSockets } from "@/sockets/agenda";
 import { initSettingsSockets } from "@/sockets/settings";
 import { socket } from "../sockets/socket";
@@ -87,8 +87,8 @@ function HomeContent() {
 
         setRole(userCtx?.role === "host" ? "host" : "participant");
 
-        const zoomMeetingId = meetingCtx?.meetingID ?? null;
-        const participantUUID = userCtx?.participantUUID ?? null;
+        const zoomMeetingId = meetingCtx?.meetingID;
+        const participantUUID = userCtx?.participantUUID;
 
         // Always set the user id locally + global (unchanged behavior)
         setUserIdState(participantUUID);
@@ -99,7 +99,9 @@ function HomeContent() {
 
         if (zoomMeetingId) {
           const synced = await syncMeetingToBackend(zoomMeetingId);
+          console.log(synced);
           canonicalMeetingUUID = synced?.meetingRowId ?? null;
+          console.log(canonicalMeetingUUID);
         }
 
         // If we got the canonical UUID, propagate it everywhere
@@ -144,15 +146,15 @@ function HomeContent() {
     socket.emit("timer:get", meetingId);
   }, [meetingId, userId]);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        await loadMeetingTimerSettings();
-      } catch (e) {
-        console.error(e);
-      }
-    })();
-  }, []);
+  // useEffect(() => {
+  //   (async () => {
+  //     try {
+  //       await loadMeetingTimerSettings();
+  //     } catch (e) {
+  //       console.error(e);
+  //     }
+  //   })();
+  // }, []);
 
   useEffect(() => {
     setClientMounted(true);
