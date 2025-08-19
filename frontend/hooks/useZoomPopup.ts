@@ -76,8 +76,8 @@ export async function zoomConfirm(
         <div style="font-weight:600; margin-bottom:6px;">${title}</div>
         <div style="margin-bottom:14px;">${message}</div>
         <div style="display:flex; justify-content:flex-end; gap:8px;">
-          <button id="zCancel" style="padding:8px 12px; border-radius:8px; border:1px solid #ddd; background:#f6f6f6;">Cancel</button>
-          <button id="zOk" style="padding:8px 12px; border-radius:8px; border:0; background:#1155cc; color:#fff;">OK</button>
+          <button id="zCancel" style="padding:6px 12px; border-radius:10px; border:1px solid #e5e7eb; background:#f3f4f6;">Cancel</button>
+          <button id="zOk" style="padding:6px 12px; border-radius:10px; border:0; background:#0284c7; color:#fff;">OK</button>
         </div>
       </div>
     `;
