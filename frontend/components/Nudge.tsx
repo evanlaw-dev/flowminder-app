@@ -40,6 +40,8 @@ export default function Nudge() {
   useEffect(() => {
     // ensure we are in the meeting room so we can receive roster snapshot
     socket.emit("joinMeeting", MEETING_ID);
+    // also announce ourselves so server marks us in the roster
+    socket.emit("nudge:join", { meetingId: MEETING_ID, userId: CURRENT_USER_ID });
     initNudgeSockets();
 
     function onDocClick(e: MouseEvent) {

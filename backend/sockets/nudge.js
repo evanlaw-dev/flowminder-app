@@ -14,6 +14,19 @@ function initNudgeSockets(io, pool) {
             }
         });
 
+        // Client announces they are in the meeting; ensure roster row exists
+        // Payload: { meetingId, userId }
+        socket.on("nudge:join", async ({ meetingId, userId }) => {
+            try {
+                if (!meetingId || !userId) return;
+                await markParticipantJoined(io, pool, { meetingId, userId });
+                // send fresh snapshot back to the caller
+                socket.emit("nudge:snapshot", await buildSnapshot(meetingId, pool));
+            } catch (e) {
+                console.error("nudge:join error", e);
+            }
+        });
+
         // { meetingId, voterId, targetId, kind: "more"|"less" }
         socket.on("nudge:cast", async ({ meetingId, voterId, targetId, kind }) => {
             try {
