@@ -12,13 +12,13 @@
   --font-mono: var(--font-geist-mono, monospace);
 }
 
-/* Dark mode theme variables
+/* Dark mode theme variables */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
   }
-} */
+}
 
 
 html,

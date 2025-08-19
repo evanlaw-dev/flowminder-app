@@ -7,16 +7,11 @@ import {
   persistMeetingTimerSettings,
   loadMeetingTimerSettings,
 } from '../services/agendaService';
-import { useServerTimer } from '../hooks/useServerTimer';
-import { zoomConfirm, zoomNotifyError, initZoomOnce } from '../hooks/useZoomPopup';
+import { useServerTimer } from '../hooks/useServerTimer'
 
 export default function BtnCancelSave() {
-  // Make sure SDK is configured when this component mounts in Zoom
-  React.useEffect(() => {
-    initZoomOnce();
-  }, []);
 
-  const { update, endAt } = useServerTimer();
+const { update, endAt } = useServerTimer();
   const {
     items,
     setHasTimers,
@@ -36,21 +31,19 @@ export default function BtnCancelSave() {
   const handleCancel = async () => {
     // Revert UI/DB edits only. Do NOT touch the running timer.
     if (hasUnsavedChanges()) {
-      const confirmed = await zoomConfirm(
-        'You have unsaved changes. Are you sure you want to cancel?',
-        'Discard changes?'
-      );
+      const confirmed = window.confirm('You have unsaved changes. Are you sure you want to cancel?');
       if (!confirmed) return;
     }
 
     if (areTimersAdded) setAreTimersAdded(false); // reset temp UI state
+
     resetItems(); // discard local item edits
 
     try {
       await loadMeetingTimerSettings(); // reload settings from backend
     } catch (e) {
       console.error(e);
-      await zoomNotifyError('Failed to reload meeting timer settings.');
+      alert('Failed to reload meeting timer settings.');
     }
 
     toggleEditingMode();
@@ -59,13 +52,13 @@ export default function BtnCancelSave() {
 
   const handleSave = async () => {
     const currentItem = getCurrentItem();
-
+    
     try {
-      if (currentItem?.isEditedTimer) {
-        const diff = (currentItem.timerValue - currentItem.originalTimerValue) * 1000;
-        const newEnd = endAt + diff;
-        update(newEnd);
-      }
+        if (currentItem?.isEditedTimer) {
+            const diff = (currentItem.timerValue - currentItem.originalTimerValue) * 1000;
+            const newEnd = endAt + diff;
+            update(newEnd);
+        }
 
       const timersEnabled = hasTimers || areTimersAdded;
 
@@ -87,7 +80,7 @@ export default function BtnCancelSave() {
       }
     } catch (e) {
       console.error(e);
-      await zoomNotifyError('Failed to save timer settings.');
+      alert('Failed to save timer settings.');
     }
   };
 

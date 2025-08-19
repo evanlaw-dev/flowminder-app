@@ -71,7 +71,7 @@ export default function Header({ role = 'participant' }: HeaderProps) {
 
   return (
     <div
-      className="relative flex flex-col rounded-lg text-center px-10 pb-4 pt-8 break-words"
+      className="relative flex flex-col rounded-lg text-center py-4 break-words"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -90,7 +90,7 @@ export default function Header({ role = 'participant' }: HeaderProps) {
               </h1>
 
               {hasTimers && (
-                <div className="flex items-center justify-center pt-4">
+                <div className="flex items-center justify-center p-4">
                   {/* Centered timer + hover controls */}
                   <div className="relative flex items-center justify-center">
                     <Timer
@@ -104,7 +104,7 @@ export default function Header({ role = 'participant' }: HeaderProps) {
                     {role === 'host' && isHovered && (
                       <div
                         className="
-                          absolute left-full ml-1
+                          absolute left-full ml-2
                           flex items-center gap-1
                           translate-x-2
                           transition
@@ -113,7 +113,7 @@ export default function Header({ role = 'participant' }: HeaderProps) {
                         {canStart && (
                           <button
                             onClick={handleStart}
-                            className="pointer-events-auto cursor-pointer px-2 py-1 text-xs bg-gray-200/60 text-white rounded hover:bg-green-600"
+                            className="pointer-events-auto cursor-pointer px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
                             title="Start timer"
                           >
                             ▶
@@ -123,7 +123,7 @@ export default function Header({ role = 'participant' }: HeaderProps) {
                         {canResume && (
                           <button
                             onClick={handleResume}
-                            className="pointer-events-auto cursor-pointer px-2 py-1 text-xs bg-gray-200/60 text-white rounded hover:bg-green-600"
+                            className="pointer-events-auto cursor-pointer px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
                             title="Resume timer"
                           >
                             ▶
