@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 // Small noop comment to trigger a re-push; no functional changes
 import { socket } from "@/sockets/socket";
+import { initNudgeSockets, sendNudge } from "@/sockets/nudge";
 import { MEETING_ID, CURRENT_USER_ID } from "@/config/constants";
 import { useNudgeStore } from "@/stores/useNudgeStore";
 // 
@@ -39,6 +40,7 @@ export default function Nudge() {
   useEffect(() => {
     // ensure we are in the meeting room so we can receive roster snapshot
     socket.emit("joinMeeting", MEETING_ID);
+    initNudgeSockets();
 
     function onDocClick(e: MouseEvent) {
       if (uiRef.current && !uiRef.current.contains(e.target as Node)) {
@@ -50,6 +52,13 @@ export default function Nudge() {
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
+
+  // Choose a default target (first in-meeting participant other than self)
+  function pickTargetId(): string | null {
+    const list = order.map((id) => byId[id]).filter(Boolean);
+    const candidate = list.find((p) => p.in_meeting && p.user_id !== CURRENT_USER_ID);
+    return candidate?.user_id ?? null;
+  }
 
   // send via socket (maps UI to backend kinds)
   function send(targetId: string, uiKind: UiKind) {
@@ -82,14 +91,28 @@ export default function Nudge() {
       {/* Two white buttons, always visible */}
       <div className="flex gap-2">
         <button
-          onClick={() => incrementMoveAlong()}
+          onClick={() => {
+            const target = pickTargetId();
+            if (target) {
+              sendNudge(target, "less");
+            } else {
+              incrementMoveAlong();
+            }
+          }}
           className="px-4 py-2 cursor-pointer rounded-full bg-white text-sky-950 hover:bg-sky-50 font-semibold border border-gray-200 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-sky-200"
           title="Anonymously send a nudge to someone to move the conversation along."
         >
           Move along
         </button>
         <button
-          onClick={() => incrementSpeakUp()}
+          onClick={() => {
+            const target = pickTargetId();
+            if (target) {
+              sendNudge(target, "more");
+            } else {
+              incrementSpeakUp();
+            }
+          }}
           className="px-4 py-2 cursor-pointer rounded-full bg-white text-sky-950 hover:bg-sky-50 font-semibold border border-gray-200 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-sky-200"
           title="Anonymously send a nudge to someone to speak up."
         >
