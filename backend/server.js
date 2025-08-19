@@ -16,8 +16,11 @@ const meetingRoutes = require('./routes/meetingRoutes');
 
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: 'http://localhost:3000',        
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization'],
+}));app.use(express.json());
 
 app.get('/', (_, res) => res.send('Server is running'));
 
@@ -27,7 +30,10 @@ app.use('/api/meetings', meetingRoutes);
 
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: '*', methods: ['GET', 'POST', 'DELETE', 'PATCH', 'PUT'] },
+  cors: { 
+    origin: '*', 
+    methods: ['GET', 'POST', 'DELETE', 'PATCH', 'PUT'],
+  },
   path: '/socket.io',
 });
 

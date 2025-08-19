@@ -39,10 +39,13 @@ export function initAgendaSockets(): void {
   if (wired) return;
   wired = true;
 
-  socket.on("connect", () => {
-    socket.emit("joinMeeting", MEETING_ID);
-    socket.emit("agenda:get");
-  });
+    const id = MEETING_ID ?? getMeetingId(); // read current value
+    if (!id) {
+      console.warn("[sockets] No meetingId available on connect; will wait.");
+      return;
+    }
+    socket.emit("joinMeeting", { meetingId: id });
+    socket.emit("agenda:get", { meetingId: id });
 
   socket.on("agenda:snapshot", (s: SendSnapshot) => {
     useAgendaStore.getState().setAgendaItems(s.agenda.map(toStoreItem));

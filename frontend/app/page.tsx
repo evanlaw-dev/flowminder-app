@@ -3,15 +3,12 @@
 
 import React, { Suspense, useEffect } from "react";
 import { useAgendaStore } from "@/stores/useAgendaStore";
-// import { loadMeetingTimerSettings } from "@/services/agendaService";
 import { initAgendaSockets } from "@/sockets/agenda";
 import { initSettingsSockets } from "@/sockets/settings";
 import { socket } from "../sockets/socket";
-import zoomSdk from "@zoom/appssdk";
 import {
-  setMeetingId as setFrontendMeetingId,
-  // setCurrentUserId as setFrontendCurrentUserId,
-  syncMeetingToBackend,
+  // setMeetingId as setFrontendMeetingId,
+  syncAndSetMeeting,
 } from "../config/constants";
 
 import Agenda from "@/components/Agenda";
@@ -32,68 +29,56 @@ function HomeContent() {
   const [role, setRole] = React.useState<"host" | "participant">("participant");
   const [clientMounted, setClientMounted] = React.useState(false);
 
-  // IMPORTANT: this component-level meetingId will now hold the *canonical* UUID from your DB,
-  // not the Zoom natural meetingID. Same for the global constants we set.
+  // Holds the canonical UUID from your DB
   const [meetingId, setMeetingIdState] = React.useState<string | null>(null);
-  const [userId ] = React.useState<string | null>(null);
+  const [userId, setUserId] = React.useState<string | null>(null);
 
   const { isEditingMode, showSettings } = useAgendaStore();
 
-  // Initialize Zoom SDK and capture IDs, then:
-  // - upsert meeting with Zoom ID
-  // - receive canonical UUID from backend
-  // - set that UUID into both frontend constants and backend state
+  // Bootstrap: fetch Zoom + user, upsert to backend, then set state + globals
   useEffect(() => {
     let isAlive = true;
 
     (async () => {
       try {
-        await zoomSdk.config({
-          capabilities: ["getMeetingContext", "getUserContext"],
-        });
+        // In production, pull these from zoomSdk
+        // const [meetingCtx, userCtx] = await Promise.all([
+        //   zoomSdk.getMeetingContext(),
+        //   zoomSdk.getUserContext(),
+        // ]);
+        // const zoomMeetingId = meetingCtx?.meetingID ?? null;
+        // const userIdFromSdk = userCtx?.participantUUID ?? null;
+        // const roleFromSdk = userCtx?.role === "host" ? "host" : "participant";
 
-        const [meetingCtx, userCtx] = await Promise.all([
-          zoomSdk.getMeetingContext(),
-          zoomSdk.getUserContext(),
-        ]);
+        const zoomMeetingId = "81941987684";     //  TEMP
+        const userIdFromSdk = "12389";           // TEMP
+        const roleFromSdk: "host" | "participant" = "host";
 
         if (!isAlive) return;
-        console.log(
-            `[Zoom Apps] meetingID=${meetingCtx?.meetingID} | meetingTopic=${meetingCtx?.meetingTopic}`
-          );
-        console.log(
-            `[Zoom Apps] user screenName=${userCtx?.screenName} | participantId=${userCtx?.participantUUID} | role=${userCtx?.role} | status=${userCtx?.status}`
-          );
 
-        setRole(userCtx?.role === "host" ? "host" : "participant");
+        // 1) Set role and user immediately from locals
+        setRole(roleFromSdk);
+        setUserId(userIdFromSdk);
 
-        const zoomMeetingId = meetingCtx?.meetingID;
-
-        // ---- Upsert using Zoom ID, then pull canonical UUID from backend ----
+        // 2) Upsert meeting and obtain canonical UUID
         let canonicalMeetingUUID: string | null = null;
-
         if (zoomMeetingId) {
-          const synced = await syncMeetingToBackend(zoomMeetingId);
-          canonicalMeetingUUID = synced?.meetingRowId ?? null;
-          console.log(zoomMeetingId);
-          console.log("and");
-          console.log(canonicalMeetingUUID);
+          canonicalMeetingUUID = await syncAndSetMeeting(zoomMeetingId);
         }
 
-        // If we got the canonical UUID, propagate it everywhere
-        if (canonicalMeetingUUID) {
-          // Local state for this component
-          setMeetingIdState(canonicalMeetingUUID);
+        if (!isAlive) return;
 
-          // Frontend global constants state
-          setFrontendMeetingId(canonicalMeetingUUID);
+        if (canonicalMeetingUUID) {
+          // 3) Use the known value to update both state and your global holder
+          setMeetingIdState(canonicalMeetingUUID);
+          if (process.env.NODE_ENV !== "production") {
+            console.log("[Home] Set canonical meetingId:", canonicalMeetingUUID);
+          }
         } else {
-          console.warn(
-            "[Home] No canonical meeting UUID returned from backend; sockets and timers may not initialize correctly."
-          );
+          console.warn("[Home] No canonical meeting UUID returned from backend.");
         }
       } catch (e) {
-        console.debug("[Zoom Apps] SDK not available or init failed:", e);
+        console.debug("[Home] Bootstrap failed:", e);
       }
     })();
 
@@ -102,7 +87,16 @@ function HomeContent() {
     };
   }, []);
 
-  // Initialize sockets *after* we have the canonical meeting UUID & a user
+  // React *after* state has updated
+  useEffect(() => {
+    if (meetingId) console.log("[Home] meetingId changed:", meetingId);
+  }, [meetingId]);
+
+  useEffect(() => {
+    if (userId) console.log("[Home] userId changed:", userId);
+  }, [userId]);
+
+  // Initialize sockets only when both IDs are present
   useEffect(() => {
     if (!meetingId || !userId) return;
 
@@ -113,21 +107,11 @@ function HomeContent() {
     initAgendaSockets();
     initSettingsSockets();
 
-    // Use the canonical meeting UUID for all socket rooms & queries
-    socket.emit("joinMeeting", meetingId);
-    socket.emit("agenda:get");
-    socket.emit("timer:get", meetingId);
+    // If your server expects an object payload, send { meetingId }
+    socket.emit("joinMeeting", { meetingId });
+    socket.emit("agenda:get", { meetingId });
+    socket.emit("timer:get", { meetingId });
   }, [meetingId, userId]);
-
-  // useEffect(() => {
-  //   (async () => {
-  //     try {
-  //       await loadMeetingTimerSettings();
-  //     } catch (e) {
-  //       console.error(e);
-  //     }
-  //   })();
-  // }, []);
 
   useEffect(() => {
     setClientMounted(true);
