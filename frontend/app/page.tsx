@@ -27,8 +27,15 @@ export default function Home() {
 // adding a comment for deployment
 function HomeContent() {
   const searchParams = useSearchParams();
-  const role = searchParams.get("role") === "host" ? "participant" : "host";
+  // const role = searchParams.get("role") === "host" ? "participant" : "host";
+  const [role, setRole] = React.useState<"host" | "participant">("participant");
 
+  // Honor explicit query param (?role=host) without breaking default
+  useEffect(() => {
+    const qp = searchParams.get("role");
+    if (qp === "host") setRole("host");
+  }, [searchParams]);
+  
   const [mounted, setMounted] = React.useState(false); // 👈 gate hydration
   //
   const { isEditingMode, showSettings } = useAgendaStore();
