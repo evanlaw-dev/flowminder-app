@@ -31,6 +31,10 @@ export default function Nudge() {
     return filtered;
   }, [byId, order, q]);
 
+  // simplest guaranteed local increments
+  const incrementMoveAlong = useNudgeStore((s) => s.incrementMoveAlong);
+  const incrementSpeakUp = useNudgeStore((s) => s.incrementSpeakUp);
+
   // click outside to close
   useEffect(() => {
     // ensure we are in the meeting room so we can receive roster snapshot
@@ -81,14 +85,14 @@ export default function Nudge() {
       {/* Two white buttons, always visible */}
       <div className="flex gap-2">
         <button
-          onClick={() => openPanel("move_along")}
+          onClick={() => incrementMoveAlong()}
           className="px-4 py-2 cursor-pointer rounded-full bg-white text-sky-950 hover:bg-sky-50 font-semibold border border-gray-200 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-sky-200"
           title="Anonymously send a nudge to someone to move the conversation along."
         >
           Move along
         </button>
         <button
-          onClick={() => openPanel("invite_speak")}
+          onClick={() => incrementSpeakUp()}
           className="px-4 py-2 cursor-pointer rounded-full bg-white text-sky-950 hover:bg-sky-50 font-semibold border border-gray-200 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-sky-200"
           title="Anonymously send a nudge to someone to speak up."
         >
@@ -97,7 +101,7 @@ export default function Nudge() {
       </div>
 
       {/* Participant chooser */}
-      {open && mode && (
+      {false && open && mode && (
         <div
           className="absolute top-full right-0 z-300 w-fit-content max-w-[40vw] bg-white shadow-lg rounded-2xl p-3 border border-gray-100"
           role="dialog"

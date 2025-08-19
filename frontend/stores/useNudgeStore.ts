@@ -15,11 +15,18 @@ type State = {
   upsert: (row: ParticipantRow) => void;       
   mergeCounts: (userId: string, c: { more: number; less: number }) => void;
   showToast?: (m: string) => void;
+  // Simple aggregate counters for guaranteed local updates
+  moveAlongTotal: number;
+  speakUpTotal: number;
+  incrementMoveAlong: () => void;
+  incrementSpeakUp: () => void;
 };
 
 export const useNudgeStore = create<State>((set) => ({
   byId: {},
   order: [],
+  moveAlongTotal: 0,
+  speakUpTotal: 0,
   replaceAll: (rows) =>
     set({
       byId: Object.fromEntries(rows.map((row) => [row.user_id, row])),
@@ -36,4 +43,6 @@ export const useNudgeStore = create<State>((set) => ({
       if (!cur) return {};
       return { byId: { ...state.byId, [userId]: { ...cur, more: count.more, less: count.less } } };
     }),
+  incrementMoveAlong: () => set((s) => ({ moveAlongTotal: s.moveAlongTotal + 1 })),
+  incrementSpeakUp: () => set((s) => ({ speakUpTotal: s.speakUpTotal + 1 })),
 }));
