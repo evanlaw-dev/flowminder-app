@@ -29,3 +29,4 @@
 3. Add more validation and error handling.
 4. Productionize: logging, configs, Dockerfile, etc.
 5. Write documentation for API usage and setup.
+6. 
