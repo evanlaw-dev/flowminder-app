@@ -120,23 +120,64 @@ app.delete('/agenda_items', async (req, res) => {
   }
 });
 
+// app.get('/agenda_items', async (req, res) => {
+//   const { meeting_id } = req.query;
+//   if (!meeting_id) return res.status(400).json({ success: false, error: 'Missing meeting_id' });
+//   try {
+//     const result = await pool.query(
+//       `SELECT id, meeting_id, agenda_item, duration_seconds, order_index
+//        FROM agenda_items
+//        WHERE meeting_id = $1
+//        ORDER BY
+//          order_index ASC NULLS LAST,
+//          created_at ASC NULLS LAST`,
+//       [meeting_id]
+//     );
+//     res.json({ success: true, items: result.rows });
+//   } catch (error) {
+//     console.error('Error fetching agenda items:', error?.detail || error?.message || error);
+//     res.status(500).json({ success: false, error: 'Failed to fetch agenda items' });
+//   }
+// });
 app.get('/agenda_items', async (req, res) => {
-  const { meeting_id } = req.query;
-  if (!meeting_id) return res.status(400).json({ success: false, error: 'Missing meeting_id' });
+  const { meeting_id, zoom_meeting_id } = req.query;
+
   try {
+    let resolvedMeetingId = meeting_id;
+
+    // Resolve Zoom meeting id -> internal meeting UUID
+    if (!resolvedMeetingId && zoom_meeting_id) {
+      const zmid = String(zoom_meeting_id).trim();
+      const lookup = await pool.query(
+        `SELECT id
+           FROM meetings
+          WHERE zoom_meeting_id = $1`,
+        [zmid]
+      );
+      if (!lookup.rows.length) {
+        return res.status(404).json({ success: false, error: 'No meeting found for zoom_meeting_id' });
+      }
+      resolvedMeetingId = lookup.rows[0].id;
+    }
+
+    if (!resolvedMeetingId || typeof resolvedMeetingId !== 'string') {
+      return res.status(400).json({ success: false, error: 'Missing meeting_id (or zoom_meeting_id to resolve it)' });
+    }
+
     const result = await pool.query(
-      `SELECT id, meeting_id, agenda_item, duration_seconds, order_index
-       FROM agenda_items
-       WHERE meeting_id = $1
-       ORDER BY
-         order_index ASC NULLS LAST,
-         created_at ASC NULLS LAST`,
-      [meeting_id]
+      `SELECT id, meeting_id, agenda_item, duration_seconds, order_index, created_at
+         FROM agenda_items
+        WHERE meeting_id = $1::uuid
+        ORDER BY
+          order_index ASC NULLS LAST,
+          created_at ASC NULLS LAST`,
+      [resolvedMeetingId]
     );
-    res.json({ success: true, items: result.rows });
-  } catch (error) {
-    console.error('Error fetching agenda items:', error?.detail || error?.message || error);
-    res.status(500).json({ success: false, error: 'Failed to fetch agenda items' });
+
+    return res.json({ success: true, items: result.rows });
+  } catch (err) {
+    console.error('GET /agenda_items failed:', { code: err.code, message: err.message, detail: err.detail });
+    return res.status(500).json({ success: false, error: 'Failed to load agenda items' });
   }
 });
 

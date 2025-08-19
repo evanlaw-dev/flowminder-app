@@ -16,9 +16,26 @@ export interface AgendaItemPayload {
   isProcessed: boolean;
 }
 
-export async function fetchAgendaItemsOnMount(meetingId: string): Promise<AgendaItemType[]> {
-  const res = await fetch(`${BACKEND_URL}/agenda_items?meeting_id=${meetingId}`);
-  if (!res.ok) throw new Error(`Failed to fetch agenda items: ${res.status}`);
+// export async function fetchAgendaItemsOnMount(meetingId: string): Promise<AgendaItemType[]> {
+//   const res = await fetch(`${BACKEND_URL}/agenda_items?meeting_id=${meetingId}`);
+//   if (!res.ok) throw new Error(`Failed to fetch agenda items: ${res.status}`);
+//   const body = (await res.json()) as { items: AgendaItemResponse[] };
+//   return body.items.map((item) => ({
+//     id: item.id,
+//     text: item.agenda_item,
+//     originalText: item.agenda_item,
+//     isNew: false,
+//     isEdited: false,
+//     isDeleted: false,
+//     isProcessed: item.status === "processed",
+//     timerValue: item.duration_seconds ?? 0,
+//     originalTimerValue: item.duration_seconds ?? 0,
+//     isEditedTimer: false,
+//   }));
+// }
+export async function fetchAgendaItemsByZoomMeetingId(zoomMeetingId: string): Promise<AgendaItemType[]> {
+  const res = await fetch(`${BACKEND_URL}/agenda_items?zoom_meeting_id=${encodeURIComponent(zoomMeetingId)}`);
+  if (!res.ok) throw new Error(`Failed to fetch agenda items by zoom_meeting_id: ${res.status}`);
   const body = (await res.json()) as { items: AgendaItemResponse[] };
   return body.items.map((item) => ({
     id: item.id,

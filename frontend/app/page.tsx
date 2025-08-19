@@ -10,7 +10,8 @@ import { initSettingsSockets } from "@/sockets/settings";
 import { socket } from "../sockets/socket";
 import { MEETING_ID } from "@/config/constants";
 import zoomSdk from "@zoom/appssdk";
-import { fetchAgendaItemsOnMount } from "../services/agendaService";
+// import { fetchAgendaItemsOnMount } from "../services/agendaService";
+import { fetchAgendaItemsByZoomMeetingId } from "../services/agendaService";
 
 
 import Agenda from "@/components/Agenda";
@@ -64,7 +65,8 @@ function HomeContent() {
         );
         if (meetingCtx?.meetingID) {
           try {
-            const items = await fetchAgendaItemsOnMount(meetingCtx.meetingID);
+            const items = await fetchAgendaItemsByZoomMeetingId(String(meetingCtx.meetingID));
+            // const items = await fetchAgendaItemsOnMount(meetingCtx.meetingID);
             setAgendaItems(items);
           } catch (err) {
             console.error("Error fetching agenda items:", err);
