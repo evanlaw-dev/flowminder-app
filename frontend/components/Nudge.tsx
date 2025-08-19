@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
-import { socket } from "@/sockets/socket";
+import { socket } from "@/config/socket";
 import { MEETING_ID, CURRENT_USER_ID } from "@/config/constants";
 import { useNudgeStore } from "@/stores/useNudgeStore";
 
@@ -32,6 +32,9 @@ export default function Nudge() {
 
   // click outside to close
   useEffect(() => {
+    // ensure we are in the meeting room so we can receive roster snapshot
+    socket.emit("joinMeeting", MEETING_ID);
+
     function onDocClick(e: MouseEvent) {
       if (uiRef.current && !uiRef.current.contains(e.target as Node)) {
         setOpen(false);
