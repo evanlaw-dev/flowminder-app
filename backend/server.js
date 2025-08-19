@@ -165,7 +165,7 @@ app.get('/agenda_items', async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT id, meeting_id, agenda_item, duration_seconds, order_index, created_at
+      `SELECT id, meeting_id, agenda_item, duration_seconds, order_index, created_at, status, processed_at
          FROM agenda_items
         WHERE meeting_id = $1::uuid
         ORDER BY

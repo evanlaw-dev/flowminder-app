@@ -30,7 +30,7 @@ export default function Home() {
 // adding a comment for deployment
 function HomeContent() {
   const searchParams = useSearchParams();
-  const role = searchParams.get("role") === "host" ? "participant" : "host";
+  const [role, setRole] = React.useState<"host" | "participant">("participant");
 
   const [mounted, setMounted] = React.useState(false); // 👈 gate hydration
   //
@@ -63,6 +63,8 @@ function HomeContent() {
         console.log(
           `[Zoom Apps] user screenName=${userCtx?.screenName} | participantId=${userCtx?.participantUUID} | role=${userCtx?.role} | status=${userCtx?.status}`
         );
+        // Default view: participant unless Zoom says host
+        setRole(userCtx?.role === "host" ? "host" : "participant");
         if (meetingCtx?.meetingID) {
           try {
             const items = await fetchAgendaItemsByZoomMeetingId(String(meetingCtx.meetingID));
@@ -82,6 +84,14 @@ function HomeContent() {
       mounted = false;
     };
   }, [setAgendaItems]);
+
+  // Optional override via URL ?role=host|participant (use verbatim, no inversion)
+  useEffect(() => {
+    const qp = searchParams.get("role");
+    if (qp === "host" || qp === "participant") {
+      setRole(qp);
+    }
+  }, [searchParams]);
 
   
   // emit initial socket events
