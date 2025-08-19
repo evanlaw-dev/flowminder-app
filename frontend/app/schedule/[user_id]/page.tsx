@@ -1,6 +1,6 @@
 // schedule/[user_id]/page.tsx
 'use client';
-
+//
 import { useAgendaStore } from '@/stores/useAgendaStore';
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
