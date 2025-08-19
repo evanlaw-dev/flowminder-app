@@ -1,5 +1,6 @@
 import { AgendaItemType, useAgendaStore, MeetingTimerSettings, Visibility } from "../stores/useAgendaStore";
 import { BACKEND_URL, MEETING_ID } from "../config/constants";
+import zoomSdk from "@zoom/appssdk";
 
 type AgendaItemResponse = {
   id: string;
@@ -33,6 +34,17 @@ export interface AgendaItemPayload {
 //     isEditedTimer: false,
 //   }));
 // }
+
+async function getZoomMeetingIdSafe(): Promise<string | null> {
+  try {
+    await zoomSdk.config({ capabilities: ["getMeetingContext"] });
+    const ctx = await zoomSdk.getMeetingContext();
+    return ctx?.meetingID ? String(ctx.meetingID) : null;
+  } catch {
+    return null; // not inside Zoom
+  }
+}
+
 export async function fetchAgendaItemsByZoomMeetingId(zoomMeetingId: string): Promise<AgendaItemType[]> {
   const res = await fetch(`${BACKEND_URL}/agenda_items?zoom_meeting_id=${encodeURIComponent(zoomMeetingId)}`);
   if (!res.ok) throw new Error(`Failed to fetch agenda items by zoom_meeting_id: ${res.status}`);
@@ -62,6 +74,7 @@ export async function saveItemsToBackend(
   // mark empty items for delete
   items.forEach((it) => { if ((it.text || "").trim() === "") it.isDeleted = true; });
 
+  const zoomMeetingId = await getZoomMeetingIdSafe();
   const toCreate = items.filter((it) => it.isNew && !it.isDeleted);
   const toUpdate = items.filter((it) => !it.isNew && (it.isEdited || it.isEditedTimer) && !it.isDeleted);
   const toDelete = items.filter((it) => it.isDeleted && it.id != null);
@@ -73,7 +86,8 @@ export async function saveItemsToBackend(
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          meeting_id: MEETING_ID,
+          // meeting_id: MEETING_ID,
+          zoom_meeting_id: zoomMeetingId ?? MEETING_ID, // prefer Zoom ID; fallback only for local/dev
           agenda_item: item.text,
           duration_seconds: item.timerValue || 0,
         }),
@@ -143,13 +157,24 @@ export async function saveItemsToBackend(
   return freshItems;
 }
 
-export async function clearAllAgendaItemsFromDB() {
-  const url = `${BACKEND_URL}/agenda_items?meeting_id=${MEETING_ID}`;
+// export async function clearAllAgendaItemsFromDB() {
+//   const url = `${BACKEND_URL}/agenda_items?meeting_id=${MEETING_ID}`;
+//   const res = await fetch(url, { method: "DELETE" });
+//   if (!res.ok) {
+//     const body = await res.json().catch(() => ({}));
+//     throw new Error(body?.error || `Failed to delete agenda items (HTTP ${res.status}).`);
+//   }
+// }
+
+export async function clearAllAgendaItemsFromDB(): Promise<void> {
+  const zoomMeetingId = await getZoomMeetingIdSafe();
+  const url = `${BACKEND_URL}/agenda_items?${
+    zoomMeetingId
+      ? `zoom_meeting_id=${encodeURIComponent(zoomMeetingId)}`
+      : `meeting_id=${encodeURIComponent(MEETING_ID)}`
+  }`;
   const res = await fetch(url, { method: "DELETE" });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body?.error || `Failed to delete agenda items (HTTP ${res.status}).`);
-  }
+  if (!res.ok) throw new Error(`Failed to delete agenda items: ${res.status}`);
 }
 
 /* -------- Timer settings (REST) -------- */

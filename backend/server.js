@@ -181,48 +181,93 @@ app.get('/agenda_items', async (req, res) => {
   }
 });
 
-app.post('/agenda_items/batch-process', async (req, res) => {
-  const { meeting_id, items } = req.body;
-  if (!meeting_id) return res.status(400).json({ success: false, error: 'Missing meeting_id' });
-  if (!Array.isArray(items) || !items.length) {
-    return res.status(400).json({ success: false, error: 'Invalid payload' });
-  }
+// app.post('/agenda_items/batch-process', async (req, res) => {
+//   const { meeting_id, items } = req.body;
+//   if (!meeting_id) return res.status(400).json({ success: false, error: 'Missing meeting_id' });
+//   if (!Array.isArray(items) || !items.length) {
+//     return res.status(400).json({ success: false, error: 'Invalid payload' });
+//   }
 
-  const now = new Date().toISOString();
-  const statusCase = [];
-  const processedAtCase = [];
-  const values = [meeting_id];
-  const processedAtValues = [];
+//   const now = new Date().toISOString();
+//   const statusCase = [];
+//   const processedAtCase = [];
+//   const values = [meeting_id];
+//   const processedAtValues = [];
 
-  items.forEach(({ id, isProcessed }, idx) => {
-    const idPos = idx + 2;
-    const processedAtPos = idPos + items.length;
+//   items.forEach(({ id, isProcessed }, idx) => {
+//     const idPos = idx + 2;
+//     const processedAtPos = idPos + items.length;
 
-    statusCase.push(`WHEN id = $${idPos} THEN '${isProcessed ? 'processed' : 'pending'}'`);
-    processedAtCase.push(`WHEN id = $${idPos} THEN $${processedAtPos}::timestamptz`);
+//     statusCase.push(`WHEN id = $${idPos} THEN '${isProcessed ? 'processed' : 'pending'}'`);
+//     processedAtCase.push(`WHEN id = $${idPos} THEN $${processedAtPos}::timestamptz`);
 
-    values.push(id);
-    processedAtValues.push(isProcessed ? now : null);
-  });
+//     values.push(id);
+//     processedAtValues.push(isProcessed ? now : null);
+//   });
 
-  values.push(...processedAtValues);
-  const idPlaceholders = values.slice(1, items.length + 1).map((_, i) => `$${i + 2}`).join(', ');
+//   values.push(...processedAtValues);
+//   const idPlaceholders = values.slice(1, items.length + 1).map((_, i) => `$${i + 2}`).join(', ');
 
-  const query = `
-    UPDATE agenda_items
-    SET
-      status = CASE ${statusCase.join(' ')} END,
-      processed_at = CASE ${processedAtCase.join(' ')} END
-    WHERE meeting_id = $1
-      AND id IN (${idPlaceholders})
-  `;
+//   const query = `
+//     UPDATE agenda_items
+//     SET
+//       status = CASE ${statusCase.join(' ')} END,
+//       processed_at = CASE ${processedAtCase.join(' ')} END
+//     WHERE meeting_id = $1
+//       AND id IN (${idPlaceholders})
+//   `;
+//   try {
+//     await pool.query(query, values);
+//     await agendaBroadcastFromDb(io, pool);
+//     res.json({ success: true, updated: items.length });
+//   } catch (err) {
+//     console.error('Batch update failed:', err);
+//     res.status(500).json({ success: false, error: err.message });
+//   }
+// });
+
+app.post('/agenda_items', async (req, res) => {
+  const { meeting_id, zoom_meeting_id, agenda_item, duration_seconds } = req.body;
   try {
-    await pool.query(query, values);
+    let resolvedMeetingId = meeting_id;
+
+    // Resolve Zoom meeting id -> internal UUID if provided
+    if (!resolvedMeetingId && zoom_meeting_id) {
+      const { rows } = await pool.query(
+        `SELECT id FROM meetings WHERE zoom_meeting_id = $1`,
+        [String(zoom_meeting_id).trim()]
+      );
+      if (!rows.length) {
+        return res.status(404).json({ success: false, error: 'No meeting found for zoom_meeting_id' });
+      }
+      resolvedMeetingId = rows[0].id;
+    }
+
+    if (!resolvedMeetingId || typeof resolvedMeetingId !== 'string') {
+      return res.status(400).json({ success: false, error: 'Missing meeting_id (or zoom_meeting_id to resolve it)' });
+    }
+
+    // Next order_index
+    const orderResult = await pool.query(
+      `SELECT COALESCE(MAX(order_index), -1) + 1 AS next_order_index
+       FROM agenda_items
+       WHERE meeting_id = $1::uuid`,
+      [resolvedMeetingId]
+    );
+    const nextOrderIndex = orderResult.rows[0].next_order_index;
+
+    const result = await pool.query(
+      `INSERT INTO agenda_items (meeting_id, agenda_item, duration_seconds, order_index)
+       VALUES ($1::uuid, $2, $3, $4)
+       RETURNING *`,
+      [resolvedMeetingId, agenda_item, duration_seconds, nextOrderIndex]
+    );
+
     await agendaBroadcastFromDb(io, pool);
-    res.json({ success: true, updated: items.length });
+    return res.json({ success: true, item: result.rows[0] });
   } catch (err) {
-    console.error('Batch update failed:', err);
-    res.status(500).json({ success: false, error: err.message });
+    console.error('POST /agenda_items failed:', err);
+    return res.status(500).json({ success: false, error: 'Failed to save agenda item' });
   }
 });
 
@@ -246,16 +291,45 @@ app.patch('/agenda_items/:id', async (req, res) => {
   }
 });
 
-app.delete('/agenda_items/:id', async (req, res) => {
-  const { id } = req.params;
+// app.delete('/agenda_items/:id', async (req, res) => {
+//   const { id } = req.params;
+//   try {
+//     const result = await pool.query('DELETE FROM agenda_items WHERE id::text = $1 RETURNING *', [id]);
+//     if (!result.rows.length) return res.status(404).json({ success: false, error: 'Agenda item not found' });
+//     await agendaBroadcastFromDb(io, pool);
+//     res.json({ success: true, item: result.rows[0] });
+//   } catch (err) {
+//     console.error('Error deleting agenda item:', err);
+//     res.status(500).json({ success: false, error: 'Could not delete agenda item' });
+//   }
+// });
+
+app.delete('/agenda_items', async (req, res) => {
+  const { meeting_id, zoom_meeting_id } = req.query;
   try {
-    const result = await pool.query('DELETE FROM agenda_items WHERE id::text = $1 RETURNING *', [id]);
-    if (!result.rows.length) return res.status(404).json({ success: false, error: 'Agenda item not found' });
+    let resolvedMeetingId = meeting_id;
+
+    if (!resolvedMeetingId && zoom_meeting_id) {
+      const { rows } = await pool.query(
+        `SELECT id FROM meetings WHERE zoom_meeting_id = $1`,
+        [String(zoom_meeting_id).trim()]
+      );
+      if (!rows.length) {
+        return res.status(404).json({ success: false, error: 'No meeting found for zoom_meeting_id' });
+      }
+      resolvedMeetingId = rows[0].id;
+    }
+
+    if (!resolvedMeetingId || typeof resolvedMeetingId !== 'string') {
+      return res.status(400).json({ success: false, error: 'Missing meeting_id (or zoom_meeting_id to resolve it)' });
+    }
+
+    await pool.query(`DELETE FROM agenda_items WHERE meeting_id = $1::uuid`, [resolvedMeetingId]);
     await agendaBroadcastFromDb(io, pool);
-    res.json({ success: true, item: result.rows[0] });
-  } catch (err) {
-    console.error('Error deleting agenda item:', err);
-    res.status(500).json({ success: false, error: 'Could not delete agenda item' });
+    return res.json({ success: true, message: 'All agenda items cleared' });
+  } catch (error) {
+    console.error('DELETE /agenda_items failed:', error);
+    return res.status(500).json({ success: false, error: 'Failed to clear agenda items' });
   }
 });
 
