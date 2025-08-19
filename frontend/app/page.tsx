@@ -58,10 +58,10 @@ function HomeContent() {
 
         // Log to console for now the meeting id
         console.log(
-          `[Zoom Apps] meetingID=${meetingCtx?.meetingID} | eetingUUID=${meetingUUID?.meetingUUID} | meetingTopic=${meetingCtx?.meetingTopic}`
+          `[Zoom Apps] meetingID=${meetingCtx?.meetingID} | meetingUUID=${meetingUUID?.meetingUUID} | meetingTopic=${meetingCtx?.meetingTopic}`
         );
         console.log(
-          `[Zoom Apps] user screenName=${userCtx?.screenName} | participantId=${userCtx?.participantUUID} | role=${userCtx?.role} | status=${userCtx?.status}`
+          `[Zoom Apps] user screenName=${userCtx?.screenName} | participantUUId=${userCtx?.participantUUID} | role=${userCtx?.role} | status=${userCtx?.status}`
         );
         // Default view: participant unless Zoom says host
         setRole(userCtx?.role === "host" ? "host" : "participant");
