@@ -10,6 +10,8 @@ import { initSettingsSockets } from "@/sockets/settings";
 import { socket } from "../sockets/socket";
 import { MEETING_ID } from "@/config/constants";
 import zoomSdk from "@zoom/appssdk";
+import { fetchAgendaItemsOnMount } from "../services/agendaService";
+
 
 import Agenda from "@/components/Agenda";
 import Settings from "@/components/Settings";
@@ -31,8 +33,8 @@ function HomeContent() {
 
   const [mounted, setMounted] = React.useState(false); // 👈 gate hydration
   //
-  const { isEditingMode, showSettings } = useAgendaStore();
-  
+  const { isEditingMode, showSettings, setAgendaItems } = useAgendaStore();
+    
   /* Initialize Zoom Apps SDK and log meeting & user IDs when running inside Zoom
   *
   *  meetingCtx?.meetingID = meeting ID
@@ -60,6 +62,14 @@ function HomeContent() {
         console.log(
           `[Zoom Apps] user screenName=${userCtx?.screenName} | participantId=${userCtx?.participantUUID} | role=${userCtx?.role} | status=${userCtx?.status}`
         );
+        if (meetingCtx?.meetingID) {
+          try {
+            const items = await fetchAgendaItemsOnMount(meetingCtx.meetingID);
+            setAgendaItems(items);
+          } catch (err) {
+            console.error("Error fetching agenda items:", err);
+          }
+        }
 
       } catch (e) {
         // Not running inside Zoom or SDK not available; keep silent in production
@@ -69,7 +79,7 @@ function HomeContent() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [setAgendaItems]);
 
   
   // emit initial socket events

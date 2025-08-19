@@ -16,15 +16,21 @@ export interface AgendaItemPayload {
   isProcessed: boolean;
 }
 
-export async function fetchAgendaItemsOnMount(): Promise<AgendaItemPayload[]> {
-  const res = await fetch(`${BACKEND_URL}/agenda_items?meeting_id=${MEETING_ID}`);
+export async function fetchAgendaItemsOnMount(meetingId: string): Promise<AgendaItemType[]> {
+  const res = await fetch(`${BACKEND_URL}/agenda_items?meeting_id=${meetingId}`);
   if (!res.ok) throw new Error(`Failed to fetch agenda items: ${res.status}`);
   const body = (await res.json()) as { items: AgendaItemResponse[] };
   return body.items.map((item) => ({
     id: item.id,
     text: item.agenda_item,
-    duration_seconds: item.duration_seconds,
+    originalText: item.agenda_item,
+    isNew: false,
+    isEdited: false,
+    isDeleted: false,
     isProcessed: item.status === "processed",
+    timerValue: item.duration_seconds ?? 0,
+    originalTimerValue: item.duration_seconds ?? 0,
+    isEditedTimer: false,
   }));
 }
 

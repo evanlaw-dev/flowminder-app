@@ -1,15 +1,14 @@
 "use client";
-import React, { useEffect } from "react";
+// import React, { useEffect } from "react";
 import AgendaItem from "./AgendaItem";
 import BtnAddAgendaItem from "./BtnAddAgendaItem";
 import { useAgendaStore } from '../stores/useAgendaStore';
-import { fetchAgendaItemsOnMount } from '../services/agendaService';
+// Agenda data is loaded by the parent (page.tsx) and pushed into the store.
 import DropdownMenu from "./DropdownMenu";
 import '../app/globals.css';
 
 export default function Agenda({ role = "participant" }: { role?: "host" | "participant" }) {
   const {
-    loadItems,
     addItem,
     changeItem,
     removeItem,
@@ -19,7 +18,6 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
     isEditingMode,
     getCurrentItem,
     getVisibleItems,
-    refreshToken,
     lastAddedItemId,
   } = useAgendaStore();
 
@@ -27,15 +25,7 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
   const currentItem = getCurrentItem();
   const visibleItems = getVisibleItems();
 
-  // Fetch agenda items on mount
-  useEffect(() => {
-    fetchAgendaItemsOnMount()
-      .then(loadItems)
-      .catch((err) => {
-        console.error(err);
-        alert("Could not load agenda items");
-      });
-  }, [loadItems, refreshToken]);
+  // Agenda data is loaded by the parent (page.tsx) and pushed into the store.
 
   return (
     <>
