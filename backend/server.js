@@ -21,7 +21,6 @@ app.use(express.json());
 
 app.get('/', (_, res) => res.send('Server is running'));
 
-app.use("/state", stateRoutes);
 // Zoom routes
 app.use('/zoom', zoomRoutes);
 app.use('/api/meetings', meetingRoutes);
@@ -268,7 +267,7 @@ app.put('/meetings/zoom/:zoom_meeting_id', async (req, res) => {
 
   try {
     const pre = await pool.query(
-      'SELECT id FROM public.meetings WHERE zoom_meeting_id = $1',
+      'SELECT * FROM public.meetings WHERE zoom_meeting_id = $1',
       [zoom_meeting_id]
     );
     const existed = pre.rows.length > 0;
