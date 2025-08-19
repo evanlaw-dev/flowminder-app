@@ -1,4 +1,4 @@
 module.exports = {
-  MEETING_ID: '64ca6b89-8df7-458f-a2f1-bcd4e41b1614',
+  MEETING_ID: '7b7ec3d8-0c46-4c51-aa9a-45f257031a44',
   BACKEND_URL: 'https://flowminder-app.onrender.com',
 };
