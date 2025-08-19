@@ -9,9 +9,8 @@ import { initSettingsSockets } from "@/sockets/settings";
 import { socket } from "../sockets/socket";
 import zoomSdk from "@zoom/appssdk";
 import {
-  BACKEND_URL,
   setMeetingId as setFrontendMeetingId,
-  setCurrentUserId as setFrontendCurrentUserId,
+  // setCurrentUserId as setFrontendCurrentUserId,
   syncMeetingToBackend,
 } from "../config/constants";
 
@@ -36,28 +35,9 @@ function HomeContent() {
   // IMPORTANT: this component-level meetingId will now hold the *canonical* UUID from your DB,
   // not the Zoom natural meetingID. Same for the global constants we set.
   const [meetingId, setMeetingIdState] = React.useState<string | null>(null);
-  const [userId, setUserIdState] = React.useState<string | null>(null);
+  const [userId ] = React.useState<string | null>(null);
 
   const { isEditingMode, showSettings } = useAgendaStore();
-
-  // --- helper: set backend in-memory MEETING_ID (backend/config/state.js) ---
-  async function setBackendMeetingId(uuid: string) {
-    try {
-      const res = await fetch(`${BACKEND_URL}/state/meeting`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: uuid }),
-      });
-      if (!res.ok) {
-        const t = await res.text().catch(() => "");
-        console.error("[Home] backend state set failed:", res.status, t);
-      } else if (process.env.NODE_ENV !== "production") {
-        console.log("[Home] backend state MEETING_ID set:", uuid);
-      }
-    } catch (e) {
-      console.error("[Home] backend state set threw:", e);
-    }
-  }
 
   // Initialize Zoom SDK and capture IDs, then:
   // - upsert meeting with Zoom ID
@@ -78,29 +58,25 @@ function HomeContent() {
         ]);
 
         if (!isAlive) return;
-          console.log(
+        console.log(
             `[Zoom Apps] meetingID=${meetingCtx?.meetingID} | meetingTopic=${meetingCtx?.meetingTopic}`
           );
-          console.log(
+        console.log(
             `[Zoom Apps] user screenName=${userCtx?.screenName} | participantId=${userCtx?.participantUUID} | role=${userCtx?.role} | status=${userCtx?.status}`
           );
 
         setRole(userCtx?.role === "host" ? "host" : "participant");
 
         const zoomMeetingId = meetingCtx?.meetingID;
-        const participantUUID = userCtx?.participantUUID;
 
-        // Always set the user id locally + global (unchanged behavior)
-        setUserIdState(participantUUID);
-        setFrontendCurrentUserId(participantUUID);
-
-        // ---- Upsert using Zoom natural ID, then pull canonical UUID from backend ----
+        // ---- Upsert using Zoom ID, then pull canonical UUID from backend ----
         let canonicalMeetingUUID: string | null = null;
 
         if (zoomMeetingId) {
           const synced = await syncMeetingToBackend(zoomMeetingId);
-          console.log(synced);
           canonicalMeetingUUID = synced?.meetingRowId ?? null;
+          console.log(zoomMeetingId);
+          console.log("and");
           console.log(canonicalMeetingUUID);
         }
 
@@ -111,9 +87,6 @@ function HomeContent() {
 
           // Frontend global constants state
           setFrontendMeetingId(canonicalMeetingUUID);
-
-          // Backend in-memory state (backend/config/state.js)
-          await setBackendMeetingId(canonicalMeetingUUID);
         } else {
           console.warn(
             "[Home] No canonical meeting UUID returned from backend; sockets and timers may not initialize correctly."

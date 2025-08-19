@@ -27,14 +27,29 @@ export default function Agenda({ role = "participant" }: { role?: "host" | "part
   const currentItem = getCurrentItem();
   const visibleItems = getVisibleItems();
 
-  // Fetch agenda items on mount
+  // Fetch agenda items on mount - retry x15 every 1s
   useEffect(() => {
-    fetchAgendaItemsOnMount()
-      .then(loadItems)
-      .catch((err) => {
-        console.error(err);
-        alert("Could not load agenda items");
-      });
+    let attempts = 0;
+
+    const fetchWithRetry = async () => {
+      try {
+        const items = await fetchAgendaItemsOnMount();
+        loadItems(items);
+        clearInterval(intervalId);
+      } catch (err) {
+        attempts++;
+        if (attempts >= 15) {
+          clearInterval(intervalId);
+          console.error(err);
+          alert("Could not load agenda items after 15 attempts");
+        }
+      }
+    };
+
+    fetchWithRetry();
+    const intervalId = setInterval(fetchWithRetry, 1000); // ✅ const works here
+
+    return () => clearInterval(intervalId);
   }, [loadItems, refreshToken]);
 
   return (

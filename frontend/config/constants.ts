@@ -9,21 +9,17 @@ export function getMeetingId() {
 }
 export function setMeetingId(id: string | null) {
   _MEETING_ID = id ?? null;
-  if (process.env.NODE_ENV !== "production") {
-    console.log("[constants] meeting id set:", _MEETING_ID);
-  }
+  console.log("managed to set: " + _MEETING_ID);
 }
 export function getCurrentUserId() {
   return _CURRENT_USER_ID;
 }
 export function setCurrentUserId(id: string | null) {
   _CURRENT_USER_ID = id ?? null;
-  if (process.env.NODE_ENV !== "production") {
-    console.log("[constants] user id set:", _CURRENT_USER_ID);
-  }
 }
 
 // Helper to upsert a meeting by Zoom ID via your backend route.
+// 
 export async function syncMeetingToBackend(meetingId: string | null) {
   if (!meetingId) return null;
   console.log(meetingId + " from synced");
