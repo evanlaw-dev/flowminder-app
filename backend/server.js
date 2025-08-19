@@ -125,7 +125,7 @@ app.get('/agenda_items', async (req, res) => {
   if (!meeting_id) return res.status(400).json({ success: false, error: 'Missing meeting_id' });
   try {
     const result = await pool.query(
-      `SELECT id, meeting_id, agenda_item, duration_seconds, status
+      `SELECT id, meeting_id, agenda_item, duration_seconds, order_index
        FROM agenda_items
        WHERE meeting_id = $1
        ORDER BY
@@ -135,7 +135,7 @@ app.get('/agenda_items', async (req, res) => {
     );
     res.json({ success: true, items: result.rows });
   } catch (error) {
-    console.error('Error fetching agenda items:', error);
+    console.error('Error fetching agenda items:', error?.detail || error?.message || error);
     res.status(500).json({ success: false, error: 'Failed to fetch agenda items' });
   }
 });
