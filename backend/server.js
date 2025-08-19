@@ -273,9 +273,10 @@ app.put('/meetings/zoom/:zoom_meeting_id', async (req, res) => {
       [zoom_meeting_id]
     );
     const existed = pre.rows.length > 0;
-
-    const upsert = await pool.query(
-      `
+    
+    if (!existed) {
+      const upsert = await pool.query(
+        `
       INSERT INTO public.meetings (
         zoom_meeting_id,
         host_email,
@@ -304,23 +305,27 @@ app.put('/meetings/zoom/:zoom_meeting_id', async (req, res) => {
         host_id           = COALESCE(EXCLUDED.host_id,           public.meetings.host_id)
       RETURNING *;
       `,
-      [
-        zoom_meeting_id,
-        host_email,
-        meeting_title,
-        scheduled_start,
-        actual_start,
-        actual_end,
-        participant_count,
-        duration_seconds,
-        summary_notes,
-        host_id,
-      ]
-    );
-
-    const meeting = upsert.rows[0];
-    res.setHeader('Location', `/meetings/${meeting.id}`);
-    res.status(existed ? 200 : 201).json(meeting);
+        [
+          zoom_meeting_id,
+          host_email,
+          meeting_title,
+          scheduled_start,
+          actual_start,
+          actual_end,
+          participant_count,
+          duration_seconds,
+          summary_notes,
+          host_id,
+        ]
+      );
+        const meeting = upsert.rows[0];
+        res.setHeader('Location', `/meetings/${meeting.id}`);
+        res.status(existed ? 200 : 201).json(meeting);
+      } else {
+        const meeting = pre.rows[0];
+        res.setHeader('Location', `/meetings/${meeting.id}`);
+        res.status(existed ? 200 : 201).json(meeting);
+    }
   } catch (err) {
     console.error('PUT /meetings/zoom/:zoom_meeting_id failed:', {
       message: err?.message,
