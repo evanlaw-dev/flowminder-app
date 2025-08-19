@@ -19,10 +19,10 @@ const meetingRoutes = require('./routes/meetingRoutes');
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use("/state", stateRoutes);
 
 app.get('/', (_, res) => res.send('Server is running'));
 
+app.use("/state", stateRoutes);
 // Zoom routes
 app.use('/zoom', zoomRoutes);
 app.use('/api/meetings', meetingRoutes);
@@ -92,7 +92,7 @@ app.post('/agenda_items', async (req, res) => {
        WHERE meeting_id = $1`,
       [meeting_id]
     );
-    
+
     const nextOrderIndex = orderResult.rows[0].next_order_index;
 
     const result = await pool.query(
@@ -245,38 +245,35 @@ app.post('/nudge', async (req, res) => {
 // - Returns the full meeting record (including canonical UUID `id`)
 // - 201 Created if inserted, 200 OK if it already existed
 
+// Ensure this UNIQUE exists once:
+// ALTER TABLE public.meetings
+//   ADD CONSTRAINT meetings_zoom_meeting_id_key UNIQUE (zoom_meeting_id);
+
 app.put('/meetings/zoom/:zoom_meeting_id', async (req, res) => {
   const { zoom_meeting_id } = req.params;
   if (!zoom_meeting_id) {
     return res.status(400).json({ error: 'zoom_meeting_id is required in the path' });
   }
 
-  // Accept optional fields to set at creation/update time.
-  // (Anything omitted remains as-is on update, or defaults on create.)
   const {
     host_email = null,
     meeting_title = null,
     scheduled_start = null,
     actual_start = null,
     actual_end = null,
-    meeting_status = null, // must be one of: scheduled | in_progress | ended | cancelled (per your CHECK)
     participant_count = null,
     duration_seconds = null,
     summary_notes = null,
     host_id = null,
-    timer_settings = null, // if provided, will replace existing JSON (else left as-is)
   } = req.body || {};
 
   try {
-    // Check existence to decide status code (201 vs 200).
     const pre = await pool.query(
       'SELECT id FROM public.meetings WHERE zoom_meeting_id = $1',
       [zoom_meeting_id]
     );
     const existed = pre.rows.length > 0;
 
-    // Upsert: on conflict, only overwrite fields that were provided (non-null in EXCLUDED).
-    // COALESCE(EXCLUDED.col, meetings.col) preserves existing values when body omitted/left null.
     const upsert = await pool.query(
       `
       INSERT INTO public.meetings (
@@ -290,23 +287,22 @@ app.put('/meetings/zoom/:zoom_meeting_id', async (req, res) => {
         participant_count,
         duration_seconds,
         summary_notes,
-        host_id,
-        timer_settings
+        host_id
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-      ON CONFLICT (zoom_meeting_id) DO UPDATE SET
+      VALUES ($1,$2,$3,$4,$5,$6,'in_progress',$7,$8,$9,$10)
+      ON CONFLICT ON CONSTRAINT meetings_zoom_meeting_id_key DO UPDATE
+      SET
         host_email        = COALESCE(EXCLUDED.host_email,        public.meetings.host_email),
         meeting_title     = COALESCE(EXCLUDED.meeting_title,     public.meetings.meeting_title),
         scheduled_start   = COALESCE(EXCLUDED.scheduled_start,   public.meetings.scheduled_start),
         actual_start      = COALESCE(EXCLUDED.actual_start,      public.meetings.actual_start),
         actual_end        = COALESCE(EXCLUDED.actual_end,        public.meetings.actual_end),
-        meeting_status    = COALESCE(EXCLUDED.meeting_status,    public.meetings.meeting_status),
+        meeting_status    = 'in_progress',
         participant_count = COALESCE(EXCLUDED.participant_count, public.meetings.participant_count),
         duration_seconds  = COALESCE(EXCLUDED.duration_seconds,  public.meetings.duration_seconds),
         summary_notes     = COALESCE(EXCLUDED.summary_notes,     public.meetings.summary_notes),
-        host_id           = COALESCE(EXCLUDED.host_id,           public.meetings.host_id),
-        timer_settings    = COALESCE(EXCLUDED.timer_settings,    public.meetings.timer_settings)
-      RETURNING *
+        host_id           = COALESCE(EXCLUDED.host_id,           public.meetings.host_id)
+      RETURNING *;
       `,
       [
         zoom_meeting_id,
@@ -315,25 +311,29 @@ app.put('/meetings/zoom/:zoom_meeting_id', async (req, res) => {
         scheduled_start,
         actual_start,
         actual_end,
-        meeting_status,
         participant_count,
         duration_seconds,
         summary_notes,
         host_id,
-        timer_settings,
       ]
     );
 
     const meeting = upsert.rows[0];
-    // Canonical URL uses the UUID `id`
     res.setHeader('Location', `/meetings/${meeting.id}`);
     res.status(existed ? 200 : 201).json(meeting);
   } catch (err) {
-    // If the CHECK constraint for meeting_status or the FK for host_id fails, Postgres will throw.
-    console.error('PUT /meetings/zoom/:zoom_meeting_id failed:', err);
+    console.error('PUT /meetings/zoom/:zoom_meeting_id failed:', {
+      message: err?.message,
+      code: err?.code,
+      detail: err?.detail,
+      position: err?.position,
+      stack: err?.stack,
+    });
     return res.status(500).json({ error: 'Failed to upsert meeting' });
   }
 });
+
+
 
 app.get('/meetings/:id/timer-settings', async (req, res) => {
   const { id } = req.params;
